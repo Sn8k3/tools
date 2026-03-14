@@ -3,103 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Study App Prototype</title>
+  <title>My Study App</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
 
   <!-- Header -->
-  <header class="bg-blue-600 text-white p-4 text-center">
-    <h1 class="text-3xl font-bold">My Study App</h1>
-    <p class="mt-1">Prototype of your top study tools</p>
+  <header class="bg-blue-600 text-white p-6 text-center">
+    <h1 class="text-4xl font-bold">My Study App</h1>
+    <p class="mt-2 text-lg">Your study tools, all in one place</p>
   </header>
 
-  <!-- Navigation -->
-  <nav class="bg-white shadow p-4 flex justify-around">
-    <a href="#notes" class="text-blue-600 font-semibold">Notes Library</a>
-    <a href="#essay" class="text-blue-600 font-semibold">Essay Editor</a>
-    <a href="#avatar" class="text-blue-600 font-semibold">XP & Avatar</a>
-  </nav>
+  <!-- Features Grid -->
+  <main class="p-6">
+    <h2 class="text-2xl font-bold mb-4">Features</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-  <main class="p-6 space-y-12">
+      <a href="notes.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Notes Library</h3>
+        <p>Upload, store, and view your study notes.</p>
+      </a>
 
-    <!-- Notes Upload + Library -->
-    <section id="notes" class="bg-white p-6 rounded shadow">
-      <h2 class="text-2xl font-bold mb-4">Notes Library</h2>
-      <input type="file" id="noteUpload" multiple class="border p-2 rounded w-full mb-2">
-      <button onclick="addNotes()" class="bg-blue-600 text-white px-4 py-2 rounded">Add Notes</button>
+      <a href="essay.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Essay Editor</h3>
+        <p>Write essays and get instant feedback.</p>
+      </a>
 
-      <h3 class="mt-4 font-semibold">Your Notes:</h3>
-      <ul id="noteList" class="list-disc list-inside mt-2"></ul>
-    </section>
+      <a href="avatar.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">XP & Avatar</h3>
+        <p>Complete tasks, earn XP, and upgrade your avatar.</p>
+      </a>
 
-    <!-- Essay Editor + Feedback -->
-    <section id="essay" class="bg-white p-6 rounded shadow">
-      <h2 class="text-2xl font-bold mb-4">Essay Editor</h2>
-      <textarea id="essayText" rows="6" class="border p-2 rounded w-full mb-2" placeholder="Write your essay here..."></textarea>
-      <button onclick="checkEssay()" class="bg-green-600 text-white px-4 py-2 rounded">Check Essay</button>
+      <a href="uploads.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Uploads</h3>
+        <p>Upload PDFs, audio, or YouTube videos to store notes.</p>
+      </a>
 
-      <h3 class="mt-4 font-semibold">Feedback:</h3>
-      <div id="essayFeedback" class="mt-2 text-gray-700"></div>
-    </section>
+      <a href="planner.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Study Planner</h3>
+        <p>Create a personalized plan for your assignments and study sessions.</p>
+      </a>
 
-    <!-- XP & Avatar -->
-    <section id="avatar" class="bg-white p-6 rounded shadow">
-      <h2 class="text-2xl font-bold mb-4">XP & Avatar</h2>
-      <p class="mb-2">Your XP: <span id="xp">0</span></p>
-      <img id="avatarImg" src="https://via.placeholder.com/100" class="mb-2 rounded-full" alt="Avatar">
-      <button onclick="gainXP()" class="bg-purple-600 text-white px-4 py-2 rounded">Complete Task (+10 XP)</button>
-    </section>
+      <a href="games.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Notes → Games</h3>
+        <p>Transform your notes into quizzes and interactive games.</p>
+      </a>
 
+      <a href="mindmap.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Mind Map Creator</h3>
+        <p>Visualize concepts and connect ideas for better memory.</p>
+      </a>
+
+      <a href="mnemonics.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Memory Aid Generator</h3>
+        <p>Turn difficult info into mnemonics and memory tricks.</p>
+      </a>
+
+      <a href="active-recall.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Active Recall Quiz</h3>
+        <p>Test yourself by generating quizzes from your notes.</p>
+      </a>
+
+      <a href="pomodoro.html" class="bg-white shadow rounded p-4 hover:bg-blue-50">
+        <h3 class="text-xl font-semibold mb-2">Pomodoro Timer</h3>
+        <p>Focus with timed study sessions and short breaks.</p>
+      </a>
+
+    </div>
   </main>
-
-  <!-- Scripts -->
-  <script>
-    // --- Notes Upload ---
-    const noteList = [];
-    function addNotes(){
-      const files = document.getElementById('noteUpload').files;
-      for(let i=0; i<files.length; i++){
-        noteList.push(files[i].name);
-      }
-      renderNotes();
-    }
-    function renderNotes(){
-      const ul = document.getElementById('noteList');
-      ul.innerHTML = '';
-      noteList.forEach(note => {
-        const li = document.createElement('li');
-        li.textContent = note;
-        ul.appendChild(li);
-      });
-    }
-
-    // --- Essay Feedback ---
-    function checkEssay(){
-      const text = document.getElementById('essayText').value;
-      let feedback = '';
-      if(text.length < 50){
-        feedback = 'Essay is too short. Expand your ideas.';
-      } else if(!text.includes('.')){
-        feedback = 'Try adding more complete sentences.';
-      } else {
-        feedback = 'Looks good! Consider adding examples.';
-      }
-      document.getElementById('essayFeedback').innerText = feedback;
-    }
-
-    // --- XP & Avatar ---
-    let xp = 0;
-    function gainXP(){
-      xp += 10;
-      document.getElementById('xp').innerText = xp;
-      // Upgrade avatar at milestones
-      const avatar = document.getElementById('avatarImg');
-      if(xp >= 50){
-        avatar.src = 'https://via.placeholder.com/100/FFD700/000000?text=Pro';
-      }
-    }
-  </script>
 
 </body>
 </html>
