@@ -1,100 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Notes Library</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes Library - Polished PDF</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- jsPDF CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="bg-gray-100 font-sans">
 
-  <!-- Navigation -->
-  <nav class="bg-white shadow p-4 flex justify-around">
-    <a href="index.html" class="text-blue-600 font-semibold">Home</a>
-    <a href="notes.html" class="text-blue-600 font-semibold">Notes</a>
-    <a href="essay.html" class="text-blue-600 font-semibold">Essay</a>
-    <a href="avatar.html" class="text-blue-600 font-semibold">XP & Avatar</a>
-  </nav>
+<nav class="bg-white shadow p-4 flex justify-around">
+  <a href="index.html" class="text-blue-600 font-semibold">Home</a>
+  <a href="notes.html" class="text-blue-600 font-semibold">Notes</a>
+</nav>
 
-  <main class="p-6">
-    <h1 class="text-3xl font-bold mb-4">Notes Library</h1>
+<main class="p-6">
+  <h1 class="text-3xl font-bold mb-4">Notes Library</h1>
 
-    <!-- Upload -->
-    <input type="file" id="noteUpload" multiple class="border p-2 rounded w-full mb-2">
-    <button onclick="addNotes()" class="bg-blue-600 text-white px-4 py-2 rounded mb-4">Add Notes</button>
+  <!-- Upload -->
+  <input type="file" id="noteUpload" multiple class="border p-2 rounded w-full mb-2">
+  <button onclick="addNotes()" class="bg-blue-600 text-white px-4 py-2 rounded mb-4">Add Notes</button>
 
-    <!-- Search -->
-    <input type="text" id="searchBar" placeholder="Search notes..." onkeyup="filterNotes()" class="border p-2 rounded w-full mb-4">
+  <!-- Notes List -->
+  <ul id="noteList" class="list-disc list-inside space-y-2"></ul>
+</main>
 
-    <!-- Notes List -->
-    <ul id="noteList" class="list-disc list-inside space-y-1"></ul>
-  </main>
+<script>
+const noteList = [];
 
-  <script>
-    let noteList = [];
+function addNotes() {
+  const files = document.getElementById('noteUpload').files;
+  for (let i = 0; i < files.length; i++) {
+    noteList.push(files[i]);
+  }
+  renderNotes();
+}
 
-    // Add files to list
-    function addNotes(){
-      const files = document.getElementById('noteUpload').files;
-      for(let i=0; i<files.length; i++){
-        noteList.push({name: files[i].name, file: files[i]});
-      }
-      renderNotes();
-    }
+function renderNotes() {
+  const ul = document.getElementById('noteList');
+  ul.innerHTML = '';
 
-    // Display notes
-    function renderNotes(){
-      const ul = document.getElementById('noteList');
-      ul.innerHTML = '';
-      noteList.forEach((note, index) => {
-        const li = document.createElement('li');
-        li.classList.add("flex","justify-between","items-center","bg-white","p-2","rounded","shadow");
+  noteList.forEach((file, index) => {
+    const li = document.createElement('li');
+    li.classList.add("flex", "justify-between", "items-center", "bg-white", "p-2", "rounded", "shadow");
 
-        const span = document.createElement('span');
-        span.textContent = note.name;
-        li.appendChild(span);
+    const span = document.createElement('span');
+    span.textContent = file.name;
+    li.appendChild(span);
 
-        const downloadBtn = document.createElement('button');
-        downloadBtn.textContent = "Download";
-        downloadBtn.classList.add("bg-green-600","text-white","px-2","py-1","rounded","ml-2");
-        downloadBtn.onclick = () => downloadNote(note.file);
-        li.appendChild(downloadBtn);
+    const polishBtn = document.createElement('button');
+    polishBtn.textContent = "Polish PDF";
+    polishBtn.classList.add("bg-green-600", "text-white", "px-2", "py-1", "rounded", "ml-2");
+    polishBtn.onclick = () => polishPDF(file);
+    li.appendChild(polishBtn);
 
-        ul.appendChild(li);
-      });
-    }
+    ul.appendChild(li);
+  });
+}
 
-    // Download functionality
-    function downloadNote(file){
-      const url = URL.createObjectURL(file);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+// Simulate AI polished PDF
+async function polishPDF(file) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
 
-    // Search notes
-    function filterNotes(){
-      const query = document.getElementById('searchBar').value.toLowerCase();
-      const filtered = noteList.filter(note => note.name.toLowerCase().includes(query));
-      const ul = document.getElementById('noteList');
-      ul.innerHTML = '';
-      filtered.forEach(note => {
-        const li = document.createElement('li');
-        li.classList.add("flex","justify-between","items-center","bg-white","p-2","rounded","shadow");
-        const span = document.createElement('span');
-        span.textContent = note.name;
-        li.appendChild(span);
-        const downloadBtn = document.createElement('button');
-        downloadBtn.textContent = "Download";
-        downloadBtn.classList.add("bg-green-600","text-white","px-2","py-1","rounded","ml-2");
-        downloadBtn.onclick = () => downloadNote(note.file);
-        li.appendChild(downloadBtn);
-        ul.appendChild(li);
-      });
-    }
-  </script>
+  // Title
+  pdf.setFontSize(20);
+  pdf.text("Polished Notes", 20, 20);
+
+  // File name
+  pdf.setFontSize(12);
+  pdf.text(`Original File: ${file.name}`, 20, 30);
+
+  // Placeholder content (simulate cleaning & adding definitions)
+  pdf.text("• This is a polished version of your notes.", 20, 50);
+  pdf.text("• Key definitions highlighted.", 20, 60);
+  pdf.text("• Drawings / diagrams could be added here.", 20, 70);
+
+  // Download PDF
+  pdf.save(`${file.name.replace(/\.[^/.]+$/, "")}_Polished.pdf`);
+}
+</script>
 
 </body>
 </html>
