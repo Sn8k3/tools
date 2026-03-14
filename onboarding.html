@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to Notiv</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e0e10; --surface: #17171a; --surface2: #1f1f24; --surface3: #252529;
+  --border: #2a2a30; --border2: #38383f;
+  --text: #eeecea; --text2: #9b9899; --text3: #5c5a5e;
+  --accent: #c8f05e; --accent-dim: rgba(200,240,94,0.10); --accent-border: rgba(200,240,94,0.25);
+  --purple: #9d7bea; --purple-dim: rgba(157,123,234,0.12); --purple-border: rgba(157,123,234,0.3);
+  --coral: #f0635a; --amber: #f0b05a;
+  --radius: 10px; --radius-lg: 16px;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Instrument Sans', sans-serif; font-size: 15px;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 24px;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% 10%, rgba(200,240,94,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 10% 90%, rgba(157,123,234,0.06) 0%, transparent 60%);
+}
+
+/* ── Progress dots ── */
+.progress-dots {
+  display: flex; gap: 8px; margin-bottom: 32px; position: relative; z-index: 1;
+}
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border2); transition: all 0.3s;
+}
+.dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+.dot.done { background: var(--accent); opacity: 0.4; }
+
+/* ── Card ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 40px;
+  width: 100%; max-width: 480px;
+  display: flex; flex-direction: column; gap: 28px;
+  position: relative; z-index: 1;
+  animation: fade-up 0.3s ease;
+}
+@keyframes fade-up { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+.card-header { display: flex; flex-direction: column; gap: 6px; }
+.step-label {
+  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--accent);
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.card-title { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1.15; }
+.card-sub { font-size: 14px; color: var(--text2); line-height: 1.6; }
+
+/* ── Steps ── */
+.step { display: none; flex-direction: column; gap: 28px; }
+.step.active { display: flex; animation: fade-up 0.25s ease; }
+
+/* Fields */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; color: var(--text3); }
+.field input, .field textarea {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 11px 14px;
+  font-family: inherit; font-size: 15px; color: var(--text);
+  outline: none; transition: border-color 0.15s;
+}
+.field input:focus, .field textarea:focus { border-color: var(--accent-border); }
+.field input::placeholder, .field textarea::placeholder { color: var(--text3); }
+.field-hint { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.field-error { font-size: 12px; color: var(--coral); margin-top: 2px; display: none; }
+.field-error.visible { display: block; }
+
+/* Username availability */
+.username-wrap { position: relative; }
+.username-status {
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px; font-family: 'DM Mono', monospace;
+}
+.username-status.available { color: var(--accent); }
+.username-status.taken { color: var(--coral); }
+.username-status.checking { color: var(--text3); }
+
+/* Avatar emoji picker */
+.avatar-section { display: flex; flex-direction: column; gap: 12px; }
+.avatar-preview {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--accent-dim); border: 2px solid var(--accent-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; margin: 0 auto; cursor: pointer;
+  transition: transform 0.15s;
+}
+.avatar-preview:hover { transform: scale(1.05); }
+.avatar-label { text-align: center; font-size: 12px; color: var(--text3); }
+.emoji-grid {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px;
+}
+.emoji-btn {
+  width: 100%; aspect-ratio: 1; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); cursor: pointer; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.emoji-btn:hover { border-color: var(--border2); background: var(--surface3); }
+.emoji-btn.selected { border-color: var(--accent-border); background: var(--accent-dim); }
+
+/* Subject chips */
+.chips-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 6px 14px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface2);
+  font-size: 13px; color: var(--text2); cursor: pointer;
+  transition: all 0.12s; user-select: none;
+}
+.chip:hover { border-color: var(--border2); color: var(--text); }
+.chip.selected { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
+
+/* Goal cards */
+.goal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.goal-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+  cursor: pointer; transition: all 0.12s; text-align: center;
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.goal-card:hover { border-color: var(--border2); }
+.goal-card.selected { border-color: var(--accent-border); background: var(--accent-dim); }
+.goal-icon { font-size: 24px; }
+.goal-label { font-size: 13px; color: var(--text); font-weight: 500; }
+.goal-sub { font-size: 11px; color: var(--text3); line-height: 1.4; }
+
+/* Study level */
+.level-grid { display: flex; flex-direction: column; gap: 8px; }
+.level-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface2);
+  cursor: pointer; transition: all 0.12s;
+}
+.level-row:hover { border-color: var(--border2); }
+.level-row.selected { border-color: var(--accent-border); background: var(--accent-dim); }
+.level-emoji { font-size: 20px; flex-shrink: 0; }
+.level-info { flex: 1; }
+.level-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.level-desc { font-size: 12px; color: var(--text3); }
+.level-check {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--border2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: all 0.12s;
+}
+.level-row.selected .level-check { background: var(--accent); border-color: var(--accent); color: #0e0e10; }
+
+/* Buttons */
+.btn-row { display: flex; gap: 8px; }
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 11px 20px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text2); font-family: inherit; font-size: 14px;
+  cursor: pointer; transition: all 0.12s; font-weight: 500;
+}
+.btn:hover { border-color: var(--border2); color: var(--text); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #0e0e10; font-weight: 600; flex: 1; }
+.btn.primary:hover:not(:disabled) { background: #d4f66e; }
+.btn.skip { color: var(--text3); font-size: 13px; border: none; background: none; padding: 11px 8px; }
+.btn.skip:hover { color: var(--text2); }
+
+/* Welcome / final step */
+.welcome-card {
+  text-align: center; display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+}
+.welcome-avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--accent-dim); border: 2px solid var(--accent-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+}
+.welcome-name { font-family: 'DM Serif Display', serif; font-size: 26px; }
+.welcome-sub { font-size: 14px; color: var(--text2); line-height: 1.6; max-width: 320px; }
+.feature-list {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  width: 100%; margin-top: 4px;
+}
+.feature-item {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+  font-size: 13px; color: var(--text2);
+  display: flex; align-items: center; gap: 8px;
+}
+
+.spinner { width: 16px; height: 16px; border: 2px solid rgba(14,14,16,0.3); border-top-color: #0e0e10; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="progress-dots" id="progress-dots"></div>
+
+<div class="card">
+
+  <!-- Step 1: Username + display name -->
+  <div class="step active" id="step-1">
+    <div class="card-header">
+      <div class="step-label">Step 1 of 4</div>
+      <div class="card-title">What should we call you?</div>
+      <div class="card-sub">Set up your username and display name.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="field">
+        <label>Username</label>
+        <div class="username-wrap">
+          <input type="text" id="username-input" placeholder="e.g. studygrind99" maxlength="24" oninput="checkUsername(this.value)">
+          <span class="username-status" id="username-status"></span>
+        </div>
+        <div class="field-hint">Letters, numbers, underscores only. Min 3 chars.</div>
+        <div class="field-error" id="username-error"></div>
+      </div>
+      <div class="field">
+        <label>Display name <span style="color:var(--text3);font-size:11px;">(optional)</span></label>
+        <input type="text" id="display-name-input" placeholder="e.g. Charlie" maxlength="32">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="nextStep(1)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Avatar -->
+  <div class="step" id="step-2">
+    <div class="card-header">
+      <div class="step-label">Step 2 of 4</div>
+      <div class="card-title">Pick your avatar</div>
+      <div class="card-sub">Choose an emoji that represents you.</div>
+    </div>
+    <div class="avatar-section">
+      <div class="avatar-preview" id="avatar-preview" onclick="randomAvatar()">🎓</div>
+      <div class="avatar-label">Click to randomise</div>
+      <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="prevStep(2)">← Back</button>
+      <button class="btn primary" onclick="nextStep(2)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Subjects + study level -->
+  <div class="step" id="step-3">
+    <div class="card-header">
+      <div class="step-label">Step 3 of 4</div>
+      <div class="card-title">What do you study?</div>
+      <div class="card-sub">We'll personalise your experience around your subjects.</div>
+    </div>
+    <div class="field">
+      <label>Subjects <span style="color:var(--text3);font-size:11px;">(pick any that apply)</span></label>
+      <div class="chips-wrap" id="subjects-chips"></div>
+    </div>
+    <div class="field">
+      <label>Study level</label>
+      <div class="level-grid" id="level-grid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="prevStep(3)">← Back</button>
+      <button class="btn primary" onclick="nextStep(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Goals -->
+  <div class="step" id="step-4">
+    <div class="card-header">
+      <div class="step-label">Step 4 of 4</div>
+      <div class="card-title">What's your main goal?</div>
+      <div class="card-sub">This helps us surface the most useful features first.</div>
+    </div>
+    <div class="goal-grid" id="goal-grid"></div>
+    <div class="btn-row">
+      <button class="btn" onclick="prevStep(4)">← Back</button>
+      <button class="btn primary" id="finish-btn" onclick="finishOnboarding()">Finish setup →</button>
+    </div>
+  </div>
+
+  <!-- Done -->
+  <div class="step" id="step-done">
+    <div class="welcome-card">
+      <div class="welcome-avatar" id="welcome-avatar">🎓</div>
+      <div class="welcome-name" id="welcome-name">Welcome!</div>
+      <div class="welcome-sub">Your profile is all set. Let's start studying.</div>
+      <div class="feature-list">
+        <div class="feature-item">📚 Notes Library</div>
+        <div class="feature-item">✏️ Essay Editor</div>
+        <div class="feature-item">🃏 Flashcards</div>
+        <div class="feature-item">📅 Study Planner</div>
+      </div>
+      <button class="btn primary" style="width:100%;margin-top:8px;" onclick="goToApp()">
+        Go to Notiv →
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uorlszhcjrblrbmhgyqb.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const TOTAL_STEPS = 4;
+let currentStep = 1;
+let selectedAvatar = '🎓';
+let selectedSubjects = [];
+let selectedLevel = '';
+let selectedGoal = '';
+let usernameOk = false;
+let usernameTimer = null;
+let currentUser = null;
+
+const EMOJIS = ['🎓','📚','✏️','🧠','🔬','🎨','💻','🎵','⚽','🌍','🏆','🚀','🦁','🐼','🦊','🌙','⚡','🔥','💎','🌈','🎯','🧩','🎲','🦋'];
+const SUBJECTS = ['Maths','Biology','Chemistry','Physics','History','English','Computer Science','Psychology','Economics','Geography','Art','Music','Philosophy','Law','Medicine','Languages'];
+const LEVELS = [
+  { emoji: '🏫', name: 'Middle School', desc: 'Grades 6–8', value: 'middle' },
+  { emoji: '🎒', name: 'High School', desc: 'Grades 9–12', value: 'high' },
+  { emoji: '🎓', name: 'University / College', desc: 'Undergraduate', value: 'university' },
+  { emoji: '🔬', name: 'Postgraduate', desc: "Master's / PhD", value: 'postgrad' },
+];
+const GOALS = [
+  { icon: '📝', label: 'Better notes', sub: 'Organise and polish my study materials', value: 'notes' },
+  { icon: '✍️', label: 'Writing skills', sub: 'Improve essays and written work', value: 'writing' },
+  { icon: '🧠', label: 'Active recall', sub: 'Memorise more with flashcards & quizzes', value: 'recall' },
+  { icon: '📅', label: 'Stay on track', sub: 'Plan my time and hit deadlines', value: 'planning' },
+];
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+  currentUser = session.user;
+
+  // If profile already exists, skip onboarding
+  const { data: profile } = await sb.from('profiles').select('id').eq('id', currentUser.id).single();
+  if (profile) { window.location.href = 'index.html'; return; }
+
+  renderDots();
+  renderEmojiGrid();
+  renderSubjects();
+  renderLevels();
+  renderGoals();
+});
+
+function renderDots() {
+  const wrap = document.getElementById('progress-dots');
+  wrap.innerHTML = '';
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === currentStep ? ' active' : i < currentStep ? ' done' : '');
+    wrap.appendChild(d);
+  }
+}
+
+function renderEmojiGrid() {
+  const grid = document.getElementById('emoji-grid');
+  grid.innerHTML = '';
+  EMOJIS.forEach(e => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-btn' + (e === selectedAvatar ? ' selected' : '');
+    btn.textContent = e;
+    btn.onclick = () => selectAvatar(e);
+    grid.appendChild(btn);
+  });
+}
+
+function selectAvatar(emoji) {
+  selectedAvatar = emoji;
+  document.getElementById('avatar-preview').textContent = emoji;
+  document.querySelectorAll('.emoji-btn').forEach(b => {
+    b.classList.toggle('selected', b.textContent === emoji);
+  });
+}
+
+function randomAvatar() {
+  const e = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+  selectAvatar(e);
+}
+
+function renderSubjects() {
+  const wrap = document.getElementById('subjects-chips');
+  wrap.innerHTML = '';
+  SUBJECTS.forEach(s => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (selectedSubjects.includes(s) ? ' selected' : '');
+    chip.textContent = s;
+    chip.onclick = () => toggleSubject(s, chip);
+    wrap.appendChild(chip);
+  });
+}
+
+function toggleSubject(s, chip) {
+  if (selectedSubjects.includes(s)) {
+    selectedSubjects = selectedSubjects.filter(x => x !== s);
+    chip.classList.remove('selected');
+  } else {
+    selectedSubjects.push(s);
+    chip.classList.add('selected');
+  }
+}
+
+function renderLevels() {
+  const grid = document.getElementById('level-grid');
+  grid.innerHTML = '';
+  LEVELS.forEach(l => {
+    const row = document.createElement('div');
+    row.className = 'level-row' + (selectedLevel === l.value ? ' selected' : '');
+    row.innerHTML = `
+      <div class="level-emoji">${l.emoji}</div>
+      <div class="level-info">
+        <div class="level-name">${l.name}</div>
+        <div class="level-desc">${l.desc}</div>
+      </div>
+      <div class="level-check">${selectedLevel === l.value ? '✓' : ''}</div>
+    `;
+    row.onclick = () => {
+      selectedLevel = l.value;
+      renderLevels();
+    };
+    grid.appendChild(row);
+  });
+}
+
+function renderGoals() {
+  const grid = document.getElementById('goal-grid');
+  grid.innerHTML = '';
+  GOALS.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'goal-card' + (selectedGoal === g.value ? ' selected' : '');
+    card.innerHTML = `
+      <div class="goal-icon">${g.icon}</div>
+      <div class="goal-label">${g.label}</div>
+      <div class="goal-sub">${g.sub}</div>
+    `;
+    card.onclick = () => {
+      selectedGoal = g.value;
+      renderGoals();
+    };
+    grid.appendChild(card);
+  });
+}
+
+// ── Username check ──
+async function checkUsername(val) {
+  const status = document.getElementById('username-status');
+  const error = document.getElementById('username-error');
+  usernameOk = false;
+
+  if (!val) { status.textContent = ''; return; }
+
+  const clean = val.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  if (val !== clean) {
+    document.getElementById('username-input').value = clean;
+    val = clean;
+  }
+
+  if (val.length < 3) {
+    status.textContent = 'Too short';
+    status.className = 'username-status taken';
+    return;
+  }
+
+  status.textContent = 'Checking…';
+  status.className = 'username-status checking';
+
+  clearTimeout(usernameTimer);
+  usernameTimer = setTimeout(async () => {
+    const { data } = await sb.from('profiles').select('id').eq('username', val).single();
+    if (data) {
+      status.textContent = '✕ Taken';
+      status.className = 'username-status taken';
+      usernameOk = false;
+    } else {
+      status.textContent = '✓ Available';
+      status.className = 'username-status available';
+      usernameOk = true;
+    }
+  }, 500);
+}
+
+// ── Navigation ──
+function nextStep(from) {
+  if (from === 1) {
+    const username = document.getElementById('username-input').value.trim();
+    if (!username || username.length < 3) {
+      showFieldError('username-error', 'Please enter a username (min 3 characters)');
+      return;
+    }
+    if (!usernameOk) {
+      showFieldError('username-error', 'Please choose an available username');
+      return;
+    }
+    hideFieldError('username-error');
+  }
+  if (from === 3 && !selectedLevel) {
+    alert('Please select your study level');
+    return;
+  }
+  goToStep(from + 1);
+}
+
+function prevStep(from) { goToStep(from - 1); }
+
+function goToStep(n) {
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  currentStep = n;
+  const el = document.getElementById('step-' + n) || document.getElementById('step-done');
+  el.classList.add('active');
+  renderDots();
+}
+
+function showFieldError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.classList.add('visible');
+}
+function hideFieldError(id) {
+  document.getElementById(id).classList.remove('visible');
+}
+
+// ── Finish ──
+async function finishOnboarding() {
+  if (!selectedGoal) { alert('Please select a goal'); return; }
+
+  const btn = document.getElementById('finish-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Saving…';
+
+  const username = document.getElementById('username-input').value.trim().toLowerCase();
+  const displayName = document.getElementById('display-name-input').value.trim() || username;
+
+  try {
+    const { error } = await sb.from('profiles').insert({
+      id: currentUser.id,
+      username,
+      display_name: displayName,
+      avatar_emoji: selectedAvatar,
+      subjects: selectedSubjects,
+      study_level: selectedLevel,
+      goal: selectedGoal,
+      created_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+
+    // Show done screen
+    document.getElementById('step-4').classList.remove('active');
+    document.getElementById('step-done').classList.add('active');
+    document.getElementById('welcome-avatar').textContent = selectedAvatar;
+    document.getElementById('welcome-name').textContent = `Welcome, ${displayName}!`;
+    document.getElementById('progress-dots').style.display = 'none';
+
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Finish setup →';
+    alert('Error saving profile: ' + err.message);
+  }
+}
+
+function goToApp() {
+  window.location.href = 'dashboard.html';
+}
+</script>
+</body>
+</html>
