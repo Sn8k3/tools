@@ -3,84 +3,1162 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notes Library - Polished PDF</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<!-- jsPDF CDN -->
+<title>Notes Library — StudyAI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2a2a30;
+    --border2: #38383f;
+    --text: #eeecea;
+    --text2: #9b9899;
+    --text3: #5c5a5e;
+    --accent: #c8f05e;
+    --accent-dim: rgba(200,240,94,0.12);
+    --accent-border: rgba(200,240,94,0.3);
+    --purple: #9d7bea;
+    --purple-dim: rgba(157,123,234,0.12);
+    --red: #f0635a;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .app {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 56px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Topbar ── */
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--text);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-dot { color: var(--accent); }
+
+  .topbar-search {
+    flex: 1;
+    max-width: 400px;
+    margin-left: auto;
+    position: relative;
+  }
+  .topbar-search input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 12px 7px 36px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .topbar-search input:focus { border-color: var(--border2); }
+  .topbar-search input::placeholder { color: var(--text3); }
+  .search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    pointer-events: none;
+  }
+
+  .back-link {
+    font-size: 13px;
+    color: var(--text2);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.15s;
+  }
+  .back-link:hover { color: var(--text); }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+  }
+
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 8px 10px 4px;
+  }
+
+  .sidebar-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    color: var(--text2);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: background 0.12s, color 0.12s;
+  }
+  .sidebar-btn:hover { background: var(--surface2); color: var(--text); }
+  .sidebar-btn.active { background: var(--accent-dim); color: var(--accent); }
+  .sidebar-btn .count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+
+  .upload-btn {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: var(--radius);
+    border: 1px dashed var(--accent-border);
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .upload-btn:hover { background: rgba(200,240,94,0.18); }
+
+  /* ── Main ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .main-header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .page-subtitle {
+    font-size: 13px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .api-key-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .api-key-area input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text2);
+    outline: none;
+    width: 200px;
+    transition: border-color 0.15s;
+  }
+  .api-key-area input:focus { border-color: var(--accent-border); }
+  .api-key-area input::placeholder { color: var(--text3); }
+  .api-key-label { font-size: 12px; color: var(--text3); }
+
+  /* ── Drop zone ── */
+  .drop-zone {
+    margin: 24px 32px;
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 40px 24px;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+    position: relative;
+  }
+  .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .drop-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .drop-title { font-size: 16px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .drop-sub { font-size: 13px; color: var(--text3); }
+  .drop-types {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .type-pill {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text3);
+  }
+
+  /* ── Notes list ── */
+  .notes-section { padding: 0 32px 32px; flex: 1; overflow-y: auto; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title { font-size: 13px; color: var(--text3); font-weight: 500; letter-spacing: 0.04em; }
+
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .note-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s, transform 0.1s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .note-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .note-card.polished { border-color: var(--accent-border); }
+  .note-card.polished::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+  }
+
+  .note-card-top { display: flex; align-items: flex-start; gap: 10px; }
+  .note-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .note-icon.pdf { background: rgba(240,99,90,0.15); }
+  .note-icon.txt { background: rgba(157,123,234,0.15); }
+  .note-icon.img { background: rgba(200,240,94,0.12); }
+
+  .note-meta { flex: 1; min-width: 0; }
+  .note-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .note-date { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .note-size { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+  .note-preview {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .note-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--border2); color: var(--text); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0e10;
+    font-weight: 600;
+  }
+  .btn.primary:hover { background: #d4f66e; }
+  .btn.primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--accent);
+  }
+  .btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Processing state ── */
+  .processing-bar {
+    display: none;
+    margin: 0 32px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    gap: 12px;
+    align-items: center;
+  }
+  .processing-bar.visible { display: flex; }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .processing-text { font-size: 13px; color: var(--text2); }
+  .processing-step { font-weight: 500; color: var(--accent); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+  .modal-overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    animation: modal-in 0.2s ease;
+  }
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .modal-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    font-weight: 500;
+  }
+  .modal-close {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    margin-left: auto;
+  }
+  .modal-close:hover { border-color: var(--border2); color: var(--text); }
+
+  .modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    max-height: 65vh;
+  }
+
+  .polished-content {
+    font-family: 'Instrument Sans', sans-serif;
+    line-height: 1.75;
+    color: var(--text);
+  }
+  .polished-content h1, .polished-content h2 {
+    font-family: 'DM Serif Display', serif;
+    font-weight: 400;
+    color: var(--text);
+    margin: 20px 0 10px;
+  }
+  .polished-content h1 { font-size: 24px; }
+  .polished-content h2 { font-size: 19px; }
+  .polished-content h3 { font-size: 16px; font-weight: 600; margin: 16px 0 8px; }
+  .polished-content p { margin-bottom: 12px; }
+  .polished-content ul, .polished-content ol {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+  .polished-content li { margin-bottom: 4px; }
+  .polished-content strong { color: var(--accent); font-weight: 600; }
+  .polished-content code {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--purple);
+  }
+  .polished-content blockquote {
+    border-left: 2px solid var(--accent-border);
+    padding-left: 14px;
+    color: var(--text2);
+    font-style: italic;
+    margin: 12px 0;
+  }
+  .polished-content hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+  .empty-state .big-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+  .empty-state p { font-size: 14px; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text);
+    z-index: 999;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    animation: toast-in 0.2s ease;
+    max-width: 320px;
+  }
+  .toast.visible { display: flex; }
+  @keyframes toast-in { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  .toast.success { border-color: var(--accent-border); }
+  .toast.error { border-color: rgba(240,99,90,0.4); }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main-header { flex-direction: column; align-items: flex-start; }
+    .api-key-area { flex-wrap: wrap; }
+    .api-key-area input { width: 100%; }
+    .drop-zone, .notes-section, .processing-bar { margin-left: 16px; margin-right: 16px; }
+    .main-header { padding: 20px 16px 16px; }
+  }
+</style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body>
 
-<nav class="bg-white shadow p-4 flex justify-around">
-  <a href="index.html" class="text-blue-600 font-semibold">Home</a>
-  <a href="notes.html" class="text-blue-600 font-semibold">Notes</a>
-</nav>
+<div class="app">
 
-<main class="p-6">
-  <h1 class="text-3xl font-bold mb-4">Notes Library</h1>
+  <!-- Topbar -->
+  <header class="topbar">
+    <a href="index.html" class="logo">Study<span class="logo-dot">·</span>AI</a>
+    <a href="index.html" class="back-link">← All features</a>
+    <div class="topbar-search">
+      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="search-input" placeholder="Search notes…" oninput="filterNotes()">
+    </div>
+  </header>
 
-  <!-- Upload -->
-  <input type="file" id="noteUpload" multiple class="border p-2 rounded w-full mb-2">
-  <button onclick="addNotes()" class="bg-blue-600 text-white px-4 py-2 rounded mb-4">Add Notes</button>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-label">Library</div>
+    <button class="sidebar-btn active" onclick="setFilter('all', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      All notes <span class="count" id="count-all">0</span>
+    </button>
+    <button class="sidebar-btn" onclick="setFilter('polished', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      AI Polished <span class="count" id="count-polished">0</span>
+    </button>
+    <button class="sidebar-btn" onclick="setFilter('pdf', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      PDFs <span class="count" id="count-pdf">0</span>
+    </button>
+    <button class="sidebar-btn" onclick="setFilter('txt', this)">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Text files <span class="count" id="count-txt">0</span>
+    </button>
+    <div style="margin-top: 16px"></div>
+    <label class="upload-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,5 5,12"/></svg>
+      Upload notes
+      <input type="file" accept=".txt,.pdf,.png,.jpg,.jpeg" multiple style="display:none" onchange="handleFiles(this.files)">
+    </label>
+  </aside>
 
-  <!-- Notes List -->
-  <ul id="noteList" class="list-disc list-inside space-y-2"></ul>
-</main>
+  <!-- Main -->
+  <main class="main">
+
+    <div class="main-header">
+      <div>
+        <div class="page-title">Notes Library</div>
+        <div class="page-subtitle">Upload, organize, and AI-polish your study notes</div>
+      </div>
+      <div class="api-key-area">
+        <span class="api-key-label">Anthropic key</span>
+        <input type="password" id="api-key-input" placeholder="sk-ant-…" oninput="saveApiKey()">
+      </div>
+    </div>
+
+    <!-- Drop zone -->
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" accept=".txt,.pdf,.png,.jpg,.jpeg" multiple onchange="handleFiles(this.files)">
+      <span class="drop-icon">📂</span>
+      <div class="drop-title">Drop your notes here</div>
+      <div class="drop-sub">or click to browse files</div>
+      <div class="drop-types">
+        <span class="type-pill">.txt</span>
+        <span class="type-pill">.pdf</span>
+        <span class="type-pill">.png</span>
+        <span class="type-pill">.jpg</span>
+      </div>
+    </div>
+
+    <!-- Processing bar -->
+    <div class="processing-bar" id="processing-bar">
+      <div class="spinner"></div>
+      <div class="processing-text">
+        <span class="processing-step" id="processing-step">Extracting text…</span>
+        <span id="processing-file"></span>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="notes-section">
+      <div class="section-header">
+        <span class="section-title" id="section-label">ALL NOTES</span>
+      </div>
+      <div class="notes-grid" id="notes-grid">
+        <!-- populated by JS -->
+      </div>
+      <div class="empty-state" id="empty-state">
+        <span class="big-icon">🗒️</span>
+        <p>No notes yet — upload a file to get started.</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">Note</div>
+        <div style="margin-top:4px;display:flex;align-items:center;gap:8px;">
+          <span class="modal-badge" id="modal-badge" style="display:none">✦ AI Polished</span>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="polished-content" id="modal-content"></div>
+    </div>
+    <div class="modal-footer" id="modal-footer">
+      <!-- buttons injected here -->
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg"></span>
+</div>
 
 <script>
-const noteList = [];
-
-function addNotes() {
-  const files = document.getElementById('noteUpload').files;
-  for (let i = 0; i < files.length; i++) {
-    noteList.push(files[i]);
-  }
-  renderNotes();
+// ── pdf.js worker ──
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
 
-function renderNotes() {
-  const ul = document.getElementById('noteList');
-  ul.innerHTML = '';
+// ── State ──
+let notes = JSON.parse(localStorage.getItem('studyai-notes') || '[]');
+let currentFilter = 'all';
+let openNoteId = null;
 
-  noteList.forEach((file, index) => {
-    const li = document.createElement('li');
-    li.classList.add("flex", "justify-between", "items-center", "bg-white", "p-2", "rounded", "shadow");
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  const savedKey = sessionStorage.getItem('anthropic-key');
+  if (savedKey) document.getElementById('api-key-input').value = savedKey;
+  setupDragDrop();
+  renderNotes();
+});
 
-    const span = document.createElement('span');
-    span.textContent = file.name;
-    li.appendChild(span);
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (key) sessionStorage.setItem('anthropic-key', key);
+}
 
-    const polishBtn = document.createElement('button');
-    polishBtn.textContent = "Polish PDF";
-    polishBtn.classList.add("bg-green-600", "text-white", "px-2", "py-1", "rounded", "ml-2");
-    polishBtn.onclick = () => polishPDF(file);
-    li.appendChild(polishBtn);
+function getApiKey() {
+  return document.getElementById('api-key-input').value.trim()
+      || sessionStorage.getItem('anthropic-key') || '';
+}
 
-    ul.appendChild(li);
+// ── Drag & Drop ──
+function setupDragDrop() {
+  const zone = document.getElementById('drop-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
   });
 }
 
-// Simulate AI polished PDF
-async function polishPDF(file) {
+// ── File handling ──
+async function handleFiles(fileList) {
+  for (const file of Array.from(fileList)) {
+    await processFile(file);
+  }
+}
+
+async function processFile(file) {
+  showProcessing(`Reading "${file.name}"…`, 'Extracting text…');
+  let rawText = '';
+  try {
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'txt') {
+      rawText = await readText(file);
+    } else if (ext === 'pdf') {
+      rawText = await extractPdfText(file);
+    } else if (['png','jpg','jpeg'].includes(ext)) {
+      rawText = `[Image file: ${file.name}]\n\nThis is an image. Claude will analyze it as a visual note.`;
+    } else {
+      rawText = await readText(file);
+    }
+
+    const preview = rawText.slice(0, 250).replace(/\s+/g, ' ');
+    const note = {
+      id: Date.now() + Math.random(),
+      name: file.name,
+      type: file.name.split('.').pop().toLowerCase(),
+      size: formatBytes(file.size),
+      rawText,
+      preview,
+      polishedText: null,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
+
+    notes.unshift(note);
+    saveNotes();
+    renderNotes();
+    showToast(`"${file.name}" added`, 'success');
+  } catch (err) {
+    showToast(`Error reading ${file.name}: ${err.message}`, 'error');
+  } finally {
+    hideProcessing();
+  }
+}
+
+function readText(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error('Could not read file'));
+    r.readAsText(file);
+  });
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) throw new Error('pdf.js not loaded');
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(s => s.str).join(' ') + '\n\n';
+  }
+  return text.trim() || '[No extractable text found in PDF]';
+}
+
+// ── AI Polish ──
+async function polishNote(noteId) {
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return;
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showToast('Please enter your Anthropic API key (top right)', 'error');
+    return;
+  }
+
+  showProcessing(`Polishing "${note.name}"…`, 'Sending to Claude…');
+
+  const prompt = `You are a brilliant study notes editor. Your job is to clean and polish the following raw notes into a well-structured, student-friendly study document.
+
+Instructions:
+- Start with a short **Summary** section (2-3 sentences overview)
+- Organize with clear ## headings and ### subheadings
+- Use bullet points for lists and key points
+- Bold **key terms and important concepts**
+- Fix all grammar, spelling, and formatting issues
+- Add a ## Key Takeaways section at the end with the 3-5 most important points
+- Keep all the original information — just make it cleaner, clearer, and more useful
+- Format in clean Markdown
+
+Here are the raw notes:
+
+${note.rawText.slice(0, 6000)}`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `API error ${response.status}`);
+    }
+
+    const data = await response.json();
+    const polished = data.content.map(b => b.text || '').join('');
+    note.polishedText = polished;
+    saveNotes();
+    renderNotes();
+    showToast('Notes polished by Claude ✦', 'success');
+
+    // Open the modal to show result
+    openNote(noteId, true);
+  } catch (err) {
+    showToast(`Polish failed: ${err.message}`, 'error');
+  } finally {
+    hideProcessing();
+  }
+}
+
+// ── Modal ──
+function openNote(noteId, showPolished = false) {
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return;
+  openNoteId = noteId;
+
+  document.getElementById('modal-title').textContent = note.name;
+
+  const badge = document.getElementById('modal-badge');
+  if (note.polishedText) {
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  const content = document.getElementById('modal-content');
+  const displayText = (showPolished && note.polishedText) ? note.polishedText : (note.polishedText || note.rawText);
+
+  if (note.polishedText && showPolished !== false) {
+    content.innerHTML = marked.parse(displayText);
+  } else {
+    content.innerHTML = `<pre style="font-family:'DM Mono',monospace;font-size:13px;white-space:pre-wrap;color:var(--text2);line-height:1.7">${escHtml(note.rawText)}</pre>`;
+  }
+
+  // Footer buttons
+  const footer = document.getElementById('modal-footer');
+  footer.innerHTML = '';
+
+  if (note.polishedText) {
+    const toggle = document.createElement('button');
+    toggle.className = 'btn';
+    toggle.innerHTML = showPolished ? '📄 View raw' : '✦ View polished';
+    toggle.onclick = () => openNote(noteId, !showPolished);
+    footer.appendChild(toggle);
+
+    const dlPdf = document.createElement('button');
+    dlPdf.className = 'btn primary';
+    dlPdf.innerHTML = '⬇ Download PDF';
+    dlPdf.onclick = () => downloadPolishedPDF(noteId);
+    footer.appendChild(dlPdf);
+  } else {
+    const polishBtn = document.createElement('button');
+    polishBtn.className = 'btn primary';
+    polishBtn.innerHTML = '✦ Polish with AI';
+    polishBtn.onclick = () => { closeModal(); polishNote(noteId); };
+    footer.appendChild(polishBtn);
+  }
+
+  const dlRaw = document.createElement('button');
+  dlRaw.className = 'btn';
+  dlRaw.innerHTML = '⬇ Download raw';
+  dlRaw.onclick = () => downloadRaw(noteId);
+  footer.appendChild(dlRaw);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'btn danger';
+  delBtn.innerHTML = '🗑 Delete';
+  delBtn.onclick = () => { deleteNote(noteId); closeModal(); };
+  footer.appendChild(delBtn);
+
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('visible');
+  openNoteId = null;
+}
+
+function closeModalOnOverlay(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ── Download ──
+function downloadPolishedPDF(noteId) {
+  const note = notes.find(n => n.id === noteId);
+  if (!note || !note.polishedText) return;
+
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const margin = 50;
+  const pageW = doc.internal.pageSize.getWidth();
+  const maxW = pageW - margin * 2;
 
   // Title
-  pdf.setFontSize(20);
-  pdf.text("Polished Notes", 20, 20);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(30, 30, 30);
+  doc.text(note.name.replace(/\.[^.]+$/, ''), margin, 70);
 
-  // File name
-  pdf.setFontSize(12);
-  pdf.text(`Original File: ${file.name}`, 20, 30);
+  // Subtitle
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`AI-Polished Notes · ${note.date} · StudyAI`, margin, 90);
 
-  // Placeholder content (simulate cleaning & adding definitions)
-  pdf.text("• This is a polished version of your notes.", 20, 50);
-  pdf.text("• Key definitions highlighted.", 20, 60);
-  pdf.text("• Drawings / diagrams could be added here.", 20, 70);
+  // Divider
+  doc.setDrawColor(200, 240, 94);
+  doc.setLineWidth(1.5);
+  doc.line(margin, 100, pageW - margin, 100);
 
-  // Download PDF
-  pdf.save(`${file.name.replace(/\.[^/.]+$/, "")}_Polished.pdf`);
+  // Content — strip markdown for clean PDF
+  const lines = note.polishedText
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/^#{1,3}\s+/gm, '')
+    .replace(/^[-*]\s+/gm, '• ')
+    .split('\n');
+
+  let y = 125;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.setTextColor(40, 40, 40);
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { y += 8; continue; }
+
+    const isHeading = note.polishedText.includes('## ' + line) || note.polishedText.includes('# ' + line);
+    if (isHeading) {
+      y += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+    }
+
+    const wrapped = doc.splitTextToSize(line, maxW);
+    for (const wl of wrapped) {
+      if (y > doc.internal.pageSize.getHeight() - 60) {
+        doc.addPage();
+        y = 60;
+      }
+      doc.text(wl, margin, y);
+      y += isHeading ? 18 : 16;
+    }
+  }
+
+  doc.save(`${note.name.replace(/\.[^.]+$/, '')}-polished.pdf`);
+  showToast('PDF downloaded', 'success');
+}
+
+function downloadRaw(noteId) {
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return;
+  const blob = new Blob([note.rawText], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = note.name;
+  a.click();
+}
+
+// ── Delete ──
+function deleteNote(noteId) {
+  notes = notes.filter(n => n.id !== noteId);
+  saveNotes();
+  renderNotes();
+  showToast('Note deleted', 'success');
+}
+
+// ── Render ──
+function renderNotes() {
+  const grid = document.getElementById('notes-grid');
+  const empty = document.getElementById('empty-state');
+  const query = document.getElementById('search-input').value.toLowerCase();
+
+  let filtered = notes;
+  if (currentFilter === 'polished') filtered = notes.filter(n => n.polishedText);
+  else if (currentFilter === 'pdf') filtered = notes.filter(n => n.type === 'pdf');
+  else if (currentFilter === 'txt') filtered = notes.filter(n => n.type === 'txt');
+
+  if (query) {
+    filtered = filtered.filter(n =>
+      n.name.toLowerCase().includes(query) ||
+      n.rawText.toLowerCase().includes(query)
+    );
+  }
+
+  // Update counts
+  document.getElementById('count-all').textContent = notes.length;
+  document.getElementById('count-polished').textContent = notes.filter(n => n.polishedText).length;
+  document.getElementById('count-pdf').textContent = notes.filter(n => n.type === 'pdf').length;
+  document.getElementById('count-txt').textContent = notes.filter(n => n.type === 'txt').length;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map(note => `
+    <div class="note-card ${note.polishedText ? 'polished' : ''}" onclick="openNote(${note.id})">
+      <div class="note-card-top">
+        <div class="note-icon ${iconClass(note.type)}">${iconEmoji(note.type)}</div>
+        <div class="note-meta">
+          <div class="note-name" title="${escHtml(note.name)}">${escHtml(note.name)}</div>
+          <div class="note-date">${note.date}</div>
+          <div class="note-size">${note.size}</div>
+        </div>
+      </div>
+      ${note.preview ? `<div class="note-preview">${escHtml(note.preview)}</div>` : ''}
+      <div class="note-actions" onclick="event.stopPropagation()">
+        ${note.polishedText
+          ? `<button class="btn" onclick="openNote(${note.id}, true)">✦ View polished</button>
+             <button class="btn primary" onclick="downloadPolishedPDF(${note.id})">⬇ PDF</button>`
+          : `<button class="btn primary" onclick="polishNote(${note.id})">✦ Polish with AI</button>`
+        }
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterNotes() { renderNotes(); }
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const labels = { all: 'ALL NOTES', polished: 'AI POLISHED', pdf: 'PDF FILES', txt: 'TEXT FILES' };
+  document.getElementById('section-label').textContent = labels[filter] || 'NOTES';
+  renderNotes();
+}
+
+// ── Processing bar ──
+function showProcessing(file, step) {
+  document.getElementById('processing-bar').classList.add('visible');
+  document.getElementById('processing-step').textContent = step;
+  document.getElementById('processing-file').textContent = ' ' + file;
+}
+function hideProcessing() {
+  document.getElementById('processing-bar').classList.remove('visible');
+}
+
+// ── Toast ──
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'error' ? '✕' : '✓';
+  toast.className = `toast visible ${type}`;
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+
+// ── Persistence ──
+function saveNotes() {
+  // Store everything except rawText longer than 50kb to avoid localStorage limits
+  const compact = notes.map(n => ({
+    ...n,
+    rawText: n.rawText.slice(0, 50000),
+  }));
+  try {
+    localStorage.setItem('studyai-notes', JSON.stringify(compact));
+  } catch {}
+}
+
+// ── Helpers ──
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function iconClass(type) {
+  if (type === 'pdf') return 'pdf';
+  if (['png','jpg','jpeg'].includes(type)) return 'img';
+  return 'txt';
+}
+
+function iconEmoji(type) {
+  if (type === 'pdf') return '📕';
+  if (['png','jpg','jpeg'].includes(type)) return '🖼';
+  return '📄';
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 </script>
-
 </body>
 </html>
