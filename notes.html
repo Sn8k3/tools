@@ -1,1 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes Library</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
 
+  <!-- Navigation -->
+  <nav class="bg-white shadow p-4 flex justify-around">
+    <a href="index.html" class="text-blue-600 font-semibold">Home</a>
+    <a href="notes.html" class="text-blue-600 font-semibold">Notes</a>
+    <a href="essay.html" class="text-blue-600 font-semibold">Essay</a>
+    <a href="avatar.html" class="text-blue-600 font-semibold">XP & Avatar</a>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="p-6">
+    <h1 class="text-3xl font-bold mb-4">Notes Library</h1>
+    <input type="file" id="noteUpload" multiple class="border p-2 rounded w-full mb-2">
+    <button onclick="addNotes()" class="bg-blue-600 text-white px-4 py-2 rounded">Add Notes</button>
+
+    <h3 class="mt-4 font-semibold">Your Notes:</h3>
+    <ul id="noteList" class="list-disc list-inside mt-2"></ul>
+  </main>
+
+  <script>
+    const noteList = [];
+    function addNotes(){
+      const files = document.getElementById('noteUpload').files;
+      for(let i=0;i<files.length;i++){
+        noteList.push(files[i].name);
+      }
+      renderNotes();
+    }
+    function renderNotes(){
+      const ul = document.getElementById('noteList');
+      ul.innerHTML = '';
+      noteList.forEach(note => {
+        const li = document.createElement('li');
+        li.textContent = note;
+        ul.appendChild(li);
+      });
+    }
+  </script>
+
+</body>
+</html>
