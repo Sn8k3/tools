@@ -1,21 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Free Online Tools</title>
-<meta name="description" content="Free online tools like grade calculators, random team generators, and username generators.">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study App Prototype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-100 font-sans">
 
-<body>
+  <!-- Header -->
+  <header class="bg-blue-600 text-white p-4 text-center">
+    <h1 class="text-3xl font-bold">My Study App</h1>
+    <p class="mt-1">Prototype of your top study tools</p>
+  </header>
 
-<h1>Free Online Tools</h1>
+  <!-- Navigation -->
+  <nav class="bg-white shadow p-4 flex justify-around">
+    <a href="#notes" class="text-blue-600 font-semibold">Notes Library</a>
+    <a href="#essay" class="text-blue-600 font-semibold">Essay Editor</a>
+    <a href="#avatar" class="text-blue-600 font-semibold">XP & Avatar</a>
+  </nav>
 
-<p>Select a tool:</p>
+  <main class="p-6 space-y-12">
 
-<ul>
-<li><a href="team.html">Random Team Generator</a></li>
-<li><a href="grade.html">Grade Calculator</a></li>
-<li><a href="username.html">Username Generator</a></li>
-</ul>
+    <!-- Notes Upload + Library -->
+    <section id="notes" class="bg-white p-6 rounded shadow">
+      <h2 class="text-2xl font-bold mb-4">Notes Library</h2>
+      <input type="file" id="noteUpload" multiple class="border p-2 rounded w-full mb-2">
+      <button onclick="addNotes()" class="bg-blue-600 text-white px-4 py-2 rounded">Add Notes</button>
+
+      <h3 class="mt-4 font-semibold">Your Notes:</h3>
+      <ul id="noteList" class="list-disc list-inside mt-2"></ul>
+    </section>
+
+    <!-- Essay Editor + Feedback -->
+    <section id="essay" class="bg-white p-6 rounded shadow">
+      <h2 class="text-2xl font-bold mb-4">Essay Editor</h2>
+      <textarea id="essayText" rows="6" class="border p-2 rounded w-full mb-2" placeholder="Write your essay here..."></textarea>
+      <button onclick="checkEssay()" class="bg-green-600 text-white px-4 py-2 rounded">Check Essay</button>
+
+      <h3 class="mt-4 font-semibold">Feedback:</h3>
+      <div id="essayFeedback" class="mt-2 text-gray-700"></div>
+    </section>
+
+    <!-- XP & Avatar -->
+    <section id="avatar" class="bg-white p-6 rounded shadow">
+      <h2 class="text-2xl font-bold mb-4">XP & Avatar</h2>
+      <p class="mb-2">Your XP: <span id="xp">0</span></p>
+      <img id="avatarImg" src="https://via.placeholder.com/100" class="mb-2 rounded-full" alt="Avatar">
+      <button onclick="gainXP()" class="bg-purple-600 text-white px-4 py-2 rounded">Complete Task (+10 XP)</button>
+    </section>
+
+  </main>
+
+  <!-- Scripts -->
+  <script>
+    // --- Notes Upload ---
+    const noteList = [];
+    function addNotes(){
+      const files = document.getElementById('noteUpload').files;
+      for(let i=0; i<files.length; i++){
+        noteList.push(files[i].name);
+      }
+      renderNotes();
+    }
+    function renderNotes(){
+      const ul = document.getElementById('noteList');
+      ul.innerHTML = '';
+      noteList.forEach(note => {
+        const li = document.createElement('li');
+        li.textContent = note;
+        ul.appendChild(li);
+      });
+    }
+
+    // --- Essay Feedback ---
+    function checkEssay(){
+      const text = document.getElementById('essayText').value;
+      let feedback = '';
+      if(text.length < 50){
+        feedback = 'Essay is too short. Expand your ideas.';
+      } else if(!text.includes('.')){
+        feedback = 'Try adding more complete sentences.';
+      } else {
+        feedback = 'Looks good! Consider adding examples.';
+      }
+      document.getElementById('essayFeedback').innerText = feedback;
+    }
+
+    // --- XP & Avatar ---
+    let xp = 0;
+    function gainXP(){
+      xp += 10;
+      document.getElementById('xp').innerText = xp;
+      // Upgrade avatar at milestones
+      const avatar = document.getElementById('avatarImg');
+      if(xp >= 50){
+        avatar.src = 'https://via.placeholder.com/100/FFD700/000000?text=Pro';
+      }
+    }
+  </script>
 
 </body>
 </html>
