@@ -3,333 +3,370 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign in — Notiv</title>
+<title>Profile — Notiv</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #0e0e10;
-  --surface: #17171a;
-  --surface2: #1f1f24;
-  --border: #2a2a30;
-  --border2: #38383f;
-  --text: #eeecea;
-  --text2: #9b9899;
-  --text3: #5c5a5e;
-  --accent: #c8f05e;
-  --accent-dim: rgba(200,240,94,0.10);
+  --bg: #0e0e10; --surface: #17171a; --surface2: #1f1f24;
+  --border: #2a2a30; --border2: #38383f;
+  --text: #eeecea; --text2: #9b9899; --text3: #5c5a5e;
+  --accent: #c8f05e; --accent-dim: rgba(200,240,94,0.10);
   --accent-border: rgba(200,240,94,0.25);
-  --coral: #f0635a;
-  --radius: 10px;
-  --radius-lg: 16px;
+  --coral: #f0635a; --coral-dim: rgba(240,99,90,0.10);
+  --purple: #9d7bea; --purple-dim: rgba(157,123,234,0.12);
+  --radius: 10px; --radius-lg: 16px;
 }
-html, body { height: 100%; }
+html { scroll-behavior: smooth; }
 body {
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg); color: var(--text);
   font-family: 'Instrument Sans', sans-serif;
-  font-size: 15px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 24px;
+  font-size: 15px; min-height: 100vh;
 }
 body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background:
-    radial-gradient(ellipse 50% 40% at 70% 20%, rgba(200,240,94,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 20% 80%, rgba(157,123,234,0.06) 0%, transparent 60%);
+  content: ''; position: fixed; inset: 0;
+  background: radial-gradient(ellipse 50% 40% at 70% 10%, rgba(200,240,94,0.05) 0%, transparent 60%);
   pointer-events: none;
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 40px;
-  width: 100%;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  position: relative;
-  z-index: 1;
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 24px; height: 56px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 100;
 }
-
-.logo-wrap {
-  text-align: center;
-}
-.logo {
-  font-family: 'DM Serif Display', serif;
-  font-size: 28px;
-  color: var(--text);
-  text-decoration: none;
-}
+.logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); text-decoration: none; }
 .logo-dot { color: var(--accent); }
-.logo-sub { font-size: 13px; color: var(--text3); margin-top: 4px; }
+.back-link { font-size: 13px; color: var(--text2); text-decoration: none; display: flex; align-items: center; gap: 5px; transition: color 0.15s; }
+.back-link:hover { color: var(--text); }
 
-/* Tabs */
-.tabs {
-  display: flex;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 3px; gap: 3px;
+.wrap {
+  max-width: 640px; margin: 0 auto;
+  padding: 40px 24px 80px;
+  display: flex; flex-direction: column; gap: 20px;
+  position: relative; z-index: 1;
 }
-.tab-btn {
-  flex: 1; padding: 8px; border-radius: 7px; border: none;
-  background: none; color: var(--text3); font-family: inherit;
-  font-size: 13px; cursor: pointer; transition: all 0.12s; text-align: center;
-}
-.tab-btn.active { background: var(--surface); color: var(--text); }
 
-/* Form */
-.form { display: flex; flex-direction: column; gap: 12px; }
-.field { display: flex; flex-direction: column; gap: 5px; }
-.field label { font-size: 12px; color: var(--text3); }
-.field input {
+.page-title { font-family: 'DM Serif Display', serif; font-size: 32px; font-weight: 400; }
+
+/* Avatar section */
+.profile-hero {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px;
+  display: flex; align-items: center; gap: 20px;
+}
+.big-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--accent-dim); border: 2px solid var(--accent-border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif; font-size: 24px;
+  color: var(--accent); flex-shrink: 0;
+}
+.profile-info { flex: 1; min-width: 0; }
+.profile-email { font-size: 16px; font-weight: 500; color: var(--text); }
+.profile-since { font-size: 13px; color: var(--text3); margin-top: 3px; }
+.profile-badge {
+  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  background: var(--accent-dim); color: var(--accent);
+  border: 1px solid var(--accent-border); margin-top: 8px;
+  display: inline-block; font-family: 'DM Mono', monospace;
+}
+
+/* Section card */
+.section-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+}
+.section-header {
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  font-size: 12px; font-family: 'DM Mono', monospace;
+  color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.section-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Sync rows */
+.sync-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: var(--radius);
   background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 10px 14px;
-  font-family: inherit; font-size: 14px; color: var(--text);
-  outline: none; transition: border-color 0.15s;
 }
-.field input:focus { border-color: var(--accent-border); }
-.field input::placeholder { color: var(--text3); }
+.sync-icon { font-size: 18px; flex-shrink: 0; }
+.sync-info { flex: 1; min-width: 0; }
+.sync-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.sync-status { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.sync-status.synced { color: var(--accent); }
+.sync-status.error { color: var(--coral); }
+.sync-btn {
+  padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border);
+  background: none; color: var(--text2); font-family: inherit;
+  font-size: 12px; cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.sync-btn:hover { border-color: var(--border2); color: var(--text); }
+.sync-btn.syncing { opacity: 0.6; cursor: not-allowed; }
 
-.error-msg {
-  font-size: 12px; color: var(--coral);
-  background: rgba(240,99,90,0.08);
-  border: 1px solid rgba(240,99,90,0.2);
-  border-radius: 7px; padding: 8px 12px;
-  display: none;
+/* Danger zone */
+.danger-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-radius: var(--radius);
+  background: var(--coral-dim); border: 1px solid rgba(240,99,90,0.2);
+  gap: 12px;
 }
-.error-msg.visible { display: block; }
-
-.success-msg {
-  font-size: 12px; color: var(--accent);
-  background: var(--accent-dim);
-  border: 1px solid var(--accent-border);
-  border-radius: 7px; padding: 8px 12px;
-  display: none; text-align: center;
-}
-.success-msg.visible { display: block; }
+.danger-info { flex: 1; }
+.danger-title { font-size: 14px; font-weight: 500; color: var(--text); }
+.danger-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
 
 .btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 11px 16px; border-radius: var(--radius);
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--text2); font-family: inherit; font-size: 14px;
-  cursor: pointer; transition: all 0.12s; font-weight: 500;
-  width: 100%;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text2);
+  font-family: inherit; font-size: 13px; cursor: pointer;
+  transition: all 0.12s; white-space: nowrap; font-weight: 500;
 }
 .btn:hover { border-color: var(--border2); color: var(--text); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn.primary {
-  background: var(--accent); border-color: var(--accent);
-  color: #0e0e10; font-weight: 600;
-}
-.btn.primary:hover:not(:disabled) { background: #d4f66e; }
+.btn.danger { border-color: rgba(240,99,90,0.4); color: var(--coral); background: var(--coral-dim); }
+.btn.danger:hover { background: rgba(240,99,90,0.18); }
+.btn.signout { width: 100%; justify-content: center; margin-top: 4px; }
 
-.divider {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 12px; color: var(--text3);
-}
-.divider-line { flex: 1; height: 1px; background: var(--border); }
-
-.google-btn {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  padding: 11px 16px; border-radius: var(--radius);
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--text); font-family: inherit; font-size: 14px;
-  cursor: pointer; transition: all 0.12s; font-weight: 500;
-  width: 100%;
-}
-.google-btn:hover { border-color: var(--border2); background: var(--surface); }
-
-.google-icon {
-  width: 18px; height: 18px; flex-shrink: 0;
-}
-
-.terms {
-  font-size: 11px; color: var(--text3); text-align: center; line-height: 1.5;
-}
-.terms a { color: var(--text2); }
-
-.spinner {
-  width: 16px; height: 16px; border: 2px solid rgba(14,14,16,0.3);
-  border-top-color: #0e0e10; border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--text); z-index: 999; display: none; align-items: center; gap: 8px; }
+.toast.visible { display: flex; }
+.toast.success { border-color: var(--accent-border); }
+.toast.error { border-color: rgba(240,99,90,0.4); }
 </style>
 </head>
 <body>
 
-<div class="card">
-  <div class="logo-wrap">
-    <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
-    <div class="logo-sub">Your AI-powered study companion</div>
-  </div>
+<header class="topbar">
+  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
+  <a href="index.html" class="back-link">← Home</a>
+</header>
 
-  <div class="tabs">
-    <button class="tab-btn active" id="tab-signin" onclick="switchTab('signin')">Sign in</button>
-    <button class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Create account</button>
-  </div>
+<div class="wrap">
+  <div class="page-title">Profile</div>
 
-  <div class="error-msg" id="error-msg"></div>
-  <div class="success-msg" id="success-msg"></div>
-
-  <!-- Sign in form -->
-  <div class="form" id="form-signin">
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email">
+  <!-- Hero -->
+  <div class="profile-hero">
+    <div class="big-avatar" id="big-avatar">?</div>
+    <div class="profile-info">
+      <div class="profile-email" id="profile-email">Loading…</div>
+      <div class="profile-since" id="profile-since"></div>
+      <div class="profile-badge">Free plan</div>
     </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="signin-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitSignin()">
-    </div>
-    <button class="btn primary" id="signin-btn" onclick="submitSignin()">Sign in</button>
   </div>
 
-  <!-- Sign up form -->
-  <div class="form" id="form-signup" style="display:none">
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
+  <!-- Cloud sync -->
+  <div class="section-card">
+    <div class="section-header">Cloud sync</div>
+    <div class="section-body" id="sync-list">
+      <div id="sync-notes" class="sync-row">
+        <div class="sync-icon">📚</div>
+        <div class="sync-info">
+          <div class="sync-name">Notes Library</div>
+          <div class="sync-status" id="status-notes">Not synced yet</div>
+        </div>
+        <button class="sync-btn" onclick="syncFeature('notes')">Sync now</button>
+      </div>
+      <div class="sync-row">
+        <div class="sync-icon">✏️</div>
+        <div class="sync-info">
+          <div class="sync-name">Essay history</div>
+          <div class="sync-status" id="status-essays">Not synced yet</div>
+        </div>
+        <button class="sync-btn" onclick="syncFeature('essays')">Sync now</button>
+      </div>
+      <div class="sync-row">
+        <div class="sync-icon">🃏</div>
+        <div class="sync-info">
+          <div class="sync-name">Flashcard decks</div>
+          <div class="sync-status" id="status-flashcards">Not synced yet</div>
+        </div>
+        <button class="sync-btn" onclick="syncFeature('flashcards')">Sync now</button>
+      </div>
+      <div class="sync-row">
+        <div class="sync-icon">📅</div>
+        <div class="sync-info">
+          <div class="sync-name">Study planner</div>
+          <div class="sync-status" id="status-planner">Not synced yet</div>
+        </div>
+        <button class="sync-btn" onclick="syncFeature('planner')">Sync now</button>
+      </div>
     </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="signup-password" placeholder="Min. 8 characters" autocomplete="new-password">
-    </div>
-    <div class="field">
-      <label>Confirm password</label>
-      <input type="password" id="signup-confirm" placeholder="Repeat password" autocomplete="new-password" onkeydown="if(event.key==='Enter')submitSignup()">
-    </div>
-    <button class="btn primary" id="signup-btn" onclick="submitSignup()">Create account</button>
   </div>
 
-  <div class="divider">
-    <div class="divider-line"></div>
-    <span>or</span>
-    <div class="divider-line"></div>
+  <!-- Restore -->
+  <div class="section-card">
+    <div class="section-header">Restore from cloud</div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;">Load your saved data from the cloud into this browser. Use this when switching devices.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="restoreFeature('notes')">📚 Restore notes</button>
+        <button class="btn" onclick="restoreFeature('essays')">✏️ Restore essays</button>
+        <button class="btn" onclick="restoreFeature('flashcards')">🃏 Restore decks</button>
+        <button class="btn" onclick="restoreFeature('planner')">📅 Restore planner</button>
+      </div>
+    </div>
   </div>
 
-  <button class="google-btn" onclick="submitGoogle()">
-    <svg class="google-icon" viewBox="0 0 24 24">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-    </svg>
-    Continue with Google
-  </button>
-
-  <div class="terms">
-    By signing in you agree to Notiv's terms of service and privacy policy.
+  <!-- Danger zone -->
+  <div class="section-card">
+    <div class="section-header">Account</div>
+    <div class="section-body">
+      <div class="danger-row">
+        <div class="danger-info">
+          <div class="danger-title">Delete all cloud data</div>
+          <div class="danger-sub">Removes your synced data from the cloud. Local data is kept.</div>
+        </div>
+        <button class="btn danger" onclick="deleteCloudData()">Delete</button>
+      </div>
+      <div class="danger-row" style="background:rgba(240,99,90,0.06);border-color:rgba(240,99,90,0.3);">
+        <div class="danger-info">
+          <div class="danger-title">Delete account</div>
+          <div class="danger-sub">Permanently deletes your account, profile, and all cloud data. This cannot be undone.</div>
+        </div>
+        <button class="btn danger" onclick="deleteAccount()">Delete account</button>
+      </div>
+      <button class="btn signout" onclick="doSignOut()">Sign out</button>
+    </div>
   </div>
+
 </div>
+
+<div class="toast" id="toast"><span id="toast-icon">✓</span><span id="toast-msg"></span></div>
 
 <script>
 const SUPABASE_URL = 'https://uorlszhcjrblrbmhgyqb.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-const BASE = 'https://sn8k3.github.io/tools/';
 
-// Get redirect target
-const params = new URLSearchParams(window.location.search);
-const redirectTo = params.get('redirect') || BASE + 'dashboard.html';
+let currentUser = null;
 
-// If already logged in, redirect
-sb.auth.getSession().then(({ data: { session } }) => {
-  if (session) window.location.href = BASE + 'dashboard.html';
+// Local storage keys per feature
+const LOCAL_KEYS = {
+  notes: 'studyai-notes',
+  essays: 'studyai-essay-history',
+  flashcards: 'studyai-decks',
+  planner: 'studyai-planner',
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+  currentUser = session.user;
+  renderProfile(currentUser);
+  checkSyncStatus();
 });
 
-function switchTab(tab) {
-  document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
-  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
-  document.getElementById('form-signin').style.display = tab === 'signin' ? 'flex' : 'none';
-  document.getElementById('form-signup').style.display = tab === 'signup' ? 'flex' : 'none';
-  hideMessages();
+function renderProfile(user) {
+  const email = user.email || '';
+  const initials = email.slice(0, 2).toUpperCase();
+  document.getElementById('big-avatar').textContent = initials;
+  document.getElementById('profile-email').textContent = email;
+  const created = new Date(user.created_at);
+  document.getElementById('profile-since').textContent =
+    'Member since ' + created.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-function showError(msg) {
-  const el = document.getElementById('error-msg');
-  el.textContent = msg; el.classList.add('visible');
-  document.getElementById('success-msg').classList.remove('visible');
-}
-function showSuccess(msg) {
-  const el = document.getElementById('success-msg');
-  el.textContent = msg; el.classList.add('visible');
-  document.getElementById('error-msg').classList.remove('visible');
-}
-function hideMessages() {
-  document.getElementById('error-msg').classList.remove('visible');
-  document.getElementById('success-msg').classList.remove('visible');
-}
-
-function setLoading(btnId, on) {
-  const btn = document.getElementById(btnId);
-  btn.disabled = on;
-  btn.innerHTML = on
-    ? '<div class="spinner"></div> Please wait…'
-    : (btnId === 'signin-btn' ? 'Sign in' : 'Create account');
-}
-
-async function submitSignin() {
-  const email = document.getElementById('signin-email').value.trim();
-  const password = document.getElementById('signin-password').value;
-  if (!email || !password) { showError('Please fill in all fields'); return; }
-  setLoading('signin-btn', true);
-  try {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    // Check if profile exists — if table missing or no row, go to onboarding
+async function checkSyncStatus() {
+  for (const feature of Object.keys(LOCAL_KEYS)) {
     try {
-      const { data: profile } = await sb.from('profiles').select('id').eq('id', data.user.id).single();
-      window.location.href = profile ? BASE + 'dashboard.html' : BASE + 'onboarding.html';
-    } catch {
-      window.location.href = BASE + 'onboarding.html';
-    }
-  } catch (err) {
-    showError(err.message || 'Sign in failed');
-    setLoading('signin-btn', false);
+      const { data } = await sb.from('user_data').select('updated_at')
+        .eq('user_id', currentUser.id).eq('feature', feature).single();
+      const el = document.getElementById('status-' + feature);
+      if (data) {
+        const d = new Date(data.updated_at);
+        el.textContent = 'Last synced ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        el.className = 'sync-status synced';
+      }
+    } catch {}
   }
 }
 
-async function submitSignup() {
-  const email = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value;
-  const confirm = document.getElementById('signup-confirm').value;
-  if (!email || !password) { showError('Please fill in all fields'); return; }
-  if (password.length < 8) { showError('Password must be at least 8 characters'); return; }
-  if (password !== confirm) { showError('Passwords do not match'); return; }
-  setLoading('signup-btn', true);
+async function syncFeature(feature) {
+  const localKey = LOCAL_KEYS[feature];
+  const raw = localStorage.getItem(localKey);
+  if (!raw) { showToast('No local data to sync for this feature', 'error'); return; }
+
+  const btn = document.querySelector(`button[onclick="syncFeature('${feature}')"]`);
+  btn.textContent = 'Syncing…'; btn.classList.add('syncing'); btn.disabled = true;
+
   try {
-    const { data, error } = await sb.auth.signUp({ email, password });
+    const data = JSON.parse(raw);
+    const { error } = await sb.from('user_data').upsert({
+      user_id: currentUser.id,
+      feature,
+      data,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,feature' });
     if (error) throw error;
-    if (data.session) {
-      window.location.href = BASE + 'onboarding.html';
-    } else {
-      showSuccess('Account created! Check your email to confirm, then sign in.');
-      setLoading('signup-btn', false);
-    }
+
+    const el = document.getElementById('status-' + feature);
+    el.textContent = 'Synced just now';
+    el.className = 'sync-status synced';
+    showToast(feature + ' synced to cloud ✦', 'success');
   } catch (err) {
-    showError(err.message || 'Sign up failed');
-    setLoading('signup-btn', false);
+    showToast('Sync failed: ' + err.message, 'error');
+    document.getElementById('status-' + feature).textContent = 'Sync failed';
+    document.getElementById('status-' + feature).className = 'sync-status error';
+  } finally {
+    btn.textContent = 'Sync now'; btn.classList.remove('syncing'); btn.disabled = false;
   }
 }
 
-async function submitGoogle() {
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: BASE + 'login.html' },
-  });
-  if (error) showError(error.message);
+async function restoreFeature(feature) {
+  try {
+    const { data, error } = await sb.from('user_data').select('data')
+      .eq('user_id', currentUser.id).eq('feature', feature).single();
+    if (error || !data) { showToast('No cloud data found for ' + feature, 'error'); return; }
+    localStorage.setItem(LOCAL_KEYS[feature], JSON.stringify(data.data));
+    showToast(feature + ' restored from cloud ✦', 'success');
+  } catch (err) {
+    showToast('Restore failed: ' + err.message, 'error');
+  }
+}
+
+async function deleteCloudData() {
+  if (!confirm('Delete all your cloud data? This cannot be undone.')) return;
+  try {
+    const { error } = await sb.from('user_data').delete().eq('user_id', currentUser.id);
+    if (error) throw error;
+    showToast('Cloud data deleted', 'success');
+    checkSyncStatus();
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+async function deleteAccount() {
+  const confirmed = prompt('Type DELETE to permanently delete your account:');
+  if (confirmed !== 'DELETE') { showToast('Account deletion cancelled', 'error'); return; }
+  try {
+    // Delete user data and profile first
+    await sb.from('user_data').delete().eq('user_id', currentUser.id);
+    await sb.from('profiles').delete().eq('id', currentUser.id);
+    // Delete the auth user via admin — since we can't do this client-side,
+    // sign out and show a message to contact support for full deletion
+    await sb.auth.signOut();
+    localStorage.clear();
+    alert('Your profile and cloud data have been deleted. Your login account has been signed out. To fully remove your auth account, contact support.');
+    window.location.href = 'https://sn8k3.github.io/tools/index.html';
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+async function doSignOut() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'error' ? '✕' : '✓';
+  t.className = `toast visible ${type}`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('visible'), 3000);
 }
 </script>
 </body>
