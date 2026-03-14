@@ -1,0 +1,21 @@
+<h1>Random Team Generator</h1>
+
+<input id="names" placeholder="Enter names separated by commas">
+<button onclick="generate()">Generate Teams</button>
+
+<p id="result"></p>
+
+<script>
+function generate(){
+let names=document.getElementById("names").value.split(",");
+names.sort(()=>Math.random()-0.5);
+
+let half=Math.ceil(names.length/2);
+
+let team1=names.slice(0,half);
+let team2=names.slice(half);
+
+document.getElementById("result").innerHTML=
+"Team 1: "+team1+"<br>Team 2: "+team2;
+}
+</script>
