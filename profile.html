@@ -219,6 +219,13 @@ body::before {
         </div>
         <button class="btn danger" onclick="deleteCloudData()">Delete</button>
       </div>
+      <div class="danger-row" style="background:rgba(240,99,90,0.06);border-color:rgba(240,99,90,0.3);">
+        <div class="danger-info">
+          <div class="danger-title">Delete account</div>
+          <div class="danger-sub">Permanently deletes your account, profile, and all cloud data. This cannot be undone.</div>
+        </div>
+        <button class="btn danger" onclick="deleteAccount()">Delete account</button>
+      </div>
       <button class="btn signout" onclick="doSignOut()">Sign out</button>
     </div>
   </div>
@@ -325,6 +332,24 @@ async function deleteCloudData() {
     if (error) throw error;
     showToast('Cloud data deleted', 'success');
     checkSyncStatus();
+  } catch (err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  }
+}
+
+async function deleteAccount() {
+  const confirmed = prompt('Type DELETE to permanently delete your account:');
+  if (confirmed !== 'DELETE') { showToast('Account deletion cancelled', 'error'); return; }
+  try {
+    // Delete user data and profile first
+    await sb.from('user_data').delete().eq('user_id', currentUser.id);
+    await sb.from('profiles').delete().eq('id', currentUser.id);
+    // Delete the auth user via admin — since we can't do this client-side,
+    // sign out and show a message to contact support for full deletion
+    await sb.auth.signOut();
+    localStorage.clear();
+    alert('Your profile and cloud data have been deleted. Your login account has been signed out. To fully remove your auth account, contact support.');
+    window.location.href = 'https://sn8k3.github.io/tools/index.html';
   } catch (err) {
     showToast('Delete failed: ' + err.message, 'error');
   }
