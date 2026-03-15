@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Games — Notiv</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #080809; --s1: #0f0f12; --s2: #16161a; --s3: #1e1e24;
+  --b1: #22222a; --b2: #2e2e38; --b3: #3c3c48;
+  --t1: #f0ede8; --t2: #9b9893; --t3: #5a5855; --t4: #383634;
+  --lime: #c8f05e; --lime-d: rgba(200,240,94,0.08); --lime-b: rgba(200,240,94,0.2);
+  --purple: #a07ee8; --purple-d: rgba(160,126,232,0.10);
+  --coral: #f0635a; --coral-d: rgba(240,99,90,0.10); --coral-b: rgba(240,99,90,0.3);
+  --amber: #f0ae50; --amber-d: rgba(240,174,80,0.10);
+  --sky: #58b2ee; --sky-d: rgba(88,178,238,0.10);
+  --r: 10px; --rl: 14px;
+}
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--t1); font-family: 'Instrument Sans', sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+
+.topbar { display: flex; align-items: center; height: 52px; background: var(--s1); border-bottom: 1px solid var(--b1); position: sticky; top: 0; z-index: 100; padding: 0 24px; flex-shrink: 0; }
+.logo { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 500; color: var(--t1); text-decoration: none; }
+.logo-dot { color: var(--lime); }
+.back-link { font-size: 13px; color: var(--t3); text-decoration: none; margin-left: 20px; transition: color 0.12s; }
+.back-link:hover { color: var(--t2); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.xp-display { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--lime); background: var(--lime-d); border: 1px solid var(--lime-b); padding: 4px 10px; border-radius: 20px; }
+
+/* Screens */
+.screen { display: none; flex: 1; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* ── HUB ── */
+.hub-wrap { max-width: 900px; margin: 0 auto; padding: 40px 24px 80px; width: 100%; display: flex; flex-direction: column; gap: 32px; }
+.page-title { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 400; }
+.page-sub { font-size: 13px; color: var(--t3); margin-top: 4px; }
+
+.games-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.game-card { background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl); padding: 24px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; }
+.game-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--gc, var(--lime)); opacity: 0; transition: opacity 0.2s; }
+.game-card:hover { border-color: var(--b2); transform: translateY(-2px); }
+.game-card:hover::before { opacity: 1; }
+.game-icon { font-size: 32px; }
+.game-name { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; }
+.game-desc { font-size: 13px; color: var(--t3); line-height: 1.5; }
+.game-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-tag { font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 8px; border-radius: 10px; background: var(--s3); color: var(--t3); border: 1px solid var(--b1); }
+.game-hs { font-size: 11px; color: var(--t3); font-family: 'DM Mono', monospace; margin-top: auto; }
+
+/* Topic input section */
+.topic-section { background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl); padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.topic-row { display: flex; gap: 10px; }
+.topic-input { flex: 1; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 10px 14px; font-family: inherit; font-size: 14px; color: var(--t1); outline: none; transition: border-color 0.15s; }
+.topic-input:focus { border-color: var(--lime-b); }
+.topic-input::placeholder { color: var(--t4); }
+
+/* Leaderboard */
+.lb-section { display: flex; flex-direction: column; gap: 10px; }
+.lb-title { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--t4); letter-spacing: 0.08em; text-transform: uppercase; }
+.lb-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--s1); border: 1px solid var(--b1); border-radius: var(--r); }
+.lb-rank { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--t3); width: 20px; text-align: center; }
+.lb-rank.gold { color: var(--amber); }
+.lb-name { flex: 1; font-size: 13px; color: var(--t2); }
+.lb-score { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--lime); }
+
+/* ── WORD SCRAMBLE ── */
+.game-wrap { max-width: 680px; margin: 0 auto; padding: 32px 24px 80px; width: 100%; display: flex; flex-direction: column; gap: 24px; align-items: center; }
+.game-header { text-align: center; width: 100%; }
+.game-header-title { font-family: 'Playfair Display', serif; font-size: 24px; }
+.game-timer { font-family: 'DM Mono', monospace; font-size: 32px; color: var(--lime); }
+.game-timer.warning { color: var(--coral); animation: pulse 0.5s ease infinite alternate; }
+@keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
+.game-score-bar { display: flex; justify-content: center; gap: 24px; }
+.gs-item { text-align: center; }
+.gs-num { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--t1); }
+.gs-lbl { font-size: 11px; color: var(--t3); font-family: 'DM Mono', monospace; }
+
+/* Scramble tiles */
+.scramble-hint { font-size: 13px; color: var(--t3); text-align: center; }
+.scramble-answer-display { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; min-height: 52px; }
+.answer-tile { width: 44px; height: 52px; border-radius: 8px; background: var(--s2); border: 1px solid var(--b2); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 22px; color: var(--t1); transition: all 0.15s; cursor: pointer; }
+.answer-tile:hover { border-color: var(--coral-b); background: var(--coral-d); }
+.answer-tile.empty { background: var(--s1); border-style: dashed; border-color: var(--b1); }
+.scramble-letters { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.letter-tile { width: 44px; height: 52px; border-radius: 8px; background: var(--s3); border: 1px solid var(--b2); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-size: 22px; color: var(--t1); cursor: pointer; transition: all 0.15s; user-select: none; }
+.letter-tile:hover { border-color: var(--lime-b); background: var(--lime-d); color: var(--lime); }
+.letter-tile.used { opacity: 0.25; cursor: default; pointer-events: none; }
+.scramble-input-row { display: flex; gap: 8px; width: 100%; }
+.scramble-text-input { flex: 1; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 12px 16px; font-family: 'Playfair Display', serif; font-size: 18px; color: var(--t1); outline: none; text-align: center; transition: border-color 0.15s; letter-spacing: 0.1em; }
+.scramble-text-input:focus { border-color: var(--lime-b); }
+.scramble-text-input.correct { border-color: var(--lime-b); background: var(--lime-d); color: var(--lime); }
+.scramble-text-input.wrong { border-color: var(--coral-b); background: var(--coral-d); color: var(--coral); animation: shake 0.3s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+/* ── MEMORY MATCH ── */
+.memory-grid { display: grid; gap: 10px; width: 100%; }
+.memory-grid.size-4 { grid-template-columns: repeat(4, 1fr); }
+.memory-grid.size-5 { grid-template-columns: repeat(5, 1fr); }
+.mem-card { aspect-ratio: 1; border-radius: var(--r); border: 1px solid var(--b1); background: var(--s2); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; font-size: 13px; text-align: center; padding: 8px; color: var(--t4); user-select: none; position: relative; perspective: 600px; }
+.mem-card-inner { width: 100%; height: 100%; transition: transform 0.35s; transform-style: preserve-3d; position: relative; }
+.mem-card.flipped .mem-card-inner { transform: rotateY(180deg); }
+.mem-card-front, .mem-card-back { position: absolute; inset: 0; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; border-radius: 8px; padding: 8px; text-align: center; }
+.mem-card-front { background: var(--s3); color: var(--t4); font-size: 20px; }
+.mem-card-back { background: var(--s2); border: 1px solid var(--b2); transform: rotateY(180deg); font-size: 12px; color: var(--t2); line-height: 1.4; }
+.mem-card.matched .mem-card-back { background: var(--lime-d); border-color: var(--lime-b); color: var(--lime); }
+
+/* ── SPEED RECALL ── */
+.speed-question { font-family: 'Playfair Display', serif; font-size: 26px; text-align: center; line-height: 1.4; max-width: 560px; }
+.speed-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 560px; }
+.speed-opt { background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 16px; text-align: center; font-family: inherit; font-size: 14px; color: var(--t2); cursor: pointer; transition: all 0.1s; }
+.speed-opt:hover:not(:disabled) { border-color: var(--b2); color: var(--t1); background: var(--s3); }
+.speed-opt.correct { border-color: var(--lime-b); background: var(--lime-d); color: var(--lime); }
+.speed-opt.wrong { border-color: var(--coral-b); background: var(--coral-d); color: var(--coral); }
+.speed-opt:disabled { cursor: default; }
+.speed-streak { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--amber); }
+
+/* Results / end screen */
+.end-screen { display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; padding: 40px 24px; }
+.end-icon { font-size: 64px; }
+.end-title { font-family: 'Playfair Display', serif; font-size: 28px; }
+.end-score { font-family: 'Playfair Display', serif; font-size: 48px; color: var(--lime); }
+.end-stats { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+.end-stat { text-align: center; }
+.end-stat-num { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--t1); }
+.end-stat-lbl { font-size: 11px; color: var(--t3); font-family: 'DM Mono', monospace; }
+.end-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 8px; border: 1px solid var(--b2); background: var(--s2); color: var(--t2); font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+.btn:hover { border-color: var(--b3); color: var(--t1); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.primary { background: var(--lime); border-color: var(--lime); color: #080809; font-weight: 600; }
+.btn.primary:hover:not(:disabled) { background: #d8ff74; }
+
+/* Proc */
+.proc { display: none; align-items: center; gap: 8px; padding: 10px 14px; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); font-size: 13px; color: var(--t2); }
+.proc.on { display: flex; }
+.spin { width: 14px; height: 14px; border: 2px solid var(--b2); border-top-color: var(--lime); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--s2); border: 1px solid var(--b2); border-radius: var(--r); padding: 10px 14px; font-size: 13px; color: var(--t1); z-index: 999; display: none; align-items: center; gap: 8px; }
+.toast.on { display: flex; }
+.toast.ok { border-color: var(--lime-b); }
+
+@media (max-width: 700px) {
+  .games-grid { grid-template-columns: 1fr; }
+  .speed-options { grid-template-columns: 1fr; }
+  .memory-grid.size-4, .memory-grid.size-5 { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
+  <a href="index.html" class="back-link">← All features</a>
+  <div class="topbar-right">
+    <div class="xp-display" id="xp-display">0 XP</div>
+  </div>
+</header>
+
+<!-- ── HUB ── -->
+<div class="screen active" id="screen-hub">
+  <div class="hub-wrap">
+    <div>
+      <div class="page-title">Study Games</div>
+      <div class="page-sub">Learn through play — all games generated from your topic or notes</div>
+    </div>
+
+    <div class="topic-section">
+      <div style="font-size:13px;color:var(--t2);">What topic should the games be about?</div>
+      <div class="topic-row">
+        <input class="topic-input" id="hub-topic" type="text" placeholder="e.g. The French Revolution, Cell Biology, Python programming…">
+        <button class="btn" onclick="useNoteTopic()">📚 From notes</button>
+      </div>
+    </div>
+
+    <div class="games-grid">
+      <div class="game-card" style="--gc:var(--lime)" onclick="startGame('scramble')">
+        <div class="game-icon">🔤</div>
+        <div class="game-name">Word Scramble</div>
+        <div class="game-desc">Unscramble key vocabulary from your topic. Race against the clock — faster answers score more points.</div>
+        <div class="game-meta">
+          <span class="game-tag">Vocabulary</span>
+          <span class="game-tag">Speed</span>
+        </div>
+        <div class="game-hs" id="hs-scramble">Best: —</div>
+      </div>
+      <div class="game-card" style="--gc:var(--purple)" onclick="startGame('memory')">
+        <div class="game-icon">🧩</div>
+        <div class="game-name">Memory Match</div>
+        <div class="game-desc">Match terms to their definitions by flipping cards. Find all pairs in the fewest moves.</div>
+        <div class="game-meta">
+          <span class="game-tag">Definitions</span>
+          <span class="game-tag">Memory</span>
+        </div>
+        <div class="game-hs" id="hs-memory">Best: —</div>
+      </div>
+      <div class="game-card" style="--gc:var(--coral)" onclick="startGame('speed')">
+        <div class="game-icon">⚡</div>
+        <div class="game-name">Speed Recall</div>
+        <div class="game-desc">Answer rapid-fire questions as fast as you can. Build streaks for bonus points. 60 seconds on the clock.</div>
+        <div class="game-meta">
+          <span class="game-tag">Quick fire</span>
+          <span class="game-tag">Streak</span>
+        </div>
+        <div class="game-hs" id="hs-speed">Best: —</div>
+      </div>
+    </div>
+
+    <div class="proc on" id="hub-proc" style="display:none"><div class="spin"></div><span style="color:var(--lime);font-weight:500;">Generating game content…</span></div>
+
+    <div class="lb-section" id="lb-section" style="display:none">
+      <div class="lb-title">Your high scores</div>
+      <div id="lb-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── WORD SCRAMBLE ── -->
+<div class="screen" id="screen-scramble">
+  <div class="game-wrap">
+    <div class="game-header">
+      <div class="game-header-title">Word Scramble</div>
+      <div class="game-timer" id="sc-timer">60</div>
+    </div>
+    <div class="game-score-bar">
+      <div class="gs-item"><div class="gs-num" id="sc-score">0</div><div class="gs-lbl">Points</div></div>
+      <div class="gs-item"><div class="gs-num" id="sc-word-num">1/10</div><div class="gs-lbl">Word</div></div>
+      <div class="gs-item"><div class="gs-num" id="sc-streak">0</div><div class="gs-lbl">Streak 🔥</div></div>
+    </div>
+    <div class="scramble-hint" id="sc-hint">Definition hint here</div>
+    <div class="scramble-input-row">
+      <input class="scramble-text-input" id="sc-input" placeholder="Type answer…" onkeydown="if(event.key==='Enter')checkScramble()">
+      <button class="btn primary" onclick="checkScramble()">→</button>
+      <button class="btn" onclick="skipScramble()">Skip</button>
+    </div>
+    <div style="font-size:12px;color:var(--t4);font-family:'DM Mono',monospace;" id="sc-feedback"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="endGame('scramble')">End game</button>
+      <button class="btn" onclick="showScreen('hub')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MEMORY MATCH ── -->
+<div class="screen" id="screen-memory">
+  <div class="game-wrap">
+    <div class="game-header">
+      <div class="game-header-title">Memory Match</div>
+    </div>
+    <div class="game-score-bar">
+      <div class="gs-item"><div class="gs-num" id="mm-pairs">0/0</div><div class="gs-lbl">Pairs found</div></div>
+      <div class="gs-item"><div class="gs-num" id="mm-moves">0</div><div class="gs-lbl">Moves</div></div>
+      <div class="gs-item"><div class="gs-num" id="mm-timer">0:00</div><div class="gs-lbl">Time</div></div>
+    </div>
+    <div class="memory-grid size-4" id="memory-grid"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" onclick="showScreen('hub')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SPEED RECALL ── -->
+<div class="screen" id="screen-speed">
+  <div class="game-wrap">
+    <div class="game-header">
+      <div class="game-header-title">Speed Recall</div>
+      <div class="game-timer" id="sp-timer">60</div>
+    </div>
+    <div class="game-score-bar">
+      <div class="gs-item"><div class="gs-num" id="sp-score">0</div><div class="gs-lbl">Points</div></div>
+      <div class="gs-item"><div class="gs-num" id="sp-correct">0</div><div class="gs-lbl">Correct</div></div>
+      <div class="gs-item"><div class="gs-num speed-streak" id="sp-streak">0</div><div class="gs-lbl">Streak 🔥</div></div>
+    </div>
+    <div class="speed-question" id="sp-question">—</div>
+    <div class="speed-options" id="sp-options"></div>
+    <button class="btn" onclick="showScreen('hub')">← Back</button>
+  </div>
+</div>
+
+<!-- ── END SCREEN ── -->
+<div class="screen" id="screen-end">
+  <div class="end-screen">
+    <div class="end-icon" id="end-icon">🎉</div>
+    <div class="end-title" id="end-title">Game Over!</div>
+    <div class="end-score" id="end-score">0</div>
+    <div class="end-stats" id="end-stats"></div>
+    <div class="end-btns">
+      <button class="btn primary" id="end-replay" onclick="replayGame()">↺ Play again</button>
+      <button class="btn" onclick="showScreen('hub')">← All games</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="t-msg">✓</span></div>
+
+<script>
+const WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
+
+let gameData = null; // { words: [{word, hint}], pairs: [{term, def}], questions: [{q, options, correct}] }
+let sessionXP = 0;
+let scores = JSON.parse(localStorage.getItem('notiv-game-scores') || '{}');
+let currentGame = '';
+
+// Scramble state
+let scWords = [], scIdx = 0, scScore = 0, scStreak = 0, scTimer = null;
+// Memory state
+let mmCards = [], mmFlipped = [], mmMatched = 0, mmMoves = 0, mmTimer = null, mmSeconds = 0;
+// Speed state
+let spQs = [], spIdx = 0, spScore = 0, spCorrect = 0, spStreak = 0, spTimer = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateXPDisplay();
+  renderHighScores();
+  renderLeaderboard();
+});
+
+function useNoteTopic() {
+  const notes = JSON.parse(localStorage.getItem('studyai-notes') || '[]');
+  if (!notes.length) { showToast('No notes in library yet'); return; }
+  const n = notes[0];
+  document.getElementById('hub-topic').value = n.name.replace(/\.[^.]+$/, '');
+}
+
+async function startGame(type) {
+  const topic = document.getElementById('hub-topic').value.trim();
+  if (!topic) { showToast('Enter a topic first'); return; }
+  currentGame = type;
+
+  document.getElementById('hub-proc').style.display = 'flex';
+
+  const prompt = `You are a study game content generator. Create game content about the topic: "${topic}".
+
+Return ONLY valid JSON:
+{
+  "words": [
+    { "word": "VOCABULARY_WORD", "hint": "definition or clue (1 sentence)", "scrambled": "SCRAMBLED_VERSION" }
+  ],
+  "pairs": [
+    { "term": "short term (max 4 words)", "definition": "brief definition (max 10 words)" }
+  ],
+  "questions": [
+    {
+      "question": "question text",
+      "options": ["option A", "option B", "option C", "option D"],
+      "correct": "exact correct option text"
+    }
+  ]
+}
+
+Provide:
+- 10 vocabulary words (words array) with scrambled versions
+- 8 term/definition pairs (pairs array) 
+- 15 multiple choice questions (questions array)
+
+Words should be single words or short compound terms. Scramble by shuffling letters randomly.`;
+
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
+    });
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    const raw = data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim();
+    gameData = JSON.parse(raw);
+    document.getElementById('hub-proc').style.display = 'none';
+    if (type === 'scramble') initScramble();
+    else if (type === 'memory') initMemory();
+    else if (type === 'speed') initSpeed();
+  } catch (err) {
+    document.getElementById('hub-proc').style.display = 'none';
+    showToast('Failed to generate content: ' + err.message);
+  }
+}
+
+// ── WORD SCRAMBLE ──
+function initScramble() {
+  scWords = [...(gameData.words || [])];
+  scIdx = 0; scScore = 0; scStreak = 0;
+  showScreen('scramble');
+  showScrambleWord();
+  let timeLeft = 60;
+  document.getElementById('sc-timer').textContent = timeLeft;
+  document.getElementById('sc-timer').className = 'game-timer';
+  clearInterval(scTimer);
+  scTimer = setInterval(() => {
+    timeLeft--;
+    document.getElementById('sc-timer').textContent = timeLeft;
+    if (timeLeft <= 10) document.getElementById('sc-timer').className = 'game-timer warning';
+    if (timeLeft <= 0) { clearInterval(scTimer); endGame('scramble'); }
+  }, 1000);
+}
+
+function showScrambleWord() {
+  if (scIdx >= scWords.length) { clearInterval(scTimer); endGame('scramble'); return; }
+  const w = scWords[scIdx];
+  document.getElementById('sc-hint').textContent = `💡 ${w.hint}`;
+  document.getElementById('sc-word-num').textContent = `${scIdx + 1}/${scWords.length}`;
+  document.getElementById('sc-input').value = '';
+  document.getElementById('sc-input').className = 'scramble-text-input';
+  document.getElementById('sc-feedback').textContent = `Scrambled: ${w.scrambled || shuffleStr(w.word)}`;
+  document.getElementById('sc-input').focus();
+}
+
+function checkScramble() {
+  const input = document.getElementById('sc-input').value.trim().toUpperCase();
+  const correct = scWords[scIdx].word.toUpperCase();
+  if (input === correct) {
+    scScore += 10 + scStreak * 2;
+    scStreak++;
+    document.getElementById('sc-input').className = 'scramble-text-input correct';
+    document.getElementById('sc-score').textContent = scScore;
+    document.getElementById('sc-streak').textContent = scStreak;
+    setTimeout(() => { scIdx++; showScrambleWord(); }, 600);
+  } else {
+    scStreak = 0;
+    document.getElementById('sc-streak').textContent = 0;
+    document.getElementById('sc-input').className = 'scramble-text-input wrong';
+    setTimeout(() => { document.getElementById('sc-input').className = 'scramble-text-input'; }, 500);
+  }
+}
+
+function skipScramble() { scStreak = 0; document.getElementById('sc-streak').textContent = 0; scIdx++; showScrambleWord(); }
+
+// ── MEMORY MATCH ──
+function initMemory() {
+  const pairs = (gameData.pairs || []).slice(0, 8);
+  mmCards = []; mmFlipped = []; mmMatched = 0; mmMoves = 0; mmSeconds = 0;
+  showScreen('memory');
+  // Create cards: each pair gets 2 cards
+  const cardData = [];
+  pairs.forEach((p, i) => {
+    cardData.push({ id: i * 2, pairId: i, text: p.term, type: 'term' });
+    cardData.push({ id: i * 2 + 1, pairId: i, text: p.definition, type: 'def' });
+  });
+  // Shuffle
+  mmCards = cardData.sort(() => Math.random() - 0.5);
+
+  const grid = document.getElementById('memory-grid');
+  const cols = pairs.length <= 6 ? 4 : 5;
+  grid.className = `memory-grid size-${cols}`;
+  grid.innerHTML = '';
+  mmCards.forEach((c, i) => {
+    const card = document.createElement('div');
+    card.className = 'mem-card';
+    card.dataset.idx = i;
+    card.innerHTML = `<div class="mem-card-inner"><div class="mem-card-front">🎴</div><div class="mem-card-back">${escH(c.text)}</div></div>`;
+    card.onclick = () => flipMemCard(i);
+    grid.appendChild(card);
+  });
+
+  document.getElementById('mm-pairs').textContent = `0/${pairs.length}`;
+  document.getElementById('mm-moves').textContent = 0;
+  clearInterval(mmTimer);
+  mmTimer = setInterval(() => {
+    mmSeconds++;
+    const m = Math.floor(mmSeconds / 60), s = mmSeconds % 60;
+    document.getElementById('mm-timer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+}
+
+function flipMemCard(idx) {
+  if (mmFlipped.length >= 2) return;
+  if (mmCards[idx].matched) return;
+  const card = document.querySelector(`[data-idx="${idx}"]`);
+  if (card.classList.contains('flipped')) return;
+  card.classList.add('flipped');
+  mmFlipped.push(idx);
+
+  if (mmFlipped.length === 2) {
+    mmMoves++;
+    document.getElementById('mm-moves').textContent = mmMoves;
+    const [a, b] = mmFlipped;
+    if (mmCards[a].pairId === mmCards[b].pairId) {
+      // Match!
+      mmMatched++;
+      mmCards[a].matched = mmCards[b].matched = true;
+      document.querySelector(`[data-idx="${a}"]`).classList.add('matched');
+      document.querySelector(`[data-idx="${b}"]`).classList.add('matched');
+      mmFlipped = [];
+      document.getElementById('mm-pairs').textContent = `${mmMatched}/${gameData.pairs.slice(0,8).length}`;
+      if (mmMatched === gameData.pairs.slice(0,8).length) { clearInterval(mmTimer); setTimeout(() => endGame('memory'), 600); }
+    } else {
+      setTimeout(() => {
+        document.querySelector(`[data-idx="${a}"]`).classList.remove('flipped');
+        document.querySelector(`[data-idx="${b}"]`).classList.remove('flipped');
+        mmFlipped = [];
+      }, 900);
+    }
+  }
+}
+
+// ── SPEED RECALL ──
+function initSpeed() {
+  spQs = [...(gameData.questions || [])].sort(() => Math.random() - 0.5);
+  spIdx = 0; spScore = 0; spCorrect = 0; spStreak = 0;
+  showScreen('speed');
+  showSpeedQ();
+  let timeLeft = 60;
+  document.getElementById('sp-timer').textContent = timeLeft;
+  document.getElementById('sp-timer').className = 'game-timer';
+  clearInterval(spTimer);
+  spTimer = setInterval(() => {
+    timeLeft--;
+    document.getElementById('sp-timer').textContent = timeLeft;
+    if (timeLeft <= 10) document.getElementById('sp-timer').className = 'game-timer warning';
+    if (timeLeft <= 0) { clearInterval(spTimer); endGame('speed'); }
+  }, 1000);
+}
+
+function showSpeedQ() {
+  if (spIdx >= spQs.length) spIdx = 0; // Loop
+  const q = spQs[spIdx];
+  document.getElementById('sp-question').textContent = q.question;
+  const opts = document.getElementById('sp-options');
+  opts.innerHTML = '';
+  (q.options || []).forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'speed-opt';
+    btn.textContent = opt;
+    btn.onclick = () => answerSpeed(opt, q.correct);
+    opts.appendChild(btn);
+  });
+}
+
+function answerSpeed(chosen, correct) {
+  const btns = document.querySelectorAll('.speed-opt');
+  btns.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correct) b.classList.add('correct');
+    else if (b.textContent === chosen && chosen !== correct) b.classList.add('wrong');
+  });
+  if (chosen === correct) {
+    spCorrect++; spStreak++;
+    spScore += 10 + Math.min(spStreak * 3, 20);
+  } else {
+    spStreak = 0;
+  }
+  document.getElementById('sp-score').textContent = spScore;
+  document.getElementById('sp-correct').textContent = spCorrect;
+  document.getElementById('sp-streak').textContent = spStreak;
+  spIdx++;
+  setTimeout(showSpeedQ, 700);
+}
+
+// ── END GAME ──
+function endGame(type) {
+  clearInterval(scTimer); clearInterval(mmTimer); clearInterval(spTimer);
+  let score = 0, stats = [];
+
+  if (type === 'scramble') {
+    score = scScore;
+    stats = [{ num: scScore, lbl: 'Points' }, { num: scIdx, lbl: 'Words solved' }, { num: Math.max(0, scIdx * 10 - scScore), lbl: 'XP earned' }];
+  } else if (type === 'memory') {
+    score = Math.max(0, 1000 - mmMoves * 20 - mmSeconds);
+    stats = [{ num: mmMatched, lbl: 'Pairs found' }, { num: mmMoves, lbl: 'Moves' }, { num: mmSeconds + 's', lbl: 'Time' }];
+  } else if (type === 'speed') {
+    score = spScore;
+    stats = [{ num: spScore, lbl: 'Points' }, { num: spCorrect, lbl: 'Correct' }, { num: spStreak, lbl: 'Best streak' }];
+  }
+
+  // Update high score
+  const key = type;
+  if (!scores[key] || score > scores[key]) { scores[key] = score; localStorage.setItem('notiv-game-scores', JSON.stringify(scores)); }
+
+  // Add XP
+  const xpEarned = Math.round(score / 10);
+  sessionXP += xpEarned;
+  updateXPDisplay();
+
+  showScreen('end');
+  const titles = { scramble: '🔤 Word Scramble', memory: '🧩 Memory Match', speed: '⚡ Speed Recall' };
+  document.getElementById('end-title').textContent = titles[type];
+  document.getElementById('end-score').textContent = score + ' pts';
+  const statsEl = document.getElementById('end-stats');
+  statsEl.innerHTML = stats.map(s => `<div class="end-stat"><div class="end-stat-num">${s.num}</div><div class="end-stat-lbl">${s.lbl}</div></div>`).join('');
+  document.getElementById('end-icon').textContent = score > 200 ? '🏆' : score > 100 ? '⭐' : '🎯';
+  renderHighScores();
+  renderLeaderboard();
+}
+
+function replayGame() { startGame(currentGame); }
+
+function renderHighScores() {
+  document.getElementById('hs-scramble').textContent = scores.scramble ? `Best: ${scores.scramble} pts` : 'Best: —';
+  document.getElementById('hs-memory').textContent = scores.memory ? `Best: ${scores.memory} pts` : 'Best: —';
+  document.getElementById('hs-speed').textContent = scores.speed ? `Best: ${scores.speed} pts` : 'Best: —';
+}
+
+function renderLeaderboard() {
+  const lb = document.getElementById('lb-section');
+  const list = document.getElementById('lb-list');
+  const entries = Object.entries(scores).filter(([,v]) => v > 0);
+  if (!entries.length) { lb.style.display = 'none'; return; }
+  lb.style.display = 'flex';
+  const names = { scramble: '🔤 Word Scramble', memory: '🧩 Memory Match', speed: '⚡ Speed Recall' };
+  list.innerHTML = entries.sort((a,b) => b[1]-a[1]).map(([k,v], i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${i===0?'gold':''}">${i+1}</div>
+      <div class="lb-name">${names[k]||k}</div>
+      <div class="lb-score">${v} pts</div>
+    </div>
+  `).join('');
+}
+
+function updateXPDisplay() {
+  const baseXP = (() => {
+    const notes = JSON.parse(localStorage.getItem('studyai-notes')||'[]');
+    const essays = JSON.parse(localStorage.getItem('studyai-essay-history')||'[]');
+    const decks = JSON.parse(localStorage.getItem('studyai-decks')||'[]');
+    return notes.length*50 + notes.filter(n=>n.polishedText).length*100 + essays.length*75 + decks.length*60;
+  })();
+  document.getElementById('xp-display').textContent = (baseXP + sessionXP) + ' XP';
+}
+
+function showScreen(s) {
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  document.getElementById('screen-' + s).classList.add('active');
+}
+
+function shuffleStr(str) { return str.split('').sort(() => Math.random() - 0.5).join(''); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent = msg;
+  t.classList.add('on');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('on'), 2500);
+}
+
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+<script src="ai-assistant.js" defer></script>
+</body>
+</html>

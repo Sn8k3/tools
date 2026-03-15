@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Writer — Notiv</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;
+  --b1:#22222a;--b2:#2e2e38;--b3:#3c3c48;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);--purple-b:rgba(160,126,232,0.25);
+  --coral:#f0635a;--coral-d:rgba(240,99,90,0.10);
+  --amber:#f0ae50;--amber-d:rgba(240,174,80,0.10);
+  --sky:#58b2ee;--sky-d:rgba(88,178,238,0.10);
+  --r:10px;--rl:14px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+
+.topbar{display:flex;align-items:center;height:52px;background:var(--s1);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:100;padding:0 24px;flex-shrink:0}
+.logo{font-family:'Playfair Display',serif;font-size:19px;font-weight:500;color:var(--t1);text-decoration:none}
+.logo-dot{color:var(--lime)}
+.back-link{font-size:13px;color:var(--t3);text-decoration:none;margin-left:20px;transition:color 0.12s}
+.back-link:hover{color:var(--t2)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* Layout */
+.app{display:grid;grid-template-columns:280px 1fr 320px;flex:1;height:calc(100vh - 52px);overflow:hidden}
+
+/* Left panel - tools */
+.tools-panel{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto}
+.tools-inner{padding:16px 12px;display:flex;flex-direction:column;gap:8px}
+.tools-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;padding:8px 8px 4px}
+.tool-btn{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;border:none;background:none;color:var(--t3);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s;text-align:left;width:100%}
+.tool-btn:hover{background:var(--s2);color:var(--t2)}
+.tool-btn.active{background:var(--s2);color:var(--t1)}
+.tool-btn.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--lime);border-radius:0 2px 2px 0}
+.tool-btn{position:relative}
+.tool-icon{font-size:15px;flex-shrink:0;width:22px;text-align:center}
+.tool-info{flex:1;min-width:0}
+.tool-name{font-size:13px;color:inherit;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tool-sub{font-size:11px;color:var(--t4);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Center - editor */
+.editor-area{display:flex;flex-direction:column;overflow:hidden}
+.editor-toolbar{padding:10px 20px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.toolbar-title{font-family:'Playfair Display',serif;font-size:16px;flex:1}
+.word-count{font-size:11px;font-family:'DM Mono',monospace;color:var(--t4)}
+.editor-wrap{flex:1;overflow-y:auto;padding:32px;position:relative}
+.editor{width:100%;min-height:100%;background:transparent;border:none;outline:none;font-family:'Playfair Display',serif;font-size:18px;line-height:1.85;color:var(--t1);resize:none;caret-color:var(--lime)}
+.editor::placeholder{color:var(--t4);font-style:italic}
+.editor-toolbar-bottom{padding:10px 20px;background:var(--s1);border-top:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+/* Right panel - AI assist */
+.ai-panel{background:var(--s1);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.ai-panel-head{padding:14px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.ai-panel-title{font-size:13px;font-weight:500;color:var(--t1);display:flex;align-items:center;gap:6px}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--lime);animation:ai-pulse 2s ease-in-out infinite}
+@keyframes ai-pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* Tool panel content */
+.tool-pane{display:none;flex:1;overflow-y:auto;flex-direction:column}
+.tool-pane.active{display:flex}
+.tool-pane-inner{padding:16px;display:flex;flex-direction:column;gap:12px;flex:1}
+.pane-title{font-size:12px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px}
+
+/* Inputs in panels */
+.p-select{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;color:var(--t2);outline:none;cursor:pointer}
+.p-input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 12px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;transition:border-color 0.15s;resize:none}
+.p-input:focus{border-color:var(--lime-b)}
+.p-input::placeholder{color:var(--t4)}
+
+/* Suggestion chips */
+.chip-grid{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:5px 12px;border-radius:20px;border:1px solid var(--b1);background:var(--s2);font-size:12px;color:var(--t3);cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.chip:hover{border-color:var(--b2);color:var(--t2)}
+
+/* Output card */
+.output-card{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.output-text{font-size:13px;color:var(--t2);line-height:1.7;white-space:pre-wrap}
+.output-actions{display:flex;gap:6px}
+
+/* Diff view */
+.diff-view{font-size:14px;line-height:1.8;font-family:'Playfair Display',serif;color:var(--t2)}
+.diff-add{background:rgba(200,240,94,0.12);color:var(--lime);border-radius:2px;padding:0 2px}
+.diff-del{background:rgba(240,99,90,0.12);color:var(--coral);text-decoration:line-through;border-radius:2px;padding:0 2px}
+
+/* proc */
+.proc{display:none;align-items:center;gap:8px;padding:10px 12px;background:var(--s3);border-radius:var(--r);font-size:12px;color:var(--t2)}
+.proc.on{display:flex}
+.spin{width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--lime);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.btn:hover{border-color:var(--b3);color:var(--t1)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:#080809;font-weight:600}
+.btn.primary:hover:not(:disabled){background:#d8ff74}
+.btn.sm{padding:5px 10px;font-size:12px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:9px 18px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px}
+.toast.on{display:flex}
+.toast.ok{border-color:var(--lime-b)}
+
+@media(max-width:1000px){.app{grid-template-columns:1fr}.tools-panel,.ai-panel{display:none}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
+  <a href="index.html" class="back-link">← All features</a>
+  <div class="topbar-right">
+    <span class="word-count" id="top-wc">0 words</span>
+    <button class="btn sm" onclick="saveToNotes()">📚 Save to notes</button>
+    <button class="btn sm primary" onclick="copyAll()">Copy all</button>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- Tools panel -->
+  <div class="tools-panel">
+    <div class="tools-inner">
+      <div class="tools-label">Writing tools</div>
+      <button class="tool-btn active" onclick="setTool('improve',this)"><span class="tool-icon">✨</span><div class="tool-info"><div class="tool-name">Improve writing</div><div class="tool-sub">Fix, refine, polish</div></div></button>
+      <button class="tool-btn" onclick="setTool('continue',this)"><span class="tool-icon">→</span><div class="tool-info"><div class="tool-name">Continue writing</div><div class="tool-sub">AI picks up where you left off</div></div></button>
+      <button class="tool-btn" onclick="setTool('rewrite',this)"><span class="tool-icon">↺</span><div class="tool-info"><div class="tool-name">Rewrite selection</div><div class="tool-sub">Rephrase highlighted text</div></div></button>
+      <button class="tool-btn" onclick="setTool('summarise',this)"><span class="tool-icon">⬆</span><div class="tool-info"><div class="tool-name">Summarise</div><div class="tool-sub">Condense to key points</div></div></button>
+      <button class="tool-btn" onclick="setTool('expand',this)"><span class="tool-icon">⬇</span><div class="tool-info"><div class="tool-name">Expand</div><div class="tool-sub">Add depth and detail</div></div></button>
+      <button class="tool-btn" onclick="setTool('tone',this)"><span class="tool-icon">🎭</span><div class="tool-info"><div class="tool-name">Change tone</div><div class="tool-sub">Academic, casual, formal…</div></div></button>
+      <button class="tool-btn" onclick="setTool('outline',this)"><span class="tool-icon">📋</span><div class="tool-info"><div class="tool-name">Generate outline</div><div class="tool-sub">Structure from a topic</div></div></button>
+      <button class="tool-btn" onclick="setTool('intro',this)"><span class="tool-icon">🚀</span><div class="tool-info"><div class="tool-name">Write introduction</div><div class="tool-sub">Strong opening paragraph</div></div></button>
+      <button class="tool-btn" onclick="setTool('conclusion',this)"><span class="tool-icon">🏁</span><div class="tool-info"><div class="tool-name">Write conclusion</div><div class="tool-sub">Tie it all together</div></div></button>
+      <button class="tool-btn" onclick="setTool('grammar',this)"><span class="tool-icon">✓</span><div class="tool-info"><div class="tool-name">Grammar check</div><div class="tool-sub">Find and fix errors</div></div></button>
+      <button class="tool-btn" onclick="setTool('simplify',this)"><span class="tool-icon">💡</span><div class="tool-info"><div class="tool-name">Simplify language</div><div class="tool-sub">Clearer, simpler words</div></div></button>
+      <button class="tool-btn" onclick="setTool('translate',this)"><span class="tool-icon">🌍</span><div class="tool-info"><div class="tool-name">Translate</div><div class="tool-sub">Convert to another language</div></div></button>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor-area">
+    <div class="editor-toolbar">
+      <input id="doc-title" style="background:none;border:none;outline:none;font-family:'Playfair Display',serif;font-size:16px;color:var(--t1);flex:1" placeholder="Untitled document" value="Untitled document">
+      <span class="word-count" id="wc">0 words · 0 chars</span>
+    </div>
+    <div class="editor-wrap">
+      <textarea class="editor" id="editor" placeholder="Start writing… or choose a tool on the left to get started." oninput="updateWordCount()"></textarea>
+    </div>
+    <div class="editor-toolbar-bottom">
+      <button class="btn sm" onclick="undoLast()">↩ Undo last AI change</button>
+      <span style="font-size:12px;color:var(--t4);margin-left:auto" id="autosave-label">Not saved</span>
+    </div>
+  </div>
+
+  <!-- AI panel -->
+  <div class="ai-panel">
+    <div class="ai-panel-head">
+      <div class="ai-panel-title"><div class="ai-dot"></div>AI Writing Tools</div>
+    </div>
+
+    <!-- Improve -->
+    <div class="tool-pane active" id="pane-improve">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Improve writing</div><div style="font-size:12px;color:var(--t3);margin-top:2px">Fix grammar, improve clarity, and polish your writing style</div></div>
+        <div><div class="pane-title">Focus on</div><div class="chip-grid"><div class="chip" onclick="toggleChip(this,'improve-chips')">Grammar</div><div class="chip" onclick="toggleChip(this,'improve-chips')">Clarity</div><div class="chip" onclick="toggleChip(this,'improve-chips')">Flow</div><div class="chip" onclick="toggleChip(this,'improve-chips')">Word choice</div><div class="chip" onclick="toggleChip(this,'improve-chips')">Conciseness</div></div></div>
+        <div class="proc" id="proc-improve"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Improving…</span></div>
+        <button class="btn primary" onclick="runTool('improve')">✦ Improve writing</button>
+        <div class="output-card" id="out-improve" style="display:none"><div class="pane-title">Improved version</div><div class="output-text" id="out-improve-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('improve')">Accept</button><button class="btn sm" onclick="copyOutput('improve')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Continue -->
+    <div class="tool-pane" id="pane-continue">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Continue writing</div><div style="font-size:12px;color:var(--t3);margin-top:2px">AI continues from where you left off</div></div>
+        <div><div class="pane-title">Length</div><select class="p-select" id="continue-len"><option value="short">Short (1-2 sentences)</option><option value="medium" selected>Medium (1 paragraph)</option><option value="long">Long (2-3 paragraphs)</option></select></div>
+        <div class="proc" id="proc-continue"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Writing…</span></div>
+        <button class="btn primary" onclick="runTool('continue')">✦ Continue writing</button>
+        <div class="output-card" id="out-continue" style="display:none"><div class="pane-title">Continuation</div><div class="output-text" id="out-continue-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('continue')">Append</button><button class="btn sm" onclick="copyOutput('continue')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Rewrite -->
+    <div class="tool-pane" id="pane-rewrite">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Rewrite selection</div><div style="font-size:12px;color:var(--t3);margin-top:2px">Select text in the editor, then choose a style</div></div>
+        <div><div class="pane-title">Rewrite style</div><select class="p-select" id="rewrite-style"><option value="clearer">Clearer and simpler</option><option value="formal">More formal</option><option value="casual">More casual</option><option value="concise">More concise</option><option value="detailed">More detailed</option><option value="active">Active voice</option></select></div>
+        <div class="proc" id="proc-rewrite"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Rewriting…</span></div>
+        <button class="btn primary" onclick="runTool('rewrite')">✦ Rewrite selection</button>
+        <div class="output-card" id="out-rewrite" style="display:none"><div class="pane-title">Rewritten version</div><div class="output-text" id="out-rewrite-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('rewrite')">Replace</button><button class="btn sm" onclick="copyOutput('rewrite')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Summarise -->
+    <div class="tool-pane" id="pane-summarise">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Summarise</div><div style="font-size:12px;color:var(--t3);margin-top:2px">Condense your writing into key points</div></div>
+        <div><div class="pane-title">Format</div><select class="p-select" id="summary-fmt"><option value="bullets">Bullet points</option><option value="paragraph" selected>Paragraph</option><option value="tldr">TL;DR (1 sentence)</option></select></div>
+        <div class="proc" id="proc-summarise"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Summarising…</span></div>
+        <button class="btn primary" onclick="runTool('summarise')">✦ Summarise</button>
+        <div class="output-card" id="out-summarise" style="display:none"><div class="pane-title">Summary</div><div class="output-text" id="out-summarise-text"></div><div class="output-actions"><button class="btn sm" onclick="copyOutput('summarise')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Expand -->
+    <div class="tool-pane" id="pane-expand">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Expand</div><div style="font-size:12px;color:var(--t3);margin-top:2px">Add depth, examples, and detail to your writing</div></div>
+        <div><div class="pane-title">Add</div><div class="chip-grid"><div class="chip" onclick="toggleChip(this,'expand-chips')">Examples</div><div class="chip" onclick="toggleChip(this,'expand-chips')">Statistics</div><div class="chip" onclick="toggleChip(this,'expand-chips')">Analysis</div><div class="chip" onclick="toggleChip(this,'expand-chips')">Context</div></div></div>
+        <div class="proc" id="proc-expand"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Expanding…</span></div>
+        <button class="btn primary" onclick="runTool('expand')">✦ Expand</button>
+        <div class="output-card" id="out-expand" style="display:none"><div class="pane-title">Expanded version</div><div class="output-text" id="out-expand-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('expand')">Accept</button><button class="btn sm" onclick="copyOutput('expand')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Tone -->
+    <div class="tool-pane" id="pane-tone">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Change tone</div></div>
+        <div><div class="pane-title">Target tone</div><select class="p-select" id="tone-target"><option value="academic">Academic</option><option value="professional">Professional</option><option value="casual">Casual & friendly</option><option value="persuasive">Persuasive</option><option value="neutral">Neutral & objective</option><option value="enthusiastic">Enthusiastic</option><option value="empathetic">Empathetic</option></select></div>
+        <div class="proc" id="proc-tone"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Adjusting tone…</span></div>
+        <button class="btn primary" onclick="runTool('tone')">✦ Change tone</button>
+        <div class="output-card" id="out-tone" style="display:none"><div class="pane-title">Rewritten</div><div class="output-text" id="out-tone-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('tone')">Accept</button><button class="btn sm" onclick="copyOutput('tone')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Outline -->
+    <div class="tool-pane" id="pane-outline">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Generate outline</div></div>
+        <div><div class="pane-title">Topic or title</div><input class="p-input" id="outline-topic" placeholder="e.g. The causes of World War I…"></div>
+        <div><div class="pane-title">Type</div><select class="p-select" id="outline-type"><option value="essay">Essay</option><option value="report">Research report</option><option value="presentation">Presentation</option><option value="notes">Study notes</option></select></div>
+        <div class="proc" id="proc-outline"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Generating outline…</span></div>
+        <button class="btn primary" onclick="runTool('outline')">✦ Generate outline</button>
+        <div class="output-card" id="out-outline" style="display:none"><div class="pane-title">Outline</div><div class="output-text" id="out-outline-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('outline')">Insert into editor</button><button class="btn sm" onclick="copyOutput('outline')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Intro -->
+    <div class="tool-pane" id="pane-intro">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Write introduction</div></div>
+        <div><div class="pane-title">Topic / thesis</div><textarea class="p-input" id="intro-topic" rows="3" placeholder="Briefly describe what your essay or piece is about…"></textarea></div>
+        <div class="proc" id="proc-intro"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Writing intro…</span></div>
+        <button class="btn primary" onclick="runTool('intro')">✦ Write introduction</button>
+        <div class="output-card" id="out-intro" style="display:none"><div class="pane-title">Introduction</div><div class="output-text" id="out-intro-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('intro')">Insert</button><button class="btn sm" onclick="copyOutput('intro')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Conclusion -->
+    <div class="tool-pane" id="pane-conclusion">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Write conclusion</div></div>
+        <div class="proc" id="proc-conclusion"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Writing conclusion…</span></div>
+        <button class="btn primary" onclick="runTool('conclusion')">✦ Write conclusion</button>
+        <div class="output-card" id="out-conclusion" style="display:none"><div class="pane-title">Conclusion</div><div class="output-text" id="out-conclusion-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('conclusion')">Append</button><button class="btn sm" onclick="copyOutput('conclusion')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Grammar -->
+    <div class="tool-pane" id="pane-grammar">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Grammar check</div></div>
+        <div class="proc" id="proc-grammar"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Checking…</span></div>
+        <button class="btn primary" onclick="runTool('grammar')">✦ Check grammar</button>
+        <div class="output-card" id="out-grammar" style="display:none"><div class="pane-title">Corrected version</div><div class="output-text" id="out-grammar-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('grammar')">Accept</button><button class="btn sm" onclick="copyOutput('grammar')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Simplify -->
+    <div class="tool-pane" id="pane-simplify">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Simplify language</div></div>
+        <div><div class="pane-title">Reading level</div><select class="p-select" id="simplify-level"><option value="general">General audience</option><option value="student">High school student</option><option value="child">Young reader (age 12)</option></select></div>
+        <div class="proc" id="proc-simplify"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Simplifying…</span></div>
+        <button class="btn primary" onclick="runTool('simplify')">✦ Simplify</button>
+        <div class="output-card" id="out-simplify" style="display:none"><div class="pane-title">Simplified version</div><div class="output-text" id="out-simplify-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('simplify')">Accept</button><button class="btn sm" onclick="copyOutput('simplify')">Copy</button></div></div>
+      </div>
+    </div>
+
+    <!-- Translate -->
+    <div class="tool-pane" id="pane-translate">
+      <div class="tool-pane-inner">
+        <div><div class="pane-title">Translate</div></div>
+        <div><div class="pane-title">Target language</div><select class="p-select" id="translate-lang"><option value="Spanish">Spanish</option><option value="French">French</option><option value="German">German</option><option value="Italian">Italian</option><option value="Portuguese">Portuguese</option><option value="Mandarin">Mandarin Chinese</option><option value="Japanese">Japanese</option><option value="Korean">Korean</option><option value="Arabic">Arabic</option><option value="Hindi">Hindi</option><option value="Russian">Russian</option></select></div>
+        <div class="proc" id="proc-translate"><div class="spin"></div><span style="color:var(--lime);font-weight:500">Translating…</span></div>
+        <button class="btn primary" onclick="runTool('translate')">✦ Translate</button>
+        <div class="output-card" id="out-translate" style="display:none"><div class="pane-title">Translation</div><div class="output-text" id="out-translate-text"></div><div class="output-actions"><button class="btn sm primary" onclick="acceptOutput('translate')">Replace</button><button class="btn sm" onclick="copyOutput('translate')">Copy</button></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="t-msg"></span></div>
+
+<script>
+const WORKER_URL='https://tiny-hat-80bd.charlieweis6.workers.dev';
+let currentTool='improve';
+let lastText='';
+let autoSaveTimer=null;
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const saved=localStorage.getItem('notiv-writer-draft');
+  if(saved){const d=JSON.parse(saved);document.getElementById('editor').value=d.text||'';document.getElementById('doc-title').value=d.title||'Untitled document';updateWordCount();}
+  document.getElementById('editor').addEventListener('input',()=>{clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(autosave,2000);});
+});
+
+function setTool(tool,btn){
+  currentTool=tool;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tool-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+tool).classList.add('active');
+}
+
+function toggleChip(chip,groupId){chip.classList.toggle('active');}
+
+function updateWordCount(){
+  const text=document.getElementById('editor').value;
+  const words=text.trim()?text.trim().split(/\s+/).length:0;
+  document.getElementById('wc').textContent=`${words} words · ${text.length} chars`;
+  document.getElementById('top-wc').textContent=`${words} words`;
+}
+
+function autosave(){
+  const text=document.getElementById('editor').value;
+  const title=document.getElementById('doc-title').value;
+  localStorage.setItem('notiv-writer-draft',JSON.stringify({text,title,saved:new Date().toISOString()}));
+  document.getElementById('autosave-label').textContent='Saved '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function runTool(tool){
+  const editor=document.getElementById('editor');
+  const text=editor.value.trim();
+  const selection=window.getSelection()?.toString().trim()||'';
+  const workingText=(['rewrite','grammar','translate','simplify','summarise'].includes(tool)&&selection)?selection:text;
+  if(!workingText&&!['outline','intro'].includes(tool)){toast('Add some text to the editor first');return;}
+  lastText=text;
+  setLoading(tool,true);
+  const prompts={
+    improve:`Improve this writing. Fix grammar, enhance clarity, improve word choice and flow. Return only the improved text, no commentary:\n\n${workingText}`,
+    continue:`Continue this writing naturally. Length: ${document.getElementById('continue-len')?.value||'medium'}. Match the author's voice and style. Return only the continuation:\n\n${workingText}`,
+    rewrite:`Rewrite this text to be ${document.getElementById('rewrite-style')?.value||'clearer'}. Return only the rewritten text:\n\n${workingText}`,
+    summarise:`Summarise this text as ${document.getElementById('summary-fmt')?.value||'paragraph'}. Return only the summary:\n\n${workingText}`,
+    expand:`Expand this text by adding ${Array.from(document.querySelectorAll('#pane-expand .chip.active')).map(c=>c.textContent).join(', ')||'more depth and detail'}. Return only the expanded text:\n\n${workingText}`,
+    tone:`Rewrite this text in a ${document.getElementById('tone-target')?.value||'academic'} tone. Return only the rewritten text:\n\n${workingText}`,
+    outline:`Create a detailed ${document.getElementById('outline-type')?.value||'essay'} outline for: "${document.getElementById('outline-topic')?.value||workingText}". Use clear headings and subpoints.`,
+    intro:`Write a compelling introduction paragraph for: "${document.getElementById('intro-topic')?.value||workingText}". Return only the introduction.`,
+    conclusion:`Write a strong conclusion for this piece. Return only the conclusion paragraph:\n\n${workingText}`,
+    grammar:`Check and correct all grammar, spelling, and punctuation errors. Return only the corrected text:\n\n${workingText}`,
+    simplify:`Simplify this text for a ${document.getElementById('simplify-level')?.value||'general'} audience. Use clear, simple language. Return only the simplified text:\n\n${workingText}`,
+    translate:`Translate this text to ${document.getElementById('translate-lang')?.value||'Spanish'}. Return only the translation:\n\n${workingText}`,
+  };
+  try{
+    const res=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompts[tool]}]})});
+    if(!res.ok)throw new Error('API error');
+    const data=await res.json();
+    const output=data.content.map(b=>b.text||'').join('');
+    document.getElementById('out-'+tool+'-text').textContent=output;
+    document.getElementById('out-'+tool).style.display='flex';
+  }catch(err){toast('Failed: '+err.message);}
+  finally{setLoading(tool,false);}
+}
+
+function acceptOutput(tool){
+  const output=document.getElementById('out-'+tool+'-text').textContent;
+  const editor=document.getElementById('editor');
+  if(['continue','intro-append','conclusion','outline'].includes(tool)||tool==='continue'){
+    editor.value=(editor.value+'\n\n'+output).trimStart();
+  }else{
+    editor.value=output;
+  }
+  updateWordCount();autosave();toast('Applied ✦');
+}
+
+function copyOutput(tool){
+  navigator.clipboard.writeText(document.getElementById('out-'+tool+'-text').textContent);
+  toast('Copied');
+}
+
+function undoLast(){
+  if(!lastText){toast('Nothing to undo');return;}
+  document.getElementById('editor').value=lastText;
+  updateWordCount();toast('Undone');
+}
+
+function copyAll(){navigator.clipboard.writeText(document.getElementById('editor').value);toast('Copied');}
+
+function saveToNotes(){
+  const text=document.getElementById('editor').value.trim();
+  if(!text){toast('Nothing to save');return;}
+  const title=document.getElementById('doc-title').value.trim()||'Writer document';
+  const notes=JSON.parse(localStorage.getItem('studyai-notes')||'[]');
+  notes.unshift({id:Date.now(),name:title+'.txt',type:'txt',size:(text.length/1024).toFixed(1)+' KB',rawText:text,polishedText:null,preview:text.slice(0,200),date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})});
+  try{localStorage.setItem('studyai-notes',JSON.stringify(notes));}catch{}
+  toast('Saved to Notes Library ✦');
+}
+
+function setLoading(tool,on){document.getElementById('proc-'+tool).classList.toggle('on',on);document.querySelector(`[onclick="runTool('${tool}')"]`).disabled=on;}
+
+function toast(msg,ok=true){const t=document.getElementById('toast');document.getElementById('t-msg').textContent=msg;t.className='toast on'+(ok?' ok':'');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2500);}
+</script>
+<script src="ai-assistant.js" defer></script>
+</body>
+</html>

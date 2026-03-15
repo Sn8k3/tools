@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept Explainer — Notiv</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #080809; --s1: #0f0f12; --s2: #16161a; --s3: #1e1e24;
+  --b1: #22222a; --b2: #2e2e38; --b3: #3c3c48;
+  --t1: #f0ede8; --t2: #9b9893; --t3: #5a5855; --t4: #383634;
+  --lime: #c8f05e; --lime-d: rgba(200,240,94,0.08); --lime-b: rgba(200,240,94,0.2);
+  --purple: #a07ee8; --purple-d: rgba(160,126,232,0.10); --purple-b: rgba(160,126,232,0.25);
+  --coral: #f0635a; --coral-d: rgba(240,99,90,0.10);
+  --amber: #f0ae50; --amber-d: rgba(240,174,80,0.10);
+  --sky: #58b2ee; --sky-d: rgba(88,178,238,0.10);
+  --r: 10px; --rl: 14px;
+}
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--t1); font-family: 'Instrument Sans', sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+
+.topbar { display: flex; align-items: center; height: 52px; background: var(--s1); border-bottom: 1px solid var(--b1); position: sticky; top: 0; z-index: 100; padding: 0 24px; gap: 0; flex-shrink: 0; }
+.logo { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 500; color: var(--t1); text-decoration: none; }
+.logo-dot { color: var(--lime); }
+.back-link { font-size: 13px; color: var(--t3); text-decoration: none; margin-left: 20px; transition: color 0.12s; }
+.back-link:hover { color: var(--t2); }
+
+/* ── Layout ── */
+.app { display: grid; grid-template-columns: 340px 1fr; flex: 1; height: calc(100vh - 52px); overflow: hidden; }
+
+/* ── Left panel ── */
+.left-panel { background: var(--s1); border-right: 1px solid var(--b1); display: flex; flex-direction: column; overflow: hidden; }
+.left-inner { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+
+.panel-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; }
+.panel-sub { font-size: 13px; color: var(--t3); margin-top: 2px; }
+
+.search-bar { position: relative; }
+.search-input { width: 100%; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 10px 14px 10px 36px; font-family: inherit; font-size: 14px; color: var(--t1); outline: none; transition: border-color 0.15s; }
+.search-input:focus { border-color: var(--lime-b); }
+.search-input::placeholder { color: var(--t4); }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--t4); font-size: 14px; pointer-events: none; }
+
+/* Level selector */
+.level-row { display: flex; gap: 5px; }
+.level-btn { flex: 1; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--b1); background: var(--s2); color: var(--t3); font-family: inherit; font-size: 11px; cursor: pointer; transition: all 0.12s; text-align: center; }
+.level-btn:hover { border-color: var(--b2); color: var(--t2); }
+.level-btn.active { border-color: var(--lime-b); background: var(--lime-d); color: var(--lime); }
+
+/* Style selector */
+.style-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.style-chip { padding: 5px 10px; border-radius: 20px; border: 1px solid var(--b1); background: var(--s2); color: var(--t3); font-family: inherit; font-size: 12px; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+.style-chip:hover { border-color: var(--b2); color: var(--t2); }
+.style-chip.active { border-color: var(--purple-b); background: var(--purple-d); color: var(--purple); }
+
+/* Generate button */
+.gen-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: var(--r); border: none; background: var(--lime); color: #080809; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.gen-btn:hover:not(:disabled) { background: #d8ff74; }
+.gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Processing */
+.proc { display: none; align-items: center; gap: 8px; padding: 10px; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); font-size: 12px; color: var(--t2); }
+.proc.on { display: flex; }
+.spin { width: 14px; height: 14px; border: 2px solid var(--b2); border-top-color: var(--lime); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* History list */
+.hist-section { display: flex; flex-direction: column; gap: 6px; }
+.hist-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); letter-spacing: 0.1em; text-transform: uppercase; }
+.hist-item { padding: 9px 12px; border-radius: var(--r); background: var(--s2); border: 1px solid var(--b1); cursor: pointer; transition: border-color 0.12s; }
+.hist-item:hover { border-color: var(--b2); }
+.hist-name { font-size: 13px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-meta { font-size: 10px; color: var(--t4); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+/* ── Right panel ── */
+.right-panel { display: flex; flex-direction: column; overflow: hidden; }
+
+/* Placeholder */
+.placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 40px; color: var(--t4); }
+.ph-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--t2); }
+.ph-sub { font-size: 13px; max-width: 320px; line-height: 1.6; }
+.ph-suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+.ph-pill { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--b1); background: var(--s1); font-size: 13px; color: var(--t3); cursor: pointer; transition: all 0.12s; }
+.ph-pill:hover { border-color: var(--b2); color: var(--t2); }
+
+/* Content area */
+.content-area { display: none; flex: 1; overflow-y: auto; }
+.content-area.visible { display: flex; flex-direction: column; }
+
+/* Content header */
+.content-header { padding: 20px 28px 16px; border-bottom: 1px solid var(--b1); background: var(--s1); flex-shrink: 0; }
+.content-concept { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 400; }
+.content-meta { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.content-badge { font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+.badge-level { background: var(--lime-d); color: var(--lime); border: 1px solid var(--lime-b); }
+.badge-subject { background: var(--purple-d); color: var(--purple); border: 1px solid var(--purple-b); }
+.content-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+/* Section tabs */
+.section-tabs { display: flex; border-bottom: 1px solid var(--b1); background: var(--s1); flex-shrink: 0; }
+.sec-tab { padding: 11px 20px; border: none; background: none; color: var(--t3); font-family: inherit; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.12s; }
+.sec-tab:hover { color: var(--t2); }
+.sec-tab.active { color: var(--t1); border-bottom-color: var(--lime); }
+
+/* Tab contents */
+.tab-pane { display: none; padding: 28px; }
+.tab-pane.active { display: block; }
+
+/* Rendered markdown */
+.md-content { font-size: 15px; line-height: 1.8; color: var(--t2); }
+.md-content h1 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 400; color: var(--t1); margin: 24px 0 12px; }
+.md-content h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 400; color: var(--t1); margin: 20px 0 10px; }
+.md-content h3 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 16px 0 8px; }
+.md-content p { margin-bottom: 14px; }
+.md-content ul, .md-content ol { padding-left: 22px; margin-bottom: 14px; }
+.md-content li { margin-bottom: 5px; }
+.md-content strong { color: var(--lime); font-weight: 600; }
+.md-content em { color: var(--t1); font-style: italic; }
+.md-content code { font-family: 'DM Mono', monospace; font-size: 13px; background: var(--s3); padding: 2px 6px; border-radius: 4px; color: var(--purple); }
+.md-content pre { background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 16px; margin: 16px 0; overflow-x: auto; }
+.md-content pre code { background: none; padding: 0; color: var(--lime); }
+.md-content blockquote { border-left: 2px solid var(--lime-b); padding-left: 16px; color: var(--t3); font-style: italic; margin: 16px 0; }
+.md-content hr { border: none; border-top: 1px solid var(--b1); margin: 24px 0; }
+.md-content table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+.md-content th { background: var(--s2); padding: 8px 12px; text-align: left; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--t3); border-bottom: 1px solid var(--b1); }
+.md-content td { padding: 8px 12px; border-bottom: 1px solid var(--b1); color: var(--t2); }
+
+/* Analogy cards */
+.analogy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.analogy-card { background: var(--s2); border: 1px solid var(--b1); border-radius: var(--rl); padding: 16px; }
+.analogy-icon { font-size: 24px; margin-bottom: 8px; }
+.analogy-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 6px; }
+.analogy-text { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+/* Key terms */
+.terms-grid { display: flex; flex-direction: column; gap: 10px; }
+.term-card { background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 14px 16px; }
+.term-name { font-size: 14px; font-weight: 600; color: var(--lime); margin-bottom: 4px; }
+.term-def { font-size: 13px; color: var(--t2); line-height: 1.6; }
+.term-example { font-size: 12px; color: var(--t3); margin-top: 4px; font-style: italic; }
+
+/* Follow-up questions */
+.followup-list { display: flex; flex-direction: column; gap: 8px; }
+.followup-btn { text-align: left; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 12px 14px; font-family: inherit; font-size: 13px; color: var(--t2); cursor: pointer; transition: all 0.12s; }
+.followup-btn:hover { border-color: var(--b2); color: var(--t1); background: var(--s3); }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--b2); background: var(--s2); color: var(--t2); font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.12s; }
+.btn:hover { border-color: var(--b3); color: var(--t1); }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--s2); border: 1px solid var(--b2); border-radius: var(--r); padding: 10px 14px; font-size: 13px; color: var(--t1); z-index: 999; display: none; align-items: center; gap: 8px; }
+.toast.on { display: flex; }
+
+@media (max-width: 800px) {
+  .app { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  .left-panel { border-right: none; border-bottom: 1px solid var(--b1); }
+  .right-panel { min-height: 60vh; }
+  .analogy-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
+  <a href="index.html" class="back-link">← All features</a>
+</header>
+
+<div class="app">
+
+  <!-- Left panel -->
+  <div class="left-panel">
+    <div class="left-inner">
+      <div>
+        <div class="panel-title">Concept Explainer</div>
+        <div class="panel-sub">Understand anything, at any level</div>
+      </div>
+
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="concept-input" type="text" placeholder="Enter a concept, topic, or question…" onkeydown="if(event.key==='Enter')explain()">
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Explanation level</div>
+        <div class="level-row">
+          <button class="level-btn" onclick="setLevel('child',this)">Child</button>
+          <button class="level-btn" onclick="setLevel('beginner',this)">Beginner</button>
+          <button class="level-btn active" onclick="setLevel('student',this)">Student</button>
+          <button class="level-btn" onclick="setLevel('expert',this)">Expert</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Style</div>
+        <div class="style-row">
+          <button class="style-chip active" onclick="setStyle('balanced',this)">Balanced</button>
+          <button class="style-chip" onclick="setStyle('visual',this)">Visual</button>
+          <button class="style-chip" onclick="setStyle('analogies',this)">Analogies</button>
+          <button class="style-chip" onclick="setStyle('examples',this)">Examples</button>
+          <button class="style-chip" onclick="setStyle('technical',this)">Technical</button>
+        </div>
+      </div>
+
+      <div class="proc" id="proc"><div class="spin"></div><span style="color:var(--lime);font-weight:500;">Thinking…</span></div>
+
+      <button class="gen-btn" id="gen-btn" onclick="explain()">✦ Explain this</button>
+
+      <div class="hist-section" id="hist-section" style="display:none">
+        <div class="hist-label">Recent explanations</div>
+        <div id="hist-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel">
+
+    <div class="placeholder" id="placeholder">
+      <div style="font-size:48px;">💡</div>
+      <div class="ph-title">What do you want to understand?</div>
+      <div class="ph-sub">Type any concept, theory, or question and get a clear, tailored explanation with analogies, examples, and key terms.</div>
+      <div class="ph-suggestions">
+        <div class="ph-pill" onclick="quickExplain('How does DNA replication work?')">DNA replication</div>
+        <div class="ph-pill" onclick="quickExplain('What is compound interest?')">Compound interest</div>
+        <div class="ph-pill" onclick="quickExplain('Explain quantum entanglement')">Quantum entanglement</div>
+        <div class="ph-pill" onclick="quickExplain('What is the Doppler effect?')">Doppler effect</div>
+        <div class="ph-pill" onclick="quickExplain('How does machine learning work?')">Machine learning</div>
+        <div class="ph-pill" onclick="quickExplain('What caused World War I?')">World War I causes</div>
+        <div class="ph-pill" onclick="quickExplain('Explain supply and demand')">Supply &amp; demand</div>
+        <div class="ph-pill" onclick="quickExplain('What is the Krebs cycle?')">Krebs cycle</div>
+      </div>
+    </div>
+
+    <div class="content-area" id="content-area">
+      <div class="content-header">
+        <div class="content-concept" id="content-concept">—</div>
+        <div class="content-meta">
+          <span class="content-badge badge-level" id="badge-level">Student</span>
+          <span class="content-badge badge-subject" id="badge-subject">—</span>
+        </div>
+        <div class="content-actions">
+          <button class="btn" onclick="saveToNotes()">📚 Save to notes</button>
+          <button class="btn" onclick="document.getElementById('concept-input').focus()">↺ New concept</button>
+        </div>
+      </div>
+
+      <div class="section-tabs">
+        <button class="sec-tab active" onclick="switchTab('explain',this)">Explanation</button>
+        <button class="sec-tab" onclick="switchTab('analogies',this)">Analogies</button>
+        <button class="sec-tab" onclick="switchTab('terms',this)">Key terms</button>
+        <button class="sec-tab" onclick="switchTab('followup',this)">Dig deeper</button>
+      </div>
+
+      <div class="tab-pane active" id="tab-explain">
+        <div class="md-content" id="explain-content"></div>
+      </div>
+      <div class="tab-pane" id="tab-analogies">
+        <div class="analogy-grid" id="analogies-content"></div>
+      </div>
+      <div class="tab-pane" id="tab-terms">
+        <div class="terms-grid" id="terms-content"></div>
+      </div>
+      <div class="tab-pane" id="tab-followup">
+        <div class="followup-list" id="followup-content"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="t-msg">✓</span></div>
+
+<script>
+const WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
+let selectedLevel = 'student';
+let selectedStyle = 'balanced';
+let history = JSON.parse(localStorage.getItem('notiv-explanations') || '[]');
+let currentResult = null;
+
+document.addEventListener('DOMContentLoaded', () => renderHistory());
+
+function setLevel(l, btn) {
+  selectedLevel = l;
+  document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setStyle(s, btn) {
+  selectedStyle = s;
+  document.querySelectorAll('.style-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function quickExplain(concept) {
+  document.getElementById('concept-input').value = concept;
+  explain();
+}
+
+async function explain() {
+  const concept = document.getElementById('concept-input').value.trim();
+  if (!concept) return;
+
+  setLoading(true);
+
+  const levelDescriptions = {
+    child: 'a 7-year-old child with no background knowledge. Use simple words, fun analogies, and very short sentences.',
+    beginner: 'a complete beginner with no prior knowledge. Avoid jargon, explain everything from scratch.',
+    student: 'a high school or university student with some general knowledge. Be clear and thorough.',
+    expert: 'an expert or professional in a related field. Use technical terminology and go into depth.',
+  };
+
+  const styleInstructions = {
+    balanced: 'balanced mix of explanation, examples, and analogies',
+    visual: 'heavy use of diagrams described in text, step-by-step visual walkthroughs',
+    analogies: 'extensive use of creative real-world analogies and metaphors',
+    examples: 'concrete examples and case studies throughout',
+    technical: 'precise technical language, formulas, and mechanisms',
+  };
+
+  const prompt = `You are a brilliant teacher who can explain anything clearly. Explain the following concept to ${levelDescriptions[selectedLevel]}
+
+Use a ${styleInstructions[selectedStyle]} approach.
+
+Return ONLY valid JSON, no markdown wrapping:
+{
+  "concept": "cleaned up concept name",
+  "subject": "subject area (e.g. Biology, Economics, Physics)",
+  "explanation": "full markdown explanation (use ##headings, **bold**, bullet points, examples — aim for 300-600 words)",
+  "analogies": [
+    { "icon": "emoji", "title": "analogy name", "text": "explanation of analogy in 2-3 sentences" },
+    { "icon": "emoji", "title": "analogy name", "text": "explanation" }
+  ],
+  "key_terms": [
+    { "term": "term", "definition": "clear definition", "example": "example usage or context" }
+  ],
+  "followup_questions": [
+    "Question that digs deeper into one aspect?",
+    "Question about a related concept?",
+    "Question that tests understanding?"
+  ]
+}
+
+Provide 3 analogies, 5-7 key terms, and 5 follow-up questions.
+
+Concept to explain: "${concept}"`;
+
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
+    });
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const data = await res.json();
+    const raw = data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim();
+    currentResult = JSON.parse(raw);
+    renderResult(currentResult);
+    saveHistory(currentResult, concept);
+    renderHistory();
+  } catch (err) {
+    toast('Failed: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderResult(r) {
+  document.getElementById('placeholder').style.display = 'none';
+  const ca = document.getElementById('content-area');
+  ca.classList.add('visible');
+
+  document.getElementById('content-concept').textContent = r.concept;
+  document.getElementById('badge-level').textContent = selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1);
+  document.getElementById('badge-subject').textContent = r.subject || 'General';
+
+  // Explanation tab
+  document.getElementById('explain-content').innerHTML = marked.parse(r.explanation || '');
+
+  // Analogies tab
+  const ag = document.getElementById('analogies-content');
+  ag.innerHTML = '';
+  (r.analogies || []).forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'analogy-card';
+    card.innerHTML = `<div class="analogy-icon">${a.icon}</div><div class="analogy-title">${escH(a.title)}</div><div class="analogy-text">${escH(a.text)}</div>`;
+    ag.appendChild(card);
+  });
+
+  // Key terms
+  const tg = document.getElementById('terms-content');
+  tg.innerHTML = '';
+  (r.key_terms || []).forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'term-card';
+    card.innerHTML = `<div class="term-name">${escH(t.term)}</div><div class="term-def">${escH(t.definition)}</div>${t.example ? `<div class="term-example">"${escH(t.example)}"</div>` : ''}`;
+    tg.appendChild(card);
+  });
+
+  // Follow-up
+  const fl = document.getElementById('followup-content');
+  fl.innerHTML = '';
+  (r.followup_questions || []).forEach(q => {
+    const btn = document.createElement('button');
+    btn.className = 'followup-btn';
+    btn.textContent = '→ ' + q;
+    btn.onclick = () => {
+      document.getElementById('concept-input').value = q;
+      explain();
+    };
+    fl.appendChild(btn);
+  });
+
+  // Switch to explanation tab
+  switchTab('explain', document.querySelector('.sec-tab'));
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.sec-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function saveToNotes() {
+  if (!currentResult) return;
+  const notes = JSON.parse(localStorage.getItem('studyai-notes') || '[]');
+  const text = `# ${currentResult.concept}\n\n${currentResult.explanation}\n\n## Key Terms\n${(currentResult.key_terms||[]).map(t => `**${t.term}**: ${t.definition}`).join('\n')}`;
+  notes.unshift({
+    id: Date.now(),
+    name: currentResult.concept + ' — explanation.txt',
+    type: 'txt',
+    size: (text.length / 1024).toFixed(1) + ' KB',
+    rawText: text,
+    polishedText: null,
+    preview: text.slice(0, 200),
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  });
+  try { localStorage.setItem('studyai-notes', JSON.stringify(notes)); } catch {}
+  toast('Saved to Notes Library ✦');
+}
+
+function saveHistory(r, concept) {
+  const entry = { id: Date.now(), concept: r.concept, subject: r.subject, level: selectedLevel, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), result: r };
+  history.unshift(entry);
+  if (history.length > 20) history = history.slice(0, 20);
+  try { localStorage.setItem('notiv-explanations', JSON.stringify(history)); } catch {}
+}
+
+function renderHistory() {
+  const section = document.getElementById('hist-section');
+  const list = document.getElementById('hist-list');
+  if (!history.length) { section.style.display = 'none'; return; }
+  section.style.display = 'flex';
+  list.innerHTML = '';
+  history.slice(0, 8).forEach(h => {
+    const item = document.createElement('div');
+    item.className = 'hist-item';
+    item.innerHTML = `<div class="hist-name">${escH(h.concept)}</div><div class="hist-meta">${h.date} · ${h.subject} · ${h.level}</div>`;
+    item.onclick = () => { currentResult = h.result; document.getElementById('concept-input').value = h.concept; renderResult(h.result); };
+    list.appendChild(item);
+  });
+}
+
+function setLoading(on) {
+  document.getElementById('proc').classList.toggle('on', on);
+  document.getElementById('gen-btn').disabled = on;
+  document.getElementById('gen-btn').textContent = on ? 'Thinking…' : '✦ Explain this';
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent = msg;
+  t.classList.add('on');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('on'), 2500);
+}
+
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+<script src="ai-assistant.js" defer></script>
+</body>
+</html>

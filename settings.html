@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Notiv</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;
+  --b1:#22222a;--b2:#2e2e38;--b3:#3c3c48;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);
+  --coral:#f0635a;--coral-d:rgba(240,99,90,0.10);--coral-b:rgba(240,99,90,0.3);
+  --amber:#f0ae50;--amber-d:rgba(240,174,80,0.10);
+  --r:10px;--rl:14px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;display:flex;flex-direction:column}
+
+.topbar{display:flex;align-items:center;height:52px;background:var(--s1);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:100;padding:0 24px;flex-shrink:0}
+.logo{font-family:'Playfair Display',serif;font-size:19px;font-weight:500;color:var(--t1);text-decoration:none}
+.logo-dot{color:var(--lime)}
+.back-link{font-size:13px;color:var(--t3);text-decoration:none;margin-left:20px;transition:color 0.12s}
+.back-link:hover{color:var(--t2)}
+
+.layout{display:grid;grid-template-columns:220px 1fr;flex:1;max-width:1000px;margin:0 auto;width:100%;padding:32px 24px 80px;gap:28px}
+
+/* Sidebar nav */
+.settings-nav{display:flex;flex-direction:column;gap:4px;align-self:flex-start;position:sticky;top:84px}
+.snav-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;padding:8px 10px 4px}
+.snav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13px;color:var(--t3);cursor:pointer;transition:all 0.12s;border:none;background:none;width:100%;text-align:left}
+.snav-item:hover{background:var(--s2);color:var(--t2)}
+.snav-item.active{background:var(--s2);color:var(--t1)}
+.snav-icon{font-size:14px;flex-shrink:0}
+
+/* Content */
+.settings-content{display:flex;flex-direction:column;gap:20px}
+.settings-section{display:none}
+.settings-section.active{display:flex;flex-direction:column;gap:20px}
+
+.section-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;margin-bottom:4px}
+.section-sub{font-size:13px;color:var(--t3)}
+
+/* Setting card */
+.setting-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden}
+.setting-card-head{padding:14px 18px;border-bottom:1px solid var(--b1);font-size:12px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--b1);gap:16px}
+.setting-row:last-child{border-bottom:none}
+.setting-row-info{flex:1;min-width:0}
+.setting-row-label{font-size:14px;color:var(--t1);font-weight:500}
+.setting-row-sub{font-size:12px;color:var(--t3);margin-top:2px}
+
+/* Toggle */
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--b2);border-radius:11px;transition:background 0.2s;cursor:pointer}
+.toggle input:checked+.toggle-track{background:var(--lime)}
+.toggle-thumb{position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform 0.2s;pointer-events:none}
+.toggle input:checked~.toggle-thumb{transform:translateX(18px)}
+
+/* Select */
+.setting-select{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:13px;color:var(--t2);outline:none;cursor:pointer;min-width:140px}
+.setting-select:focus{border-color:var(--b2)}
+
+/* Range slider */
+.setting-range{-webkit-appearance:none;appearance:none;width:140px;height:4px;background:var(--b2);border-radius:2px;outline:none;cursor:pointer}
+.setting-range::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--lime);border-radius:50%;cursor:pointer}
+.range-val{font-size:12px;font-family:'DM Mono',monospace;color:var(--lime);min-width:32px;text-align:right}
+
+/* Color picker row */
+.color-row{display:flex;gap:8px;align-items:center}
+.color-swatch{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all 0.12s;flex-shrink:0}
+.color-swatch.active{border-color:var(--t1);transform:scale(1.15)}
+.color-swatch:hover{transform:scale(1.1)}
+
+/* Text input */
+.setting-input{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:7px 12px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;transition:border-color 0.15s;min-width:200px}
+.setting-input:focus{border-color:var(--lime-b)}
+.setting-input::placeholder{color:var(--t4)}
+
+/* Danger zone */
+.danger-card{background:var(--s1);border:1px solid var(--coral-b);border-radius:var(--rl);overflow:hidden}
+.danger-card .setting-card-head{border-color:var(--coral-b);color:var(--coral)}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat-box{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:16px;text-align:center}
+.stat-box-num{font-family:'Playfair Display',serif;font-size:28px;color:var(--t1)}
+.stat-box-lbl{font-size:11px;color:var(--t3);font-family:'DM Mono',monospace;margin-top:4px}
+
+/* Worker URL input */
+.worker-row{display:flex;gap:8px;align-items:center;padding:14px 18px}
+.worker-input{flex:1;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:12px;color:var(--t2);outline:none;transition:border-color 0.15s}
+.worker-input:focus{border-color:var(--lime-b)}
+
+/* About section */
+.about-hero{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:28px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.about-logo{font-family:'Playfair Display',serif;font-size:36px}
+.about-version{font-size:11px;font-family:'DM Mono',monospace;color:var(--t4)}
+.about-desc{font-size:13px;color:var(--t3);max-width:360px;line-height:1.6}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.btn:hover{border-color:var(--b3);color:var(--t1)}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:#080809;font-weight:600}
+.btn.primary:hover{background:#d8ff74}
+.btn.danger{border-color:var(--coral-b);color:var(--coral);background:var(--coral-d)}
+.btn.danger:hover{background:rgba(240,99,90,0.18)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px}
+.toast.on{display:flex}
+.toast.ok{border-color:var(--lime-b)}
+
+@media(max-width:680px){.layout{grid-template-columns:1fr}.settings-nav{position:static;flex-direction:row;flex-wrap:wrap;gap:4px}.snav-label{display:none}.stats-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
+  <a href="dashboard.html" class="back-link">← Dashboard</a>
+</header>
+
+<div class="layout">
+
+  <!-- Nav -->
+  <nav class="settings-nav">
+    <div class="snav-label">Settings</div>
+    <button class="snav-item active" onclick="showSection('profile',this)"><span class="snav-icon">👤</span>Profile</button>
+    <button class="snav-item" onclick="showSection('appearance',this)"><span class="snav-icon">🎨</span>Appearance</button>
+    <button class="snav-item" onclick="showSection('ai',this)"><span class="snav-icon">✦</span>AI & Worker</button>
+    <button class="snav-item" onclick="showSection('study',this)"><span class="snav-icon">📚</span>Study prefs</button>
+    <button class="snav-item" onclick="showSection('notifications',this)"><span class="snav-icon">🔔</span>Notifications</button>
+    <button class="snav-item" onclick="showSection('data',this)"><span class="snav-icon">💾</span>Data & sync</button>
+    <button class="snav-item" onclick="showSection('about',this)"><span class="snav-icon">ℹ️</span>About</button>
+  </nav>
+
+  <div class="settings-content">
+
+    <!-- Profile -->
+    <div class="settings-section active" id="sec-profile">
+      <div><div class="section-title">Profile</div><div class="section-sub">Manage your Notiv account</div></div>
+      <div class="setting-card">
+        <div class="setting-card-head">Account info</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Display name</div><div class="setting-row-sub">Shown on your dashboard</div></div>
+          <input class="setting-input" id="s-display-name" placeholder="Your name" oninput="markDirty('profile')">
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Username</div><div class="setting-row-sub">Your unique @handle</div></div>
+          <input class="setting-input" id="s-username" placeholder="username" oninput="markDirty('profile')">
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Avatar emoji</div><div class="setting-row-sub">Your profile picture</div></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div id="avatar-preview" style="font-size:28px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--s2);border-radius:50%;border:1px solid var(--b2)">🎓</div>
+            <input class="setting-input" id="s-avatar" placeholder="🎓" style="width:80px;text-align:center;font-size:18px" oninput="updateAvatarPreview()">
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Study level</div><div class="setting-row-sub">Affects AI explanation depth</div></div>
+          <select class="setting-select" id="s-level" onchange="markDirty('profile')">
+            <option value="middle">Middle School</option>
+            <option value="high">High School</option>
+            <option value="university" selected>University</option>
+            <option value="postgrad">Postgraduate</option>
+          </select>
+        </div>
+        <div class="setting-row" style="border:none">
+          <div></div>
+          <button class="btn primary" id="save-profile-btn" onclick="saveProfile()">Save changes</button>
+        </div>
+      </div>
+      <div class="setting-card">
+        <div class="setting-card-head">Email</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label" id="s-email">—</div><div class="setting-row-sub">Your login email</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appearance -->
+    <div class="settings-section" id="sec-appearance">
+      <div><div class="section-title">Appearance</div><div class="section-sub">Customise how Notiv looks</div></div>
+      <div class="setting-card">
+        <div class="setting-card-head">Theme</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Accent colour</div><div class="setting-row-sub">Used for highlights and active states</div></div>
+          <div class="color-row" id="accent-swatches">
+            <div class="color-swatch active" style="background:#c8f05e" data-color="#c8f05e" onclick="setAccent('#c8f05e',this)" title="Lime"></div>
+            <div class="color-swatch" style="background:#a07ee8" data-color="#a07ee8" onclick="setAccent('#a07ee8',this)" title="Purple"></div>
+            <div class="color-swatch" style="background:#58b2ee" data-color="#58b2ee" onclick="setAccent('#58b2ee',this)" title="Sky"></div>
+            <div class="color-swatch" style="background:#f0ae50" data-color="#f0ae50" onclick="setAccent('#f0ae50',this)" title="Amber"></div>
+            <div class="color-swatch" style="background:#f0635a" data-color="#f0635a" onclick="setAccent('#f0635a',this)" title="Coral"></div>
+            <div class="color-swatch" style="background:#f0a0c8" data-color="#f0a0c8" onclick="setAccent('#f0a0c8',this)" title="Pink"></div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Font size</div><div class="setting-row-sub">Base text size across the app</div></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input class="setting-range" type="range" min="12" max="18" value="14" id="s-fontsize" oninput="updateFontSize(this.value)">
+            <span class="range-val" id="fontsize-val">14px</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Reduce motion</div><div class="setting-row-sub">Disable animations and transitions</div></div>
+          <label class="toggle"><input type="checkbox" id="s-reduce-motion" onchange="saveAppearance()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Compact mode</div><div class="setting-row-sub">Tighter spacing throughout the app</div></div>
+          <label class="toggle"><input type="checkbox" id="s-compact" onchange="saveAppearance()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI & Worker -->
+    <div class="settings-section" id="sec-ai">
+      <div><div class="section-title">AI & Worker</div><div class="section-sub">Configure your Cloudflare Worker and AI preferences</div></div>
+      <div class="setting-card">
+        <div class="setting-card-head">Cloudflare Worker URL</div>
+        <div class="worker-row">
+          <input class="worker-input" id="s-worker-url" placeholder="https://your-worker.workers.dev" value="https://tiny-hat-80bd.charlieweis6.workers.dev">
+          <button class="btn" onclick="testWorker()">Test</button>
+          <button class="btn primary" onclick="saveWorkerUrl()">Save</button>
+        </div>
+        <div class="setting-row" style="border-top:1px solid var(--b1)">
+          <div class="setting-row-info"><div class="setting-row-label">Worker status</div><div class="setting-row-sub">Last checked on page load</div></div>
+          <div id="worker-status" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--t3)">Checking…</div>
+        </div>
+      </div>
+      <div class="setting-card">
+        <div class="setting-card-head">AI behaviour</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Default explanation level</div><div class="setting-row-sub">Used in Concept Explainer</div></div>
+          <select class="setting-select" id="s-explain-level" onchange="saveAIPrefs()">
+            <option value="child">Child</option>
+            <option value="beginner">Beginner</option>
+            <option value="student" selected>Student</option>
+            <option value="expert">Expert</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Default essay tone</div><div class="setting-row-sub">Used in Essay Editor</div></div>
+          <select class="setting-select" id="s-essay-tone" onchange="saveAIPrefs()">
+            <option value="academic" selected>Academic</option>
+            <option value="casual">Casual</option>
+            <option value="persuasive">Persuasive</option>
+            <option value="professional">Professional</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">AI assistant on every page</div><div class="setting-row-sub">Show the ✦ floating chat button</div></div>
+          <label class="toggle"><input type="checkbox" id="s-ai-assistant" checked onchange="saveAIPrefs()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Auto-save polished notes</div><div class="setting-row-sub">Save AI-polished versions automatically</div></div>
+          <label class="toggle"><input type="checkbox" id="s-auto-save" checked onchange="saveAIPrefs()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Study prefs -->
+    <div class="settings-section" id="sec-study">
+      <div><div class="section-title">Study preferences</div><div class="section-sub">Defaults used across the planner and quiz features</div></div>
+      <div class="setting-card">
+        <div class="setting-card-head">Planner defaults</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Daily study hours</div><div class="setting-row-sub">Default when creating a new plan</div></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input class="setting-range" type="range" min="1" max="12" value="3" id="s-daily-hours" oninput="document.getElementById('hours-val').textContent=this.value+'h';saveStudyPrefs()">
+            <span class="range-val" id="hours-val">3h</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Session length</div><div class="setting-row-sub">Default study session duration</div></div>
+          <select class="setting-select" id="s-session-len" onchange="saveStudyPrefs()">
+            <option value="25">25 min (Pomodoro)</option>
+            <option value="45" selected>45 min</option>
+            <option value="60">60 min</option>
+            <option value="90">90 min</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Days off per week</div><div class="setting-row-sub">Excluded from study schedule</div></div>
+          <select class="setting-select" id="s-days-off" onchange="saveStudyPrefs()">
+            <option value="0">None</option>
+            <option value="1" selected>1 day (Sunday)</option>
+            <option value="2">2 days (Weekend)</option>
+          </select>
+        </div>
+      </div>
+      <div class="setting-card">
+        <div class="setting-card-head">Quiz defaults</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Default question count</div><div class="setting-row-sub">Number of questions per quiz</div></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input class="setting-range" type="range" min="3" max="30" value="10" id="s-q-count" oninput="document.getElementById('qcount-val').textContent=this.value;saveStudyPrefs()">
+            <span class="range-val" id="qcount-val">10</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Show explanations after answers</div><div class="setting-row-sub">AI explains correct answers in quizzes</div></div>
+          <label class="toggle"><input type="checkbox" id="s-explain-answers" checked onchange="saveStudyPrefs()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="settings-section" id="sec-notifications">
+      <div><div class="section-title">Notifications</div><div class="section-sub">Browser notification settings</div></div>
+      <div class="setting-card">
+        <div class="setting-card-head">Browser notifications</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Permission status</div><div class="setting-row-sub">Required for reminders to work</div></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div id="notif-status" style="font-size:12px;font-family:'DM Mono',monospace;color:var(--t3)">Checking…</div>
+            <button class="btn" id="notif-req-btn" onclick="requestNotifPermission()" style="display:none">Enable</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Daily study reminder</div><div class="setting-row-sub">Reminds you to study each day</div></div>
+          <label class="toggle"><input type="checkbox" id="s-daily-reminder" onchange="saveNotifPrefs()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Reminder time</div><div class="setting-row-sub">What time to send the reminder</div></div>
+          <input type="time" class="setting-input" id="s-reminder-time" value="18:00" style="width:120px" onchange="saveNotifPrefs()">
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Exam countdown alerts</div><div class="setting-row-sub">Alert when an exam is within 3 days</div></div>
+          <label class="toggle"><input type="checkbox" id="s-exam-alerts" checked onchange="saveNotifPrefs()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data -->
+    <div class="settings-section" id="sec-data">
+      <div><div class="section-title">Data & sync</div><div class="section-sub">Manage your local and cloud data</div></div>
+
+      <div class="stats-grid">
+        <div class="stat-box"><div class="stat-box-num" id="stat-notes">0</div><div class="stat-box-lbl">Notes</div></div>
+        <div class="stat-box"><div class="stat-box-num" id="stat-essays">0</div><div class="stat-box-lbl">Essays</div></div>
+        <div class="stat-box"><div class="stat-box-num" id="stat-decks">0</div><div class="stat-box-lbl">Decks</div></div>
+      </div>
+
+      <div class="setting-card">
+        <div class="setting-card-head">Cloud sync</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Auto-sync on changes</div><div class="setting-row-sub">Push data to cloud automatically</div></div>
+          <label class="toggle"><input type="checkbox" id="s-auto-sync" onchange="saveDataPrefs()"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        </div>
+        <div class="setting-row" style="border:none">
+          <div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="syncAll()">↑ Sync all to cloud</button>
+            <button class="btn" onclick="restoreAll()">↓ Restore from cloud</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="danger-card">
+        <div class="setting-card-head">Danger zone</div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Clear all local data</div><div class="setting-row-sub">Removes notes, essays, decks, and planner from this browser</div></div>
+          <button class="btn danger" onclick="clearLocalData()">Clear local</button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-row-info"><div class="setting-row-label">Delete account</div><div class="setting-row-sub">Permanently deletes your account and all cloud data</div></div>
+          <button class="btn danger" onclick="window.location.href='profile.html'">Delete account</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="settings-section" id="sec-about">
+      <div><div class="section-title">About Notiv</div><div class="section-sub">Version info and credits</div></div>
+      <div class="about-hero">
+        <div class="about-logo">Notiv<span style="color:var(--lime)">.</span></div>
+        <div class="about-version" id="about-version">v1.0.0 · Browser-based</div>
+        <div class="about-desc">Your AI-powered study companion. Built to help students learn smarter with cutting-edge AI tools for notes, essays, flashcards, quizzes, and more.</div>
+      </div>
+      <div class="setting-card">
+        <div class="setting-card-head">Technology</div>
+        <div class="setting-row"><div class="setting-row-info"><div class="setting-row-label">AI Engine</div></div><div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--t3)">Claude (Anthropic)</div></div>
+        <div class="setting-row"><div class="setting-row-info"><div class="setting-row-label">Auth & Database</div></div><div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--t3)">Supabase</div></div>
+        <div class="setting-row"><div class="setting-row-info"><div class="setting-row-label">API Proxy</div></div><div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--t3)">Cloudflare Workers</div></div>
+        <div class="setting-row"><div class="setting-row-info"><div class="setting-row-label">Hosting</div></div><div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--t3)">GitHub Pages</div></div>
+      </div>
+      <div class="setting-card">
+        <div class="setting-card-head">Features</div>
+        <div id="feature-list"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="t-msg">✓</span></div>
+
+<script>
+const SUPABASE_URL='https://uorlszhcjrblrbmhgyqb.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON);
+const WORKER_URL='https://tiny-hat-80bd.charlieweis6.workers.dev';
+
+let prefs = JSON.parse(localStorage.getItem('notiv-prefs')||'{}');
+let currentUser = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    document.getElementById('s-email').textContent = session.user.email;
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', session.user.id).single().catch(()=>({data:null}));
+    if (profile) {
+      document.getElementById('s-display-name').value = profile.display_name || '';
+      document.getElementById('s-username').value = profile.username || '';
+      document.getElementById('s-avatar').value = profile.avatar_emoji || '🎓';
+      document.getElementById('avatar-preview').textContent = profile.avatar_emoji || '🎓';
+      if (profile.study_level) document.getElementById('s-level').value = profile.study_level;
+    }
+  }
+  loadPrefs();
+  loadDataStats();
+  checkNotifStatus();
+  testWorkerStatus();
+  renderFeatureList();
+});
+
+function showSection(id, btn) {
+  document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.snav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function loadPrefs() {
+  if (prefs.accentColor) setAccentColor(prefs.accentColor);
+  if (prefs.fontSize) { document.getElementById('s-fontsize').value = prefs.fontSize; document.getElementById('fontsize-val').textContent = prefs.fontSize + 'px'; }
+  if (prefs.reduceMotion) document.getElementById('s-reduce-motion').checked = true;
+  if (prefs.compact) document.getElementById('s-compact').checked = true;
+  if (prefs.explainLevel) document.getElementById('s-explain-level').value = prefs.explainLevel;
+  if (prefs.essayTone) document.getElementById('s-essay-tone').value = prefs.essayTone;
+  if (prefs.aiAssistant !== undefined) document.getElementById('s-ai-assistant').checked = prefs.aiAssistant;
+  if (prefs.autoSave !== undefined) document.getElementById('s-auto-save').checked = prefs.autoSave;
+  if (prefs.dailyHours) { document.getElementById('s-daily-hours').value = prefs.dailyHours; document.getElementById('hours-val').textContent = prefs.dailyHours + 'h'; }
+  if (prefs.sessionLen) document.getElementById('s-session-len').value = prefs.sessionLen;
+  if (prefs.daysOff !== undefined) document.getElementById('s-days-off').value = prefs.daysOff;
+  if (prefs.qCount) { document.getElementById('s-q-count').value = prefs.qCount; document.getElementById('qcount-val').textContent = prefs.qCount; }
+  if (prefs.reminderTime) document.getElementById('s-reminder-time').value = prefs.reminderTime;
+  if (prefs.examAlerts !== undefined) document.getElementById('s-exam-alerts').checked = prefs.examAlerts;
+  if (prefs.workerUrl) document.getElementById('s-worker-url').value = prefs.workerUrl;
+}
+
+function savePrefs() { localStorage.setItem('notiv-prefs', JSON.stringify(prefs)); }
+
+async function saveProfile() {
+  if (!currentUser) { toast('Please sign in first'); return; }
+  const display_name = document.getElementById('s-display-name').value.trim();
+  const avatar_emoji = document.getElementById('s-avatar').value.trim() || '🎓';
+  const study_level = document.getElementById('s-level').value;
+  try {
+    await sb.from('profiles').update({ display_name, avatar_emoji, study_level }).eq('id', currentUser.id);
+    toast('Profile saved ✦');
+  } catch { toast('Save failed'); }
+}
+
+function updateAvatarPreview() {
+  const v = document.getElementById('s-avatar').value;
+  document.getElementById('avatar-preview').textContent = v || '🎓';
+}
+
+function setAccent(color, el) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  setAccentColor(color);
+  prefs.accentColor = color;
+  savePrefs();
+}
+
+function setAccentColor(color) {
+  document.documentElement.style.setProperty('--lime', color);
+  document.documentElement.style.setProperty('--lime-d', color + '14');
+  document.documentElement.style.setProperty('--lime-b', color + '33');
+  document.querySelectorAll('.color-swatch').forEach(s => { if (s.dataset.color === color) s.classList.add('active'); });
+}
+
+function updateFontSize(v) {
+  document.getElementById('fontsize-val').textContent = v + 'px';
+  document.body.style.fontSize = v + 'px';
+  prefs.fontSize = v; savePrefs();
+}
+
+function saveAppearance() {
+  prefs.reduceMotion = document.getElementById('s-reduce-motion').checked;
+  prefs.compact = document.getElementById('s-compact').checked;
+  savePrefs(); toast('Appearance saved');
+}
+
+function saveAIPrefs() {
+  prefs.explainLevel = document.getElementById('s-explain-level').value;
+  prefs.essayTone = document.getElementById('s-essay-tone').value;
+  prefs.aiAssistant = document.getElementById('s-ai-assistant').checked;
+  prefs.autoSave = document.getElementById('s-auto-save').checked;
+  savePrefs(); toast('AI preferences saved');
+}
+
+function saveStudyPrefs() {
+  prefs.dailyHours = document.getElementById('s-daily-hours').value;
+  prefs.sessionLen = document.getElementById('s-session-len').value;
+  prefs.daysOff = document.getElementById('s-days-off').value;
+  prefs.qCount = document.getElementById('s-q-count').value;
+  prefs.explainAnswers = document.getElementById('s-explain-answers').checked;
+  savePrefs();
+}
+
+function saveNotifPrefs() {
+  prefs.dailyReminder = document.getElementById('s-daily-reminder').checked;
+  prefs.reminderTime = document.getElementById('s-reminder-time').value;
+  prefs.examAlerts = document.getElementById('s-exam-alerts').checked;
+  savePrefs(); toast('Notification settings saved');
+}
+
+function saveDataPrefs() {
+  prefs.autoSync = document.getElementById('s-auto-sync').checked;
+  savePrefs();
+}
+
+function saveWorkerUrl() {
+  prefs.workerUrl = document.getElementById('s-worker-url').value.trim();
+  savePrefs();
+  toast('Worker URL saved');
+  testWorkerStatus();
+}
+
+async function testWorker() {
+  const url = document.getElementById('s-worker-url').value.trim();
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 10, messages: [{ role: 'user', content: 'Say "ok"' }] }) });
+    toast(res.ok ? 'Worker is working ✦' : 'Worker returned error ' + res.status, res.ok);
+  } catch { toast('Could not reach worker', false); }
+}
+
+async function testWorkerStatus() {
+  const el = document.getElementById('worker-status');
+  try {
+    const res = await fetch(WORKER_URL, { method: 'OPTIONS' });
+    el.textContent = '✓ Online'; el.style.color = 'var(--lime)';
+  } catch {
+    el.textContent = '✕ Unreachable'; el.style.color = 'var(--coral)';
+  }
+}
+
+function loadDataStats() {
+  document.getElementById('stat-notes').textContent = JSON.parse(localStorage.getItem('studyai-notes')||'[]').length;
+  document.getElementById('stat-essays').textContent = JSON.parse(localStorage.getItem('studyai-essay-history')||'[]').length;
+  document.getElementById('stat-decks').textContent = JSON.parse(localStorage.getItem('studyai-decks')||'[]').length;
+}
+
+function checkNotifStatus() {
+  const el = document.getElementById('notif-status');
+  const btn = document.getElementById('notif-req-btn');
+  if (!('Notification' in window)) { el.textContent = 'Not supported'; return; }
+  if (Notification.permission === 'granted') { el.textContent = '✓ Enabled'; el.style.color = 'var(--lime)'; }
+  else if (Notification.permission === 'denied') { el.textContent = '✕ Blocked'; el.style.color = 'var(--coral)'; }
+  else { el.textContent = 'Not requested'; btn.style.display = 'inline-flex'; }
+}
+
+async function requestNotifPermission() {
+  const p = await Notification.requestPermission();
+  checkNotifStatus();
+  document.getElementById('notif-req-btn').style.display = 'none';
+}
+
+async function syncAll() {
+  if (!currentUser) { toast('Sign in to sync'); return; }
+  const features = ['notes','essays','flashcards','planner'];
+  const keys = { notes:'studyai-notes', essays:'studyai-essay-history', flashcards:'studyai-decks', planner:'studyai-planner' };
+  for (const f of features) {
+    const raw = localStorage.getItem(keys[f]);
+    if (raw) {
+      try { await sb.from('user_data').upsert({ user_id: currentUser.id, feature: f, data: JSON.parse(raw), updated_at: new Date().toISOString() }, { onConflict: 'user_id,feature' }); } catch {}
+    }
+  }
+  toast('All data synced to cloud ✦');
+}
+
+async function restoreAll() {
+  if (!currentUser) { toast('Sign in to restore'); return; }
+  const keys = { notes:'studyai-notes', essays:'studyai-essay-history', flashcards:'studyai-decks', planner:'studyai-planner' };
+  const { data } = await sb.from('user_data').select('feature,data').eq('user_id', currentUser.id);
+  if (data) { data.forEach(row => { if (keys[row.feature]) localStorage.setItem(keys[row.feature], JSON.stringify(row.data)); }); }
+  toast('Data restored from cloud ✦');
+  loadDataStats();
+}
+
+function clearLocalData() {
+  if (!confirm('Clear all local notes, essays, decks, and planner? This cannot be undone.')) return;
+  ['studyai-notes','studyai-essay-history','studyai-decks','studyai-planner'].forEach(k => localStorage.removeItem(k));
+  loadDataStats();
+  toast('Local data cleared');
+}
+
+function markDirty(section) {}
+
+function renderFeatureList() {
+  const features = [
+    '📚 Notes Library — AI note polishing',
+    '✏️ Essay Editor — Scoring & feedback',
+    '🃏 Flashcard Generator — Spaced repetition',
+    '📅 Study Planner — AI scheduling',
+    '🧠 Quiz Me — Adaptive testing',
+    '📎 Citation Helper — APA/MLA/Chicago',
+    '💡 Concept Explainer — Multi-level',
+    '🎮 Study Games — Word scramble, Memory, Speed',
+    '✦ AI Assistant — Context-aware chat',
+    '📊 Dashboard — Progress tracking',
+  ];
+  const list = document.getElementById('feature-list');
+  list.innerHTML = features.map(f => `<div class="setting-row"><div class="setting-row-info"><div class="setting-row-label" style="font-size:13px;font-weight:400">${f}</div></div></div>`).join('');
+}
+
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  document.getElementById('t-msg').textContent = msg;
+  t.className = 'toast on' + (ok?' ok':'');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('on'),2500);
+}
+</script>
+<script src="ai-assistant.js" defer></script>
+</body>
+</html>
