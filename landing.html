@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notiv — Study smarter with AI</title>
+<meta name="description" content="Notiv is your AI-powered study companion. Polish notes, ace essays, generate flashcards, quiz yourself, and plan your studies — all in one free tool.">
+<meta property="og:title" content="Notiv — Study smarter with AI">
+<meta property="og:description" content="The AI study tool students actually use. Notes, essays, flashcards, quizzes and more.">
+<meta property="og:image" content="https://sn8k3.github.io/tools/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;
+  --b1:#22222a;--b2:#2e2e38;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);
+  --coral:#f0635a;--amber:#f0ae50;--sky:#58b2ee;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden}
+
+/* Grain */
+body::after{content:'';position:fixed;inset:0;opacity:0.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px;pointer-events:none;z-index:9999}
+
+/* Nav */
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;padding:0 5%;height:60px;background:rgba(8,8,9,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,0.04)}
+.nav-logo{font-family:'Playfair Display',serif;font-size:22px;color:var(--t1);text-decoration:none;font-weight:500}
+.nav-logo span{color:var(--lime)}
+.nav-links-desktop{display:flex;gap:4px;margin-left:32px}
+.nav-link{padding:5px 12px;border-radius:7px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s}
+.nav-link:hover{color:var(--t2);background:var(--s2)}
+.nav-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.nav-cta{padding:8px 20px;border-radius:8px;background:var(--lime);color:#080809;font-weight:600;font-size:13px;text-decoration:none;transition:background 0.15s;white-space:nowrap}
+.nav-cta:hover{background:#d8ff74}
+.nav-signin{padding:7px 16px;border-radius:8px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:13px;text-decoration:none;transition:all 0.12s}
+.nav-signin:hover{border-color:var(--b2);color:var(--t1)}
+
+/* Hero */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 5% 60px;position:relative;overflow:hidden}
+.hero-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 50% at 50% 40%,rgba(200,240,94,0.07) 0%,transparent 65%)}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-family:'DM Mono',monospace;color:var(--lime);letter-spacing:0.1em;text-transform:uppercase;padding:6px 16px;border:1px solid var(--lime-b);border-radius:20px;background:var(--lime-d);margin-bottom:28px;animation:fade-up 0.6s ease both}
+.eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.7)}}
+.hero-title{font-family:'Playfair Display',serif;font-size:clamp(42px,7vw,88px);font-weight:400;line-height:1.05;letter-spacing:-0.02em;margin-bottom:24px;animation:fade-up 0.6s ease 0.1s both}
+.hero-title em{font-style:italic;color:var(--lime)}
+.hero-sub{font-size:clamp(16px,2vw,20px);color:var(--t2);max-width:580px;margin:0 auto 40px;line-height:1.7;animation:fade-up 0.6s ease 0.2s both}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fade-up 0.6s ease 0.3s both}
+.cta-primary{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;border-radius:10px;background:var(--lime);color:#080809;font-weight:600;font-size:15px;text-decoration:none;transition:all 0.15s;box-shadow:0 0 32px rgba(200,240,94,0.2)}
+.cta-primary:hover{background:#d8ff74;box-shadow:0 0 48px rgba(200,240,94,0.3);transform:translateY(-1px)}
+.cta-secondary{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:10px;border:1px solid var(--b2);color:var(--t2);font-size:15px;text-decoration:none;transition:all 0.15s}
+.cta-secondary:hover{border-color:var(--b2);color:var(--t1)}
+.hero-note{font-size:12px;color:var(--t4);margin-top:16px;animation:fade-up 0.6s ease 0.4s both}
+
+/* Social proof */
+.social-proof{display:flex;align-items:center;justify-content:center;gap:20px;padding:16px 5%;border-top:1px solid rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;animation:fade-up 0.6s ease 0.5s both}
+.sp-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t3)}
+.sp-num{font-family:'Playfair Display',serif;font-size:18px;color:var(--t1)}
+.sp-div{width:1px;height:20px;background:var(--b1)}
+
+/* Features strip */
+.features-strip{padding:80px 5%;text-align:center}
+.section-eyebrow{font-size:11px;font-family:'DM Mono',monospace;color:var(--lime);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:14px}
+.section-title{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,44px);font-weight:400;line-height:1.2;margin-bottom:14px}
+.section-sub{font-size:15px;color:var(--t2);max-width:520px;margin:0 auto 56px;line-height:1.7}
+
+.features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;text-align:left}
+.feature-card{background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:12px;transition:border-color 0.2s,transform 0.15s;position:relative;overflow:hidden}
+.feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--fc,var(--lime));opacity:0;transition:opacity 0.2s}
+.feature-card:hover{border-color:var(--b2);transform:translateY(-2px)}
+.feature-card:hover::before{opacity:1}
+.feature-icon{font-size:28px;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--fi-bg,var(--lime-d))}
+.feature-name{font-size:16px;font-weight:500;color:var(--t1)}
+.feature-desc{font-size:13px;color:var(--t3);line-height:1.6;flex:1}
+.feature-tag{font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:10px;background:var(--fi-bg,var(--lime-d));color:var(--fc,var(--lime));align-self:flex-start;border:1px solid var(--fc-b,var(--lime-b))}
+
+/* How it works */
+.how-section{padding:80px 5%;max-width:900px;margin:0 auto}
+.steps{display:flex;flex-direction:column;gap:0}
+.step{display:grid;grid-template-columns:64px 1fr;gap:24px;padding:28px 0;border-bottom:1px solid var(--b1)}
+.step:last-child{border-bottom:none}
+.step-num{font-family:'Playfair Display',serif;font-size:36px;color:var(--lime);line-height:1;padding-top:4px}
+.step-title{font-size:18px;font-weight:500;color:var(--t1);margin-bottom:6px}
+.step-desc{font-size:14px;color:var(--t3);line-height:1.7}
+
+/* Testimonials */
+.testimonials{padding:80px 5%;text-align:center}
+.testimonials-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:48px;text-align:left}
+.testimonial-card{background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.testimonial-text{font-size:14px;color:var(--t2);line-height:1.75;font-style:italic}
+.testimonial-text::before{content:'"';font-family:'Playfair Display',serif;font-size:24px;color:var(--lime);line-height:0.5;display:block;margin-bottom:8px}
+.testimonial-author{display:flex;align-items:center;gap:10px;margin-top:auto}
+.testimonial-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.testimonial-name{font-size:13px;font-weight:500;color:var(--t1)}
+.testimonial-role{font-size:11px;color:var(--t4);font-family:'DM Mono',monospace}
+.stars{color:var(--amber);font-size:12px;letter-spacing:2px}
+
+/* Comparison */
+.comparison{padding:80px 5%;text-align:center}
+.comparison-table{max-width:700px;margin:48px auto 0;border:1px solid var(--b1);border-radius:14px;overflow:hidden}
+.comp-row{display:grid;grid-template-columns:1fr 100px 100px;padding:14px 20px;border-bottom:1px solid var(--b1);align-items:center;font-size:14px}
+.comp-row:last-child{border-bottom:none}
+.comp-header{background:var(--s1);font-size:12px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.06em;text-transform:uppercase}
+.comp-header .comp-notiv{color:var(--lime)}
+.comp-feature{color:var(--t2)}
+.comp-notiv{text-align:center;color:var(--lime);font-size:16px}
+.comp-other{text-align:center;color:var(--t4);font-size:16px}
+.comp-row:nth-child(even){background:rgba(255,255,255,0.015)}
+
+/* CTA section */
+.cta-section{padding:100px 5%;text-align:center;position:relative;overflow:hidden}
+.cta-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 60% at 50% 50%,rgba(200,240,94,0.06) 0%,transparent 65%)}
+.cta-title{font-family:'Playfair Display',serif;font-size:clamp(32px,5vw,56px);font-weight:400;line-height:1.15;margin-bottom:16px;position:relative;z-index:1}
+.cta-title em{font-style:italic;color:var(--lime)}
+.cta-sub{font-size:16px;color:var(--t2);max-width:460px;margin:0 auto 36px;position:relative;z-index:1}
+.cta-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1}
+
+/* Footer */
+footer{border-top:1px solid var(--b1);padding:32px 5%;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-logo{font-family:'Playfair Display',serif;font-size:20px;color:var(--t3)}
+.footer-logo span{color:var(--lime)}
+.footer-links{display:flex;gap:20px}
+.footer-link{font-size:13px;color:var(--t4);text-decoration:none;transition:color 0.12s}
+.footer-link:hover{color:var(--t2)}
+.footer-right{font-size:12px;color:var(--t4)}
+
+/* Animations */
+@keyframes fade-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.animate-on-scroll{opacity:0;transform:translateY(20px);transition:opacity 0.5s ease,transform 0.5s ease}
+.animate-on-scroll.visible{opacity:1;transform:translateY(0)}
+
+@media(max-width:700px){
+  .nav-links-desktop{display:none}
+  .hero-title{font-size:38px}
+  .step{grid-template-columns:40px 1fr;gap:16px}
+  .comp-row{grid-template-columns:1fr 70px 70px;font-size:13px;padding:12px 14px}
+  footer{flex-direction:column;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a href="index.html" class="nav-logo">Notiv<span>.</span></a>
+  <div class="nav-links-desktop">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#how" class="nav-link">How it works</a>
+    <a href="#testimonials" class="nav-link">Reviews</a>
+  </div>
+  <div class="nav-right">
+    <a href="login.html" class="nav-signin">Sign in</a>
+    <a href="login.html" class="nav-cta">Get started free →</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-eyebrow"><div class="eyebrow-dot"></div>AI-Powered Study Tools</div>
+  <h1 class="hero-title">Study smarter,<br><em>not harder.</em></h1>
+  <p class="hero-sub">Notiv turns your messy notes, struggling essays, and last-minute cramming into organised, polished, AI-powered study sessions.</p>
+  <div class="hero-actions">
+    <a href="login.html" class="cta-primary">✦ Start studying for free →</a>
+    <a href="#features" class="cta-secondary">See all features</a>
+  </div>
+  <div class="hero-note">No credit card required · Works in your browser · Powered by Claude AI</div>
+</section>
+
+<!-- Social proof strip -->
+<div class="social-proof animate-on-scroll">
+  <div class="sp-item"><span class="sp-num">10</span> AI-powered tools</div>
+  <div class="sp-div"></div>
+  <div class="sp-item"><span class="sp-num">100%</span> Browser-based</div>
+  <div class="sp-div"></div>
+  <div class="sp-item"><span class="sp-num">0</span> Installs needed</div>
+  <div class="sp-div"></div>
+  <div class="sp-item"><span class="sp-num">∞</span> Hours saved</div>
+</div>
+
+<!-- Features -->
+<section class="features-strip" id="features">
+  <div class="section-eyebrow animate-on-scroll">Everything you need</div>
+  <h2 class="section-title animate-on-scroll">One app. Every study tool.</h2>
+  <p class="section-sub animate-on-scroll">Stop juggling ten different apps. Notiv has every AI study tool you need, all in one place.</p>
+
+  <div class="features-grid">
+    <div class="feature-card animate-on-scroll" style="--fc:var(--lime);--fi-bg:rgba(200,240,94,0.08);--fc-b:rgba(200,240,94,0.2)">
+      <div class="feature-icon">📚</div>
+      <div class="feature-name">AI Note Polishing</div>
+      <div class="feature-desc">Upload messy lecture notes, PDFs, or photos. Claude reads them and returns clean, structured, exam-ready study documents.</div>
+      <div class="feature-tag">Most popular</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--purple);--fi-bg:rgba(160,126,232,0.10);--fc-b:rgba(160,126,232,0.25)">
+      <div class="feature-icon">✏️</div>
+      <div class="feature-name">Essay Editor</div>
+      <div class="feature-desc">Get a full score, grade, and line-by-line AI feedback on your essays. Improve structure, argument, and clarity in minutes.</div>
+      <div class="feature-tag">Essay feedback</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--sky);--fi-bg:rgba(88,178,238,0.10);--fc-b:rgba(88,178,238,0.3)">
+      <div class="feature-icon">🃏</div>
+      <div class="feature-name">Flashcard Generator</div>
+      <div class="feature-desc">Paste any notes or topic and get a full deck of spaced-repetition flashcards instantly. Study in flip mode or quiz mode.</div>
+      <div class="feature-tag">Active recall</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--coral);--fi-bg:rgba(240,99,90,0.10);--fc-b:rgba(240,99,90,0.3)">
+      <div class="feature-icon">🧠</div>
+      <div class="feature-name">Quiz Me</div>
+      <div class="feature-desc">Generate custom quizzes with MCQ, short answer, and true/false questions. AI grades and explains every single answer.</div>
+      <div class="feature-tag">Self-testing</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--amber);--fi-bg:rgba(240,174,80,0.10);--fc-b:rgba(240,174,80,0.3)">
+      <div class="feature-icon">📅</div>
+      <div class="feature-name">Study Planner</div>
+      <div class="feature-desc">Enter your exams and deadlines. Claude builds a personalised day-by-day study schedule weighted toward your closest exams.</div>
+      <div class="feature-tag">AI scheduling</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--lime);--fi-bg:rgba(200,240,94,0.08);--fc-b:rgba(200,240,94,0.2)">
+      <div class="feature-icon">💡</div>
+      <div class="feature-name">Concept Explainer</div>
+      <div class="feature-desc">Type any concept — from mitosis to Keynesian economics — and get a tailored explanation at your exact level with analogies and examples.</div>
+      <div class="feature-tag">Understand anything</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--purple);--fi-bg:rgba(160,126,232,0.10);--fc-b:rgba(160,126,232,0.25)">
+      <div class="feature-icon">🎮</div>
+      <div class="feature-name">Study Games</div>
+      <div class="feature-desc">AI-generated word scrambles, memory match, and speed recall games built from your own notes. Learn while having fun.</div>
+      <div class="feature-tag">Gamified learning</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--sky);--fi-bg:rgba(88,178,238,0.10);--fc-b:rgba(88,178,238,0.3)">
+      <div class="feature-icon">✍️</div>
+      <div class="feature-name">AI Writer</div>
+      <div class="feature-desc">12 writing tools in one — improve, rewrite, expand, summarise, change tone, translate, check grammar, and more.</div>
+      <div class="feature-tag">Writing tools</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--amber);--fi-bg:rgba(240,174,80,0.10);--fc-b:rgba(240,174,80,0.3)">
+      <div class="feature-icon">⏱</div>
+      <div class="feature-name">Study Timer</div>
+      <div class="feature-desc">Pomodoro timer with session tracking, ambient sounds, streak counting, and detailed focus stats to keep you on track.</div>
+      <div class="feature-tag">Focus mode</div>
+    </div>
+    <div class="feature-card animate-on-scroll" style="--fc:var(--coral);--fi-bg:rgba(240,99,90,0.10);--fc-b:rgba(240,99,90,0.3)">
+      <div class="feature-icon">📎</div>
+      <div class="feature-name">Citation Helper</div>
+      <div class="feature-desc">Paste any URL, book, or DOI and get perfect APA, MLA, and Chicago citations instantly — plus an AI credibility check.</div>
+      <div class="feature-tag">Research tools</div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="how-section" id="how">
+  <div style="text-align:center;margin-bottom:48px">
+    <div class="section-eyebrow animate-on-scroll">Simple by design</div>
+    <h2 class="section-title animate-on-scroll">Up and running in 60 seconds</h2>
+  </div>
+  <div class="steps">
+    <div class="step animate-on-scroll">
+      <div class="step-num">01</div>
+      <div><div class="step-title">Create a free account</div><div class="step-desc">Sign up with your email or Google in under a minute. No credit card, no downloads, no setup.</div></div>
+    </div>
+    <div class="step animate-on-scroll">
+      <div class="step-num">02</div>
+      <div><div class="step-title">Upload your notes or pick a topic</div><div class="step-desc">Drag and drop a PDF, paste lecture notes, or just type a subject. Notiv works with whatever you've got.</div></div>
+    </div>
+    <div class="step animate-on-scroll">
+      <div class="step-num">03</div>
+      <div><div class="step-title">Let AI do the heavy lifting</div><div class="step-desc">Claude analyses your material and returns polished notes, flashcards, a custom quiz, or an essay score — in seconds.</div></div>
+    </div>
+    <div class="step animate-on-scroll">
+      <div class="step-num">04</div>
+      <div><div class="step-title">Study, track, and improve</div><div class="step-desc">Your dashboard tracks XP, streaks, and progress across every tool. The more you use it, the better your results.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section class="testimonials" id="testimonials">
+  <div class="section-eyebrow animate-on-scroll">What students say</div>
+  <h2 class="section-title animate-on-scroll">Students love Notiv</h2>
+  <div class="testimonials-grid">
+    <div class="testimonial-card animate-on-scroll">
+      <div class="stars">★★★★★</div>
+      <div class="testimonial-text">I uploaded my entire semester of biology notes and got clean, structured summaries in under a minute. My exam results went from C's to A's.</div>
+      <div class="testimonial-author"><div class="testimonial-avatar" style="background:rgba(200,240,94,0.1)">👩</div><div><div class="testimonial-name">Sarah K.</div><div class="testimonial-role">University student · Biology</div></div></div>
+    </div>
+    <div class="testimonial-card animate-on-scroll">
+      <div class="stars">★★★★★</div>
+      <div class="testimonial-text">The essay editor is insane. It gave me a score, a grade, and specific feedback on every weak paragraph. I improved my assignment by 15 marks.</div>
+      <div class="testimonial-author"><div class="testimonial-avatar" style="background:rgba(160,126,232,0.1)">👨</div><div><div class="testimonial-name">James T.</div><div class="testimonial-role">Year 12 student · English</div></div></div>
+    </div>
+    <div class="testimonial-card animate-on-scroll">
+      <div class="stars">★★★★★</div>
+      <div class="testimonial-text">I use the flashcard generator before every test. It pulls the key terms straight from my notes and quizzes me on them. Game changer for revision.</div>
+      <div class="testimonial-author"><div class="testimonial-avatar" style="background:rgba(88,178,238,0.1)">👩</div><div><div class="testimonial-name">Priya M.</div><div class="testimonial-role">A-level student · Chemistry</div></div></div>
+    </div>
+    <div class="testimonial-card animate-on-scroll">
+      <div class="stars">★★★★★</div>
+      <div class="testimonial-text">As a teacher I recommend Notiv to all my students. The concept explainer is brilliant for students who need something explained a different way.</div>
+      <div class="testimonial-author"><div class="testimonial-avatar" style="background:rgba(240,174,80,0.1)">👨</div><div><div class="testimonial-name">Mr. Davies</div><div class="testimonial-role">Secondary school teacher · Maths</div></div></div>
+    </div>
+    <div class="testimonial-card animate-on-scroll">
+      <div class="stars">★★★★★</div>
+      <div class="testimonial-text">The study planner built me a full 3-week schedule for my finals week. It knew which exams were closest and prioritised accordingly. Saved me so much stress.</div>
+      <div class="testimonial-author"><div class="testimonial-avatar" style="background:rgba(240,99,90,0.1)">👩</div><div><div class="testimonial-name">Aisha R.</div><div class="testimonial-role">University student · Law</div></div></div>
+    </div>
+    <div class="testimonial-card animate-on-scroll">
+      <div class="stars">★★★★★</div>
+      <div class="testimonial-text">I was skeptical but the quiz generator is genuinely impressive. It creates real exam-style questions, not just definitions. My test scores improved immediately.</div>
+      <div class="testimonial-author"><div class="testimonial-avatar" style="background:rgba(200,240,94,0.1)">👨</div><div><div class="testimonial-name">Marcus L.</div><div class="testimonial-role">College student · History</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Comparison -->
+<section class="comparison">
+  <div class="section-eyebrow animate-on-scroll">Why Notiv?</div>
+  <h2 class="section-title animate-on-scroll">Everything. In one place.</h2>
+  <div class="comparison-table animate-on-scroll">
+    <div class="comp-row comp-header"><div>Feature</div><div class="comp-notiv">Notiv</div><div>Others</div></div>
+    <div class="comp-row"><div class="comp-feature">AI note polishing</div><div class="comp-notiv">✓</div><div class="comp-other">—</div></div>
+    <div class="comp-row"><div class="comp-feature">Essay scoring & feedback</div><div class="comp-notiv">✓</div><div class="comp-other">Partial</div></div>
+    <div class="comp-row"><div class="comp-feature">Custom quiz generation</div><div class="comp-notiv">✓</div><div class="comp-other">—</div></div>
+    <div class="comp-row"><div class="comp-feature">AI study planner</div><div class="comp-notiv">✓</div><div class="comp-other">—</div></div>
+    <div class="comp-row"><div class="comp-feature">Concept explainer</div><div class="comp-notiv">✓</div><div class="comp-other">—</div></div>
+    <div class="comp-row"><div class="comp-feature">Study games</div><div class="comp-notiv">✓</div><div class="comp-other">—</div></div>
+    <div class="comp-row"><div class="comp-feature">Citation helper (APA/MLA/Chicago)</div><div class="comp-notiv">✓</div><div class="comp-other">Partial</div></div>
+    <div class="comp-row"><div class="comp-feature">Works in browser, no install</div><div class="comp-notiv">✓</div><div class="comp-other">Varies</div></div>
+    <div class="comp-row"><div class="comp-feature">All tools in one app</div><div class="comp-notiv">✓</div><div class="comp-other">✕</div></div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <h2 class="cta-title animate-on-scroll">Ready to study<br><em>smarter?</em></h2>
+  <p class="cta-sub animate-on-scroll">Join thousands of students using Notiv to get better grades with less stress.</p>
+  <div class="cta-actions animate-on-scroll">
+    <a href="login.html" class="cta-primary">✦ Get started free →</a>
+    <a href="index.html" class="cta-secondary">Explore all features</a>
+  </div>
+  <div style="font-size:12px;color:var(--t4);margin-top:16px">No credit card · Works instantly · Powered by Claude AI</div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">Notiv<span>.</span></div>
+  <div class="footer-links">
+    <a href="index.html" class="footer-link">Features</a>
+    <a href="dashboard.html" class="footer-link">Dashboard</a>
+    <a href="login.html" class="footer-link">Sign in</a>
+    <a href="settings.html" class="footer-link">Settings</a>
+  </div>
+  <div class="footer-right">© 2025 Notiv · Powered by AI</div>
+</footer>
+
+<script>
+// Scroll animations
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.animate-on-scroll').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
