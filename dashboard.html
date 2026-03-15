@@ -80,7 +80,7 @@ body::after {
 .nav-link.active { color: var(--t1); background: var(--s3); }
 
 /* ── Page ── */
-.page { max-width: 1160px; margin: 0 auto; padding: 0 24px 80px; }
+.page { width: 100%; padding: 0 24px 80px; }
 
 /* ── Hero ── */
 .hero {
@@ -177,8 +177,7 @@ body::after {
   gap: 12px;
 }
 
-/* ── Card ── */
-.card {
+/* ── Card ── */.card {
   background: var(--s1); border: 1px solid var(--b1);
   border-radius: var(--rl); overflow: hidden;
   display: flex; flex-direction: column;
@@ -328,14 +327,12 @@ body::after {
 @media (max-width: 1000px) {
   .main-grid { grid-template-columns: 1fr 1fr; }
   .right-col { grid-row: auto; grid-column: span 2; flex-direction: row; }
-  .xp-card { grid-column: span 2; }
   .quick-strip { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 680px) {
   .stat-strip { grid-template-columns: 1fr 1fr; }
   .main-grid { grid-template-columns: 1fr; }
   .right-col { flex-direction: column; grid-column: span 1; }
-  .xp-card { grid-column: span 1; }
   .quick-strip { grid-template-columns: repeat(2, 1fr); }
   .hero-greeting { font-size: 26px; }
   .xp-inner { flex-direction: column; align-items: flex-start; }
@@ -378,6 +375,24 @@ body::after {
           <a href="notes.html" class="btn accent">+ New note</a>
           <a href="planner.html" class="btn">Open planner</a>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- XP bar (top) -->
+  <div class="card fu d1" style="margin-bottom:16px;">
+    <div class="xp-inner">
+      <div class="xp-badge">
+        <div class="xp-lvl" id="xp-lvl">1</div>
+        <div class="xp-lvl-lbl">LEVEL</div>
+      </div>
+      <div class="xp-right">
+        <div class="xp-top">
+          <div class="xp-total"><span id="xp-total">0</span> <span style="font-size:13px;color:var(--t3);font-family:'Instrument Sans',sans-serif;font-weight:400;">XP total</span></div>
+          <div class="xp-next-lbl" id="xp-next">— to next level</div>
+        </div>
+        <div class="xp-bar"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+        <div class="xp-stones" id="xp-stones"></div>
       </div>
     </div>
   </div>
@@ -527,25 +542,7 @@ body::after {
       </div>
     </div>
 
-    <!-- XP -->
-    <div class="card xp-card fu d7">
-      <div class="xp-inner">
-        <div class="xp-badge">
-          <div class="xp-lvl" id="xp-lvl">1</div>
-          <div class="xp-lvl-lbl">LEVEL</div>
-        </div>
-        <div class="xp-right">
-          <div class="xp-top">
-            <div class="xp-total"><span id="xp-total">0</span> <span style="font-size:13px;color:var(--t3);font-family:'Instrument Sans',sans-serif;font-weight:400;">XP total</span></div>
-            <div class="xp-next-lbl" id="xp-next">— to next level</div>
-          </div>
-          <div class="xp-bar"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
-          <div class="xp-stones" id="xp-stones"></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
+  </div><!-- end main grid -->
 </div>
 
 <script>
