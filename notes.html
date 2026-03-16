@@ -34,45 +34,35 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 .sidebar-nav::-webkit-scrollbar{width:3px}
 .sidebar-nav::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
 .snav-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;padding:10px 8px 3px}
-.snav-link{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;position:relative}
+.snav-link{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;position:relative;border:none;background:none;cursor:pointer;width:100%;text-align:left;font-family:inherit}
 .snav-link:hover{background:var(--s2);color:var(--t2)}
 .snav-link.active{background:var(--s2);color:var(--t1)}
-.snav-link.active::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:16px;background:var(--lime);border-radius:0 2px 2px 0}
-.sl-icon{font-size:14px;width:20px;text-align:center;flex-shrink:0}
+.snav-link.active::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0}
+.sl-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.sl-count{margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);background:var(--s3);padding:1px 6px;border-radius:8px;border:1px solid var(--b1)}
+.snav-link.active .sl-count{background:var(--lime-d);color:var(--lime);border-color:var(--lime-b)}
 
-/* ── Main layout ── */
-.main-wrap{flex:1;display:grid;grid-template-columns:240px 1fr;min-height:100vh;overflow:hidden}
-
-/* ── Library sidebar ── */
-.lib-sidebar{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
-.lib-header{padding:20px 16px 14px;border-bottom:1px solid var(--b1);flex-shrink:0}
-.lib-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400}
-.lib-sub{font-size:12px;color:var(--t3);margin-top:3px}
-
-.search-wrap{padding:10px 12px;border-bottom:1px solid var(--b1);flex-shrink:0;position:relative}
-.search-icon-svg{position:absolute;left:22px;top:50%;transform:translateY(-50%);color:var(--t4);pointer-events:none}
-.search-input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 10px 8px 32px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;transition:border-color 0.15s}
+/* Search in sidebar */
+.sidebar-search{padding:10px 8px 6px;flex-shrink:0;position:relative}
+.search-icon-svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--t4);pointer-events:none}
+.search-input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:7px 8px 7px 28px;font-family:inherit;font-size:12px;color:var(--t1);outline:none;transition:border-color 0.15s}
 .search-input:focus{border-color:var(--lime-b)}
 .search-input::placeholder{color:var(--t4)}
 
-.filter-list{padding:8px;flex-shrink:0;display:flex;flex-direction:column;gap:2px}
-.filter-btn{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;border:none;background:none;color:var(--t3);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s;text-align:left;width:100%;position:relative}
-.filter-btn:hover{background:var(--s2);color:var(--t2)}
-.filter-btn.active{background:var(--s2);color:var(--t1)}
-.filter-btn.active::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0}
-.filter-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
-.filter-count{margin-left:auto;font-size:11px;font-family:'DM Mono',monospace;color:var(--t4);background:var(--s3);padding:1px 7px;border-radius:10px;border:1px solid var(--b1)}
-.filter-btn.active .filter-count{background:var(--lime-d);color:var(--lime);border-color:var(--lime-b)}
+/* Stats strip in sidebar */
+.sidebar-stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--b1);border-top:1px solid var(--b1);border-bottom:1px solid var(--b1);flex-shrink:0}
+.sstat{background:var(--s1);padding:10px;text-align:center}
+.sstat-num{font-family:'Playfair Display',serif;font-size:18px;color:var(--t1)}
+.sstat-lbl{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.04em;text-transform:uppercase}
 
-.lib-stats{margin:0 8px 8px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.lib-stat{text-align:center}
-.lib-stat-num{font-family:'Playfair Display',serif;font-size:20px;color:var(--t1)}
-.lib-stat-lbl{font-size:10px;color:var(--t4);font-family:'DM Mono',monospace;letter-spacing:0.04em}
-
-.upload-area{padding:8px;margin-top:auto;flex-shrink:0;border-top:1px solid var(--b1)}
-.upload-btn-full{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;border-radius:var(--r);border:1px dashed var(--lime-b);background:var(--lime-d);color:var(--lime);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:background 0.15s;position:relative}
+/* Upload button in sidebar */
+.sidebar-upload{padding:8px;flex-shrink:0;border-top:1px solid var(--b1)}
+.upload-btn-full{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px;border-radius:var(--r);border:1px dashed var(--lime-b);background:var(--lime-d);color:var(--lime);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:background 0.15s;position:relative}
 .upload-btn-full:hover{background:rgba(200,240,94,0.14)}
-.upload-btn-full input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-btn-full input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* ── Main layout ── */
+.main-wrap{flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
 
 /* ── Content area ── */
 .content-area{display:flex;flex-direction:column;overflow:hidden;height:100vh}
@@ -201,92 +191,63 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 .toast.success{border-color:var(--lime-b)}
 .toast.error{border-color:var(--coral-b)}
 
-@media(max-width:900px){.sidebar{display:none}.main-wrap{grid-template-columns:1fr}}
-@media(max-width:640px){.main-wrap{grid-template-columns:1fr}.lib-sidebar{display:none}.note-row-preview{display:none}}
+@media(max-width:768px){.sidebar{display:none}}
+@media(max-width:640px){.note-row-preview{display:none}}
 </style>
 </head>
 <body>
 
-<!-- Global nav sidebar -->
+<!-- Single sidebar -->
 <aside class="sidebar">
   <a href="index.html" class="sidebar-logo">Notiv<span>.</span></a>
+
+  <!-- Search -->
+  <div class="sidebar-search">
+    <svg class="search-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="search-input" type="text" id="search-input" placeholder="Search notes…" oninput="filterNotes()">
+  </div>
+
   <div class="sidebar-nav">
-    <div class="snav-label">Main</div>
+    <!-- Filters -->
+    <div class="snav-label">Library</div>
+    <button class="snav-link active" onclick="setFilter('all',this)"><span class="sl-icon">📁</span>All notes<span class="sl-count" id="count-all">0</span></button>
+    <button class="snav-link" onclick="setFilter('polished',this)"><span class="sl-icon">✦</span>AI Polished<span class="sl-count" id="count-polished">0</span></button>
+    <button class="snav-link" onclick="setFilter('pdf',this)"><span class="sl-icon">📕</span>PDFs<span class="sl-count" id="count-pdf">0</span></button>
+    <button class="snav-link" onclick="setFilter('txt',this)"><span class="sl-icon">📄</span>Text files<span class="sl-count" id="count-txt">0</span></button>
+    <button class="snav-link" onclick="setFilter('img',this)"><span class="sl-icon">🖼</span>Images<span class="sl-count" id="count-img">0</span></button>
+
+    <!-- App nav -->
+    <div class="snav-label">Navigate</div>
     <a href="dashboard.html" class="snav-link"><span class="sl-icon">📊</span>Dashboard</a>
-    <div class="snav-label">Study tools</div>
-    <a href="notes.html" class="snav-link active"><span class="sl-icon">📚</span>Notes Library</a>
     <a href="essay.html" class="snav-link"><span class="sl-icon">✏️</span>Essay Editor</a>
     <a href="flashcards.html" class="snav-link"><span class="sl-icon">🃏</span>Flashcards</a>
     <a href="quiz.html" class="snav-link"><span class="sl-icon">🧠</span>Quiz Me</a>
-    <a href="planner.html" class="snav-link"><span class="sl-icon">📅</span>Study Planner</a>
-    <a href="explainer.html" class="snav-link"><span class="sl-icon">💡</span>Concept Explainer</a>
-    <a href="games.html" class="snav-link"><span class="sl-icon">🎮</span>Study Games</a>
+    <a href="planner.html" class="snav-link"><span class="sl-icon">📅</span>Planner</a>
+    <a href="explainer.html" class="snav-link"><span class="sl-icon">💡</span>Explainer</a>
+    <a href="games.html" class="snav-link"><span class="sl-icon">🎮</span>Games</a>
     <a href="writer.html" class="snav-link"><span class="sl-icon">✍️</span>AI Writer</a>
-    <a href="timer.html" class="snav-link"><span class="sl-icon">⏱</span>Study Timer</a>
-    <div class="snav-label">Research</div>
-    <a href="citations.html" class="snav-link"><span class="sl-icon">📎</span>Citation Helper</a>
-    <div class="snav-label">Account</div>
-    <a href="profile.html" class="snav-link"><span class="sl-icon">👤</span>Profile</a>
+    <a href="timer.html" class="snav-link"><span class="sl-icon">⏱</span>Timer</a>
+    <a href="citations.html" class="snav-link"><span class="sl-icon">📎</span>Citations</a>
     <a href="settings.html" class="snav-link"><span class="sl-icon">⚙️</span>Settings</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="sidebar-stats">
+    <div class="sstat"><div class="sstat-num" id="stat-total">0</div><div class="sstat-lbl">Notes</div></div>
+    <div class="sstat"><div class="sstat-num" id="stat-polished">0</div><div class="sstat-lbl">Polished</div></div>
+  </div>
+
+  <!-- Upload -->
+  <div class="sidebar-upload">
+    <label class="upload-btn-full">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,5 5,12"/></svg>
+      Upload notes
+      <input type="file" accept=".txt,.pdf,.png,.jpg,.jpeg,.md" multiple onchange="handleFiles(this.files)">
+    </label>
   </div>
 </aside>
 
 <div class="main-wrap">
-
-  <!-- Library sidebar -->
-  <aside class="lib-sidebar">
-    <div class="lib-header">
-      <div class="lib-title">Notes Library</div>
-      <div class="lib-sub">Your study materials</div>
-    </div>
-
-    <div class="search-wrap">
-      <svg class="search-icon-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input class="search-input" type="text" id="search-input" placeholder="Search notes…" oninput="filterNotes()">
-    </div>
-
-    <div class="filter-list">
-      <button class="filter-btn active" onclick="setFilter('all',this)">
-        <span class="filter-icon">📁</span>All notes
-        <span class="filter-count" id="count-all">0</span>
-      </button>
-      <button class="filter-btn" onclick="setFilter('polished',this)">
-        <span class="filter-icon">✦</span>AI Polished
-        <span class="filter-count" id="count-polished">0</span>
-      </button>
-      <button class="filter-btn" onclick="setFilter('pdf',this)">
-        <span class="filter-icon">📕</span>PDFs
-        <span class="filter-count" id="count-pdf">0</span>
-      </button>
-      <button class="filter-btn" onclick="setFilter('txt',this)">
-        <span class="filter-icon">📄</span>Text files
-        <span class="filter-count" id="count-txt">0</span>
-      </button>
-      <button class="filter-btn" onclick="setFilter('img',this)">
-        <span class="filter-icon">🖼</span>Images
-        <span class="filter-count" id="count-img">0</span>
-      </button>
-    </div>
-
-    <div class="lib-stats">
-      <div class="lib-stat">
-        <div class="lib-stat-num" id="stat-total">0</div>
-        <div class="lib-stat-lbl">Total</div>
-      </div>
-      <div class="lib-stat">
-        <div class="lib-stat-num" id="stat-polished">0</div>
-        <div class="lib-stat-lbl">Polished</div>
-      </div>
-    </div>
-
-    <div class="upload-area">
-      <label class="upload-btn-full">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,5 5,12"/></svg>
-        Upload notes
-        <input type="file" accept=".txt,.pdf,.png,.jpg,.jpeg" multiple onchange="handleFiles(this.files)">
-      </label>
-    </div>
-  </aside>
 
   <!-- Content -->
   <main class="content-area">
@@ -298,8 +259,8 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
       </div>
       <div class="content-header-actions">
         <label class="btn primary">
-          ✦ Polish all unpolished
-          <input type="file" style="display:none" accept=".txt,.pdf,.png,.jpg,.jpeg" multiple onchange="handleFiles(this.files)">
+          ↑ Upload
+          <input type="file" style="display:none" accept=".txt,.pdf,.png,.jpg,.jpeg,.md" multiple onchange="handleFiles(this.files)">
         </label>
       </div>
     </div>
@@ -630,7 +591,7 @@ function renderNotes() {
 function filterNotes() { renderNotes(); }
 function setFilter(filter, btn) {
   currentFilter = filter;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.snav-link[onclick]').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const titles = { all:'All notes', polished:'AI Polished', pdf:'PDF Files', txt:'Text Files', img:'Images' };
   const labels = { all:'ALL NOTES', polished:'AI POLISHED', pdf:'PDF FILES', txt:'TEXT FILES', img:'IMAGES' };
