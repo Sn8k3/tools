@@ -26,38 +26,124 @@
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;display:flex}
 
-/* ── Sidebar nav ── */
-.sidebar{width:220px;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;flex-shrink:0;overflow:hidden}
-.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--b1);font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--t1);text-decoration:none;display:block;flex-shrink:0}
+/* ── Global nav sidebar (collapsible) ── */
+.nav-sidebar{
+  width:220px;background:var(--s1);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;height:100vh;
+  position:sticky;top:0;flex-shrink:0;overflow:hidden;
+  transition:width 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+.nav-sidebar.collapsed{width:52px}
+
+.sidebar-logo{
+  padding:16px 14px;border-bottom:1px solid var(--b1);
+  font-family:'Playfair Display',serif;font-size:20px;font-weight:500;
+  color:var(--t1);text-decoration:none;display:flex;align-items:center;
+  justify-content:space-between;gap:8px;flex-shrink:0;white-space:nowrap;overflow:hidden;
+}
 .sidebar-logo span{color:var(--lime)}
-.sidebar-nav{flex:1;overflow-y:auto;padding:10px 8px;display:flex;flex-direction:column;gap:1px}
+.logo-text{overflow:hidden;transition:opacity 0.15s,width 0.22s;white-space:nowrap}
+.nav-sidebar.collapsed .logo-text{opacity:0;width:0;pointer-events:none}
+
+.sidebar-toggle{
+  background:none;border:1px solid var(--b1);border-radius:6px;
+  color:var(--t4);cursor:pointer;width:24px;height:24px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+  transition:all 0.12s;
+}
+.sidebar-toggle:hover{border-color:var(--b2);color:var(--t2)}
+
+.sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 6px;display:flex;flex-direction:column;gap:1px}
 .sidebar-nav::-webkit-scrollbar{width:3px}
 .sidebar-nav::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
-.snav-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;padding:10px 8px 3px}
-.snav-link{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;position:relative;border:none;background:none;cursor:pointer;width:100%;text-align:left;font-family:inherit}
+
+.snav-label{
+  font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);
+  letter-spacing:0.1em;text-transform:uppercase;padding:10px 8px 3px;
+  white-space:nowrap;overflow:hidden;transition:opacity 0.15s;
+}
+.nav-sidebar.collapsed .snav-label{opacity:0;height:0;padding:0;margin:0}
+
+.snav-link{
+  display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;
+  font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;
+  position:relative;white-space:nowrap;overflow:hidden;
+}
 .snav-link:hover{background:var(--s2);color:var(--t2)}
 .snav-link.active{background:var(--s2);color:var(--t1)}
-.snav-link.active::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0}
+.snav-link.active::after{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0;
+}
 .sl-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
-.sl-count{margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);background:var(--s3);padding:1px 6px;border-radius:8px;border:1px solid var(--b1)}
-.snav-link.active .sl-count{background:var(--lime-d);color:var(--lime);border-color:var(--lime-b)}
+.sl-text{overflow:hidden;transition:opacity 0.15s,width 0.22s;white-space:nowrap}
+.nav-sidebar.collapsed .sl-text{opacity:0;width:0}
 
-/* Search in sidebar */
-.sidebar-search{padding:10px 8px 6px;flex-shrink:0;position:relative}
-.search-icon-svg{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--t4);pointer-events:none}
-.search-input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:7px 8px 7px 28px;font-family:inherit;font-size:12px;color:var(--t1);outline:none;transition:border-color 0.15s}
-.search-input:focus{border-color:var(--lime-b)}
-.search-input::placeholder{color:var(--t4)}
+/* Tooltip on collapsed sidebar */
+.nav-sidebar.collapsed .snav-link{justify-content:center;padding:8px}
+.nav-sidebar.collapsed .snav-link:hover::before{
+  content:attr(data-label);
+  position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  background:var(--s2);border:1px solid var(--b2);border-radius:6px;
+  padding:4px 10px;font-size:12px;color:var(--t1);white-space:nowrap;
+  pointer-events:none;z-index:200;
+}
 
-/* Stats strip in sidebar */
-.sidebar-stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--b1);border-top:1px solid var(--b1);border-bottom:1px solid var(--b1);flex-shrink:0}
-.sstat{background:var(--s1);padding:10px;text-align:center}
-.sstat-num{font-family:'Playfair Display',serif;font-size:18px;color:var(--t1)}
-.sstat-lbl{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.04em;text-transform:uppercase}
+/* ── Library sidebar ── */
+.lib-sidebar{
+  width:220px;background:var(--s1);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;height:100vh;
+  position:sticky;top:0;flex-shrink:0;overflow:hidden;
+}
+.lib-header{padding:18px 16px 12px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.lib-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:400}
+.lib-sub{font-size:11px;color:var(--t3);margin-top:2px}
 
-/* Upload button in sidebar */
-.sidebar-upload{padding:8px;flex-shrink:0;border-top:1px solid var(--b1)}
-.upload-btn-full{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:9px;border-radius:var(--r);border:1px dashed var(--lime-b);background:var(--lime-d);color:var(--lime);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:background 0.15s;position:relative}
+.lib-search{padding:8px 10px 4px;flex-shrink:0;position:relative}
+.lib-search svg{position:absolute;left:19px;top:50%;transform:translateY(-50%);color:var(--t4);pointer-events:none}
+.lib-search-input{
+  width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+  padding:7px 8px 7px 28px;font-family:inherit;font-size:12px;color:var(--t1);
+  outline:none;transition:border-color 0.15s;
+}
+.lib-search-input:focus{border-color:var(--lime-b)}
+.lib-search-input::placeholder{color:var(--t4)}
+
+.lib-filters{padding:4px 8px;display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.lib-filter{
+  display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;
+  border:none;background:none;color:var(--t3);font-family:inherit;font-size:13px;
+  cursor:pointer;transition:all 0.12s;text-align:left;width:100%;position:relative;
+}
+.lib-filter:hover{background:var(--s2);color:var(--t2)}
+.lib-filter.active{background:var(--s2);color:var(--t1)}
+.lib-filter.active::after{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0;
+}
+.lf-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.lf-count{
+  margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;
+  color:var(--t4);background:var(--s3);padding:1px 6px;border-radius:8px;border:1px solid var(--b1);
+}
+.lib-filter.active .lf-count{background:var(--lime-d);color:var(--lime);border-color:var(--lime-b)}
+
+.lib-stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--b1);border-top:1px solid var(--b1);
+  border-bottom:1px solid var(--b1);flex-shrink:0;margin-top:auto;
+}
+.lstat{background:var(--s1);padding:10px;text-align:center}
+.lstat-num{font-family:'Playfair Display',serif;font-size:18px;color:var(--t1)}
+.lstat-lbl{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);text-transform:uppercase;letter-spacing:0.04em}
+
+.lib-upload{padding:8px;flex-shrink:0}
+.upload-btn-full{
+  display:flex;align-items:center;justify-content:center;gap:7px;width:100%;
+  padding:9px;border-radius:var(--r);border:1px dashed var(--lime-b);
+  background:var(--lime-d);color:var(--lime);font-family:inherit;font-size:12px;
+  font-weight:500;cursor:pointer;transition:background 0.15s;position:relative;
+}
 .upload-btn-full:hover{background:rgba(200,240,94,0.14)}
 .upload-btn-full input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
@@ -191,54 +277,61 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 .toast.success{border-color:var(--lime-b)}
 .toast.error{border-color:var(--coral-b)}
 
-@media(max-width:768px){.sidebar{display:none}}
+@media(max-width:900px){.nav-sidebar{display:none}.lib-sidebar{display:none}}
 @media(max-width:640px){.note-row-preview{display:none}}
 </style>
 </head>
 <body>
 
-<!-- Single sidebar -->
-<aside class="sidebar">
-  <a href="index.html" class="sidebar-logo">Notiv<span>.</span></a>
-
-  <!-- Search -->
-  <div class="sidebar-search">
-    <svg class="search-icon-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input class="search-input" type="text" id="search-input" placeholder="Search notes…" oninput="filterNotes()">
-  </div>
-
+<!-- Global nav sidebar (collapsible) -->
+<aside class="nav-sidebar" id="nav-sidebar">
+  <a href="index.html" class="sidebar-logo">
+    <span class="logo-text">Notiv<span>.</span></span>
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
+  </a>
   <div class="sidebar-nav">
-    <!-- Filters -->
-    <div class="snav-label">Library</div>
-    <button class="snav-link active" onclick="setFilter('all',this)"><span class="sl-icon">📁</span>All notes<span class="sl-count" id="count-all">0</span></button>
-    <button class="snav-link" onclick="setFilter('polished',this)"><span class="sl-icon">✦</span>AI Polished<span class="sl-count" id="count-polished">0</span></button>
-    <button class="snav-link" onclick="setFilter('pdf',this)"><span class="sl-icon">📕</span>PDFs<span class="sl-count" id="count-pdf">0</span></button>
-    <button class="snav-link" onclick="setFilter('txt',this)"><span class="sl-icon">📄</span>Text files<span class="sl-count" id="count-txt">0</span></button>
-    <button class="snav-link" onclick="setFilter('img',this)"><span class="sl-icon">🖼</span>Images<span class="sl-count" id="count-img">0</span></button>
-
-    <!-- App nav -->
-    <div class="snav-label">Navigate</div>
-    <a href="dashboard.html" class="snav-link"><span class="sl-icon">📊</span>Dashboard</a>
-    <a href="essay.html" class="snav-link"><span class="sl-icon">✏️</span>Essay Editor</a>
-    <a href="flashcards.html" class="snav-link"><span class="sl-icon">🃏</span>Flashcards</a>
-    <a href="quiz.html" class="snav-link"><span class="sl-icon">🧠</span>Quiz Me</a>
-    <a href="planner.html" class="snav-link"><span class="sl-icon">📅</span>Planner</a>
-    <a href="explainer.html" class="snav-link"><span class="sl-icon">💡</span>Explainer</a>
-    <a href="games.html" class="snav-link"><span class="sl-icon">🎮</span>Games</a>
-    <a href="writer.html" class="snav-link"><span class="sl-icon">✍️</span>AI Writer</a>
-    <a href="timer.html" class="snav-link"><span class="sl-icon">⏱</span>Timer</a>
-    <a href="citations.html" class="snav-link"><span class="sl-icon">📎</span>Citations</a>
-    <a href="settings.html" class="snav-link"><span class="sl-icon">⚙️</span>Settings</a>
+    <div class="snav-label">Main</div>
+    <a href="dashboard.html" class="snav-link" data-label="Dashboard"><span class="sl-icon">📊</span><span class="sl-text">Dashboard</span></a>
+    <div class="snav-label">Study tools</div>
+    <a href="notes.html" class="snav-link active" data-label="Notes Library"><span class="sl-icon">📚</span><span class="sl-text">Notes Library</span></a>
+    <a href="essay.html" class="snav-link" data-label="Essay Editor"><span class="sl-icon">✏️</span><span class="sl-text">Essay Editor</span></a>
+    <a href="flashcards.html" class="snav-link" data-label="Flashcards"><span class="sl-icon">🃏</span><span class="sl-text">Flashcards</span></a>
+    <a href="quiz.html" class="snav-link" data-label="Quiz Me"><span class="sl-icon">🧠</span><span class="sl-text">Quiz Me</span></a>
+    <a href="planner.html" class="snav-link" data-label="Planner"><span class="sl-icon">📅</span><span class="sl-text">Planner</span></a>
+    <a href="explainer.html" class="snav-link" data-label="Concept Explainer"><span class="sl-icon">💡</span><span class="sl-text">Explainer</span></a>
+    <a href="games.html" class="snav-link" data-label="Study Games"><span class="sl-icon">🎮</span><span class="sl-text">Games</span></a>
+    <a href="writer.html" class="snav-link" data-label="AI Writer"><span class="sl-icon">✍️</span><span class="sl-text">AI Writer</span></a>
+    <a href="timer.html" class="snav-link" data-label="Study Timer"><span class="sl-icon">⏱</span><span class="sl-text">Timer</span></a>
+    <div class="snav-label">Research</div>
+    <a href="citations.html" class="snav-link" data-label="Citations"><span class="sl-icon">📎</span><span class="sl-text">Citations</span></a>
+    <div class="snav-label">Account</div>
+    <a href="profile.html" class="snav-link" data-label="Profile"><span class="sl-icon">👤</span><span class="sl-text">Profile</span></a>
+    <a href="settings.html" class="snav-link" data-label="Settings"><span class="sl-icon">⚙️</span><span class="sl-text">Settings</span></a>
   </div>
+</aside>
 
-  <!-- Stats -->
-  <div class="sidebar-stats">
-    <div class="sstat"><div class="sstat-num" id="stat-total">0</div><div class="sstat-lbl">Notes</div></div>
-    <div class="sstat"><div class="sstat-num" id="stat-polished">0</div><div class="sstat-lbl">Polished</div></div>
+<!-- Library sidebar -->
+<aside class="lib-sidebar">
+  <div class="lib-header">
+    <div class="lib-title">Notes Library</div>
+    <div class="lib-sub">Your study materials</div>
   </div>
-
-  <!-- Upload -->
-  <div class="sidebar-upload">
+  <div class="lib-search">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="lib-search-input" type="text" id="search-input" placeholder="Search notes…" oninput="filterNotes()">
+  </div>
+  <div class="lib-filters">
+    <button class="lib-filter active" onclick="setFilter('all',this)"><span class="lf-icon">📁</span>All notes<span class="lf-count" id="count-all">0</span></button>
+    <button class="lib-filter" onclick="setFilter('polished',this)"><span class="lf-icon">✦</span>AI Polished<span class="lf-count" id="count-polished">0</span></button>
+    <button class="lib-filter" onclick="setFilter('pdf',this)"><span class="lf-icon">📕</span>PDFs<span class="lf-count" id="count-pdf">0</span></button>
+    <button class="lib-filter" onclick="setFilter('txt',this)"><span class="lf-icon">📄</span>Text files<span class="lf-count" id="count-txt">0</span></button>
+    <button class="lib-filter" onclick="setFilter('img',this)"><span class="lf-icon">🖼</span>Images<span class="lf-count" id="count-img">0</span></button>
+  </div>
+  <div class="lib-stats">
+    <div class="lstat"><div class="lstat-num" id="stat-total">0</div><div class="lstat-lbl">Notes</div></div>
+    <div class="lstat"><div class="lstat-num" id="stat-polished">0</div><div class="lstat-lbl">Polished</div></div>
+  </div>
+  <div class="lib-upload">
     <label class="upload-btn-full">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,5 5,12"/></svg>
       Upload notes
@@ -591,7 +684,7 @@ function renderNotes() {
 function filterNotes() { renderNotes(); }
 function setFilter(filter, btn) {
   currentFilter = filter;
-  document.querySelectorAll('.snav-link[onclick]').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.lib-filter').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const titles = { all:'All notes', polished:'AI Polished', pdf:'PDF Files', txt:'Text Files', img:'Images' };
   const labels = { all:'ALL NOTES', polished:'AI POLISHED', pdf:'PDF FILES', txt:'TEXT FILES', img:'IMAGES' };
@@ -616,6 +709,25 @@ function saveNotes() {
 }
 
 function formatBytes(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+// ── Sidebar collapse ──
+function toggleSidebar() {
+  const sidebar = document.getElementById('nav-sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '›' : '‹';
+  btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  localStorage.setItem('notiv-sidebar-collapsed', collapsed ? '1' : '0');
+}
+
+// Restore sidebar state on load
+(function() {
+  if (localStorage.getItem('notiv-sidebar-collapsed') === '1') {
+    const sidebar = document.getElementById('nav-sidebar');
+    const btn = document.getElementById('sidebar-toggle-btn');
+    if (sidebar) { sidebar.classList.add('collapsed'); btn.textContent = '›'; btn.title = 'Expand sidebar'; }
+  }
+})();
+
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
 <script src="ai-assistant.js" defer></script>
