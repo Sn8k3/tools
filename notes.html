@@ -287,7 +287,7 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 <aside class="nav-sidebar" id="nav-sidebar">
   <a href="index.html" class="sidebar-logo">
     <span class="logo-text">Notiv<span>.</span></span>
-    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
+    <button class="sidebar-toggle" onclick="event.preventDefault();event.stopPropagation();toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
   </a>
   <div class="sidebar-nav">
     <div class="snav-label">Main</div>
