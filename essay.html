@@ -5,614 +5,208 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Essay Editor — Notiv</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js" defer></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;--s4:#26262e;
+  --b1:#22222a;--b2:#2e2e38;--b3:#3c3c48;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);--purple-b:rgba(160,126,232,0.25);
+  --coral:#f0635a;--coral-d:rgba(240,99,90,0.10);--coral-b:rgba(240,99,90,0.3);
+  --amber:#f0ae50;--amber-d:rgba(240,174,80,0.10);--amber-b:rgba(240,174,80,0.3);
+  --sky:#58b2ee;--sky-d:rgba(88,178,238,0.10);--sky-b:rgba(88,178,238,0.3);
+  --r:10px;--rl:14px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;height:100vh;overflow:hidden;display:flex}
 
-:root {
-  --bg: #0e0e10;
-  --surface: #17171a;
-  --surface2: #1f1f24;
-  --surface3: #252529;
-  --border: #2a2a30;
-  --border2: #38383f;
-  --text: #eeecea;
-  --text2: #9b9899;
-  --text3: #5c5a5e;
-  --accent: #c8f05e;
-  --accent-dim: rgba(200,240,94,0.10);
-  --accent-border: rgba(200,240,94,0.25);
-  --purple: #9d7bea;
-  --purple-dim: rgba(157,123,234,0.12);
-  --purple-border: rgba(157,123,234,0.3);
-  --coral: #f0635a;
-  --coral-dim: rgba(240,99,90,0.10);
-  --amber: #f0b05a;
-  --amber-dim: rgba(240,176,90,0.12);
-  --amber-border: rgba(240,176,90,0.3);
-  --sky: #5ab4f0;
-  --sky-dim: rgba(90,180,240,0.10);
-  --red: #f0635a;
-  --radius: 10px;
-  --radius-lg: 16px;
-}
+/* ── Nav sidebar ── */
+.nav-sidebar{width:220px;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;flex-shrink:0;overflow:hidden}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--b1);font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--t1);text-decoration:none;display:block;flex-shrink:0}
+.sidebar-logo span{color:var(--lime)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:10px 8px;display:flex;flex-direction:column;gap:1px}
+.sidebar-nav::-webkit-scrollbar{width:3px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.snav-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;padding:10px 8px 3px}
+.snav-link{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;position:relative}
+.snav-link:hover{background:var(--s2);color:var(--t2)}
+.snav-link.active{background:var(--s2);color:var(--t1)}
+.snav-link.active::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0}
+.sl-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
 
-html { scroll-behavior: smooth; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Instrument Sans', sans-serif;
-  font-size: 15px;
-  line-height: 1.6;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ── Topbar ── */
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 24px;
-  height: 56px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  flex-shrink: 0;
-}
-.logo {
-  font-family: 'DM Serif Display', serif;
-  font-size: 20px;
-  color: var(--text);
-  text-decoration: none;
-}
-.logo-dot { color: var(--accent); }
-.back-link {
-  font-size: 13px;
-  color: var(--text2);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: color 0.15s;
-}
-.back-link:hover { color: var(--text); }
-.topbar-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ── Layout ── */
-.app {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  flex: 1;
-  overflow: hidden;
-  height: calc(100vh - 56px);
-}
+/* ── App layout ── */
+.app{flex:1;display:grid;grid-template-columns:1fr 360px;height:100vh;overflow:hidden;min-width:0}
 
 /* ── Editor pane ── */
-.editor-pane {
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-}
+.editor-pane{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--b1)}
 
-.editor-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  flex-wrap: wrap;
-}
+/* Toolbar */
+.editor-toolbar{display:flex;align-items:center;gap:10px;padding:12px 20px;border-bottom:1px solid var(--b1);background:var(--s1);flex-shrink:0;flex-wrap:wrap}
+.toolbar-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase}
+.tone-select{background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:5px 10px;font-family:inherit;font-size:12px;color:var(--t2);outline:none;cursor:pointer;transition:border-color 0.15s}
+.tone-select:focus{border-color:var(--b2)}
 
-.toolbar-label {
-  font-size: 11px;
-  font-family: 'DM Mono', monospace;
-  color: var(--text3);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-right: 4px;
-}
+.view-toggle{display:flex;gap:3px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:3px;margin-left:4px}
+.vbtn{padding:4px 10px;border-radius:6px;border:none;background:none;color:var(--t3);font-family:inherit;font-size:12px;cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.vbtn:hover{color:var(--t2)}
+.vbtn.active{background:var(--s3);color:var(--t1)}
+.vbtn:disabled{opacity:0.35;cursor:not-allowed}
 
-.tone-select {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 5px 10px;
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--text2);
-  outline: none;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-.tone-select:focus { border-color: var(--border2); }
+.meta-pills{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+.meta-pill{font-size:10px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:8px;background:var(--s2);border:1px solid var(--b1);color:var(--t4)}
 
-.meta-pills {
-  display: flex;
-  gap: 6px;
-  margin-left: auto;
-  flex-wrap: wrap;
-}
-.meta-pill {
-  font-size: 11px;
-  font-family: 'DM Mono', monospace;
-  padding: 3px 8px;
-  border-radius: 10px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text3);
-  white-space: nowrap;
-}
-.meta-pill.active { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); }
+/* Essay textarea */
+.essay-wrap{flex:1;overflow-y:auto;padding:36px 48px;background:var(--bg);position:relative}
+.essay-wrap::-webkit-scrollbar{width:4px}
+.essay-wrap::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.essay-input{width:100%;min-height:100%;background:transparent;border:none;outline:none;font-family:'Playfair Display',serif;font-size:18px;line-height:1.9;color:var(--t1);resize:none;caret-color:var(--lime)}
+.essay-input::placeholder{color:var(--t4);font-style:italic}
 
-/* ── Essay textarea ── */
-.essay-wrap {
-  flex: 1;
-  overflow-y: auto;
-  padding: 32px;
-  position: relative;
-}
+.essay-highlighted{display:none;font-family:'Playfair Display',serif;font-size:18px;line-height:1.9;color:var(--t1);white-space:pre-wrap;word-wrap:break-word}
+.essay-highlighted.visible{display:block}
 
-.essay-input {
-  width: 100%;
-  min-height: 100%;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-family: 'DM Serif Display', serif;
-  font-size: 18px;
-  line-height: 1.8;
-  color: var(--text);
-  resize: none;
-  caret-color: var(--accent);
-}
-.essay-input::placeholder { color: var(--text3); font-style: italic; }
+.highlight-comment{background:rgba(200,240,94,0.12);border-bottom:1.5px solid var(--lime);cursor:pointer;border-radius:2px;transition:background 0.15s}
+.highlight-comment:hover{background:rgba(200,240,94,0.22)}
+.highlight-comment.purple{background:rgba(160,126,232,0.12);border-bottom-color:var(--purple)}
+.highlight-comment.purple:hover{background:rgba(160,126,232,0.22)}
+.highlight-comment.coral{background:rgba(240,99,90,0.10);border-bottom-color:var(--coral)}
+.highlight-comment.coral:hover{background:rgba(240,99,90,0.18)}
+.highlight-comment.amber{background:rgba(240,174,80,0.10);border-bottom-color:var(--amber)}
+.highlight-comment.amber:hover{background:rgba(240,174,80,0.18)}
 
-/* Highlighted version (readonly) */
-.essay-highlighted {
-  display: none;
-  width: 100%;
-  font-family: 'DM Serif Display', serif;
-  font-size: 18px;
-  line-height: 1.8;
-  color: var(--text);
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-.essay-highlighted.visible { display: block; }
+.rewritten-wrap{display:none;flex:1;padding:36px 48px;overflow-y:auto;background:rgba(200,240,94,0.015);border-top:1px solid var(--lime-b)}
+.rewritten-wrap.visible{display:block}
+.rewritten-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--lime);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:6px}
+.rewritten-text{font-family:'Playfair Display',serif;font-size:18px;line-height:1.9;color:var(--t1);white-space:pre-wrap}
 
-.highlight-comment {
-  background: rgba(200,240,94,0.15);
-  border-bottom: 2px solid var(--accent);
-  cursor: pointer;
-  border-radius: 2px;
-  transition: background 0.15s;
-  position: relative;
-}
-.highlight-comment:hover { background: rgba(200,240,94,0.25); }
-.highlight-comment.purple {
-  background: rgba(157,123,234,0.15);
-  border-bottom-color: var(--purple);
-}
-.highlight-comment.purple:hover { background: rgba(157,123,234,0.25); }
-.highlight-comment.coral {
-  background: rgba(240,99,90,0.12);
-  border-bottom-color: var(--coral);
-}
-.highlight-comment.coral:hover { background: rgba(240,99,90,0.2); }
+/* ── Right panel ── */
+.right-panel{display:flex;flex-direction:column;overflow:hidden;background:var(--s1)}
 
-/* ── Rewritten pane ── */
-.rewritten-wrap {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  padding: 32px;
-  background: rgba(200,240,94,0.02);
-  border-top: 1px solid var(--accent-border);
-}
-.rewritten-wrap.visible { display: block; }
-.rewritten-label {
-  font-size: 11px;
-  font-family: 'DM Mono', monospace;
-  color: var(--accent);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.rewritten-text {
-  font-family: 'DM Serif Display', serif;
-  font-size: 18px;
-  line-height: 1.8;
-  color: var(--text);
-  white-space: pre-wrap;
-}
+/* Tabs */
+.panel-tabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0}
+.ptab{flex:1;padding:11px 8px;border:none;background:none;color:var(--t3);font-family:inherit;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.12s;white-space:nowrap}
+.ptab:hover{color:var(--t2)}
+.ptab.active{color:var(--t1);border-bottom-color:var(--lime)}
 
-/* View toggle */
-.view-toggle {
-  display: flex;
-  gap: 4px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 3px;
-}
-.toggle-btn {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: none;
-  background: none;
-  color: var(--text3);
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.12s;
-  white-space: nowrap;
-}
-.toggle-btn.active {
-  background: var(--surface3);
-  color: var(--text);
-}
+.tab-pane{display:none;flex:1;overflow-y:auto;flex-direction:column}
+.tab-pane.active{display:flex}
+.tab-pane::-webkit-scrollbar{width:3px}
+.tab-pane::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
 
-/* ── Sidebar ── */
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--surface);
-}
+/* Placeholder */
+.pane-placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;gap:10px}
+.ph-icon{font-size:32px;opacity:0.3}
+.ph-title{font-size:13px;color:var(--t2);font-weight:500}
+.ph-sub{font-size:12px;color:var(--t4);line-height:1.6;max-width:200px}
 
-.sidebar-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.tab-btn {
-  flex: 1;
-  padding: 12px 8px;
-  border: none;
-  background: none;
-  color: var(--text3);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.tab-btn.active {
-  color: var(--text);
-  border-bottom-color: var(--accent);
-}
-.tab-btn:hover:not(.active) { color: var(--text2); }
+/* ── Score tab ── */
+.score-panel{padding:18px;display:flex;flex-direction:column;gap:14px}
 
-.tab-content {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  flex-direction: column;
-}
-.tab-content.active { display: flex; }
+.overall-card{background:var(--s2);border:1px solid var(--b2);border-radius:var(--rl);padding:22px;text-align:center;position:relative;overflow:hidden}
+.overall-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--lime)}
+.score-big{font-family:'Playfair Display',serif;font-size:60px;line-height:1;color:var(--lime);margin-bottom:4px}
+.score-grade-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:'DM Mono',monospace;padding:4px 14px;border-radius:20px;background:var(--lime-d);color:var(--lime);border:1px solid var(--lime-b);margin-bottom:10px}
+.score-summary{font-size:12px;color:var(--t3);line-height:1.6}
 
-/* ── Score panel ── */
-.score-panel {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+.breakdown-title{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase}
+.score-bars{display:flex;flex-direction:column;gap:10px}
+.score-row{display:flex;flex-direction:column;gap:4px}
+.score-row-head{display:flex;justify-content:space-between;align-items:center}
+.score-row-label{font-size:12px;color:var(--t2)}
+.score-row-val{font-size:11px;font-family:'DM Mono',monospace;color:var(--t1)}
+.sbar{height:3px;background:var(--b2);border-radius:2px;overflow:hidden}
+.sbar-fill{height:100%;border-radius:2px;transition:width 0.9s cubic-bezier(0.4,0,0.2,1);width:0%}
 
-.overall-score {
-  text-align: center;
-  padding: 24px;
-  background: var(--surface2);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
-}
-.overall-score::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: var(--accent);
-}
-.score-num {
-  font-family: 'DM Serif Display', serif;
-  font-size: 56px;
-  line-height: 1;
-  color: var(--accent);
-  margin-bottom: 4px;
-}
-.score-grade {
-  font-size: 13px;
-  color: var(--text2);
-  margin-bottom: 8px;
-}
-.score-summary {
-  font-size: 12px;
-  color: var(--text3);
-  line-height: 1.5;
-}
+/* ── Feedback tab ── */
+.feedback-panel{padding:12px;display:flex;flex-direction:column;gap:8px}
+.feedback-card{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;cursor:pointer;transition:all 0.12s;border-left:3px solid var(--b1)}
+.feedback-card:hover{border-color:var(--b2);border-left-color:inherit;transform:translateX(2px)}
+.feedback-card.lime{border-left-color:var(--lime)}
+.feedback-card.purple{border-left-color:var(--purple)}
+.feedback-card.coral{border-left-color:var(--coral)}
+.feedback-card.amber{border-left-color:var(--amber)}
+.feedback-card.sky{border-left-color:var(--sky)}
+.fc-type{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:var(--t4);margin-bottom:4px}
+.fc-title{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:4px}
+.fc-body{font-size:12px;color:var(--t3);line-height:1.55}
+.fc-quote{font-size:11px;font-family:'DM Mono',monospace;color:var(--t4);margin-top:6px;padding:4px 8px;background:var(--s3);border-radius:5px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-.score-breakdown {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.score-row { display: flex; flex-direction: column; gap: 4px; }
-.score-row-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.score-row-label { font-size: 13px; color: var(--text2); }
-.score-row-val { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--text); }
-.score-bar {
-  height: 4px;
-  background: var(--surface2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.score-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: var(--accent);
-  transition: width 0.8s ease;
-  width: 0%;
-}
-.score-bar-fill.purple { background: var(--purple); }
-.score-bar-fill.sky { background: var(--sky); }
-.score-bar-fill.amber { background: var(--amber); }
-.score-bar-fill.coral { background: var(--coral); }
-
-/* ── Feedback panel ── */
-.feedback-panel {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.feedback-card {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  cursor: pointer;
-  transition: border-color 0.15s, transform 0.1s;
-}
-.feedback-card:hover { border-color: var(--border2); transform: translateX(2px); }
-.feedback-card.accent { border-left: 3px solid var(--accent); }
-.feedback-card.purple { border-left: 3px solid var(--purple); }
-.feedback-card.coral  { border-left: 3px solid var(--coral); }
-.feedback-card.amber  { border-left: 3px solid var(--amber); }
-
-.feedback-tag {
-  font-size: 10px;
-  font-family: 'DM Mono', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-bottom: 5px;
-}
-.feedback-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
-.feedback-body { font-size: 12px; color: var(--text2); line-height: 1.55; }
-
-/* ── History panel ── */
-.history-panel {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.history-empty {
-  text-align: center;
-  padding: 40px 16px;
-  color: var(--text3);
-  font-size: 13px;
-}
-.history-item {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  cursor: pointer;
-  transition: border-color 0.15s;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.history-item:hover { border-color: var(--border2); }
-.history-item-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.history-score {
-  font-size: 13px;
-  font-family: 'DM Mono', monospace;
-  color: var(--accent);
-  font-weight: 500;
-}
-.history-date { font-size: 11px; color: var(--text3); }
-.history-preview {
-  font-size: 12px;
-  color: var(--text2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.history-tone {
-  font-size: 11px;
-  color: var(--text3);
-  font-family: 'DM Mono', monospace;
-}
+/* ── History tab ── */
+.history-panel{padding:12px;display:flex;flex-direction:column;gap:6px}
+.hist-item{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:11px 13px;cursor:pointer;transition:border-color 0.12s;display:flex;flex-direction:column;gap:4px}
+.hist-item:hover{border-color:var(--b2)}
+.hist-top{display:flex;justify-content:space-between;align-items:center}
+.hist-score{font-size:13px;font-family:'DM Mono',monospace;color:var(--lime)}
+.hist-date{font-size:10px;color:var(--t4)}
+.hist-preview{font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-meta{font-size:10px;color:var(--t4);font-family:'DM Mono',monospace}
 
 /* ── Action bar ── */
-.action-bar {
-  padding: 14px 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--surface);
-  flex-shrink: 0;
-}
+.action-bar{padding:12px;border-top:1px solid var(--b1);display:flex;flex-direction:column;gap:6px;flex-shrink:0;background:var(--s1)}
+.proc-bar{display:none;align-items:center;gap:8px;padding:8px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);font-size:12px;color:var(--t2)}
+.proc-bar.visible{display:flex}
+.spinner{width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--lime);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-step{color:var(--lime);font-weight:500}
+.action-row{display:flex;gap:6px}
 
-/* ── Buttons ── */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  color: var(--text2);
-  font-family: inherit;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.12s;
-  white-space: nowrap;
-}
-.btn:hover { border-color: var(--border2); color: var(--text); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #0e0e10;
-  font-weight: 600;
-}
-.btn.primary:hover:not(:disabled) { background: #d4f66e; }
-.btn.full { width: 100%; }
-.btn.sm { padding: 5px 10px; font-size: 12px; }
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.btn:hover{border-color:var(--b3);color:var(--t1)}
+.btn:disabled{opacity:0.38;cursor:not-allowed}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:#080809;font-weight:600}
+.btn.primary:hover:not(:disabled){background:#d8ff74}
+.btn.full{width:100%;justify-content:center}
+.btn.sm{padding:5px 10px;font-size:12px}
 
-/* ── Processing ── */
-.processing-bar {
-  display: none;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 13px;
-  color: var(--text2);
-}
-.processing-bar.visible { display: flex; }
-.spinner {
-  width: 16px; height: 16px;
-  border: 2px solid var(--border2);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.processing-step { color: var(--accent); font-weight: 500; }
+/* Tooltip */
+.comment-tooltip{display:none;position:fixed;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--t1);max-width:260px;z-index:500;pointer-events:none;line-height:1.55;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
+.comment-tooltip.visible{display:block}
+.tt-type{font-size:9px;font-family:'DM Mono',monospace;color:var(--lime);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px}
 
-/* ── Empty / placeholder states ── */
-.sidebar-placeholder {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 20px;
-  text-align: center;
-  color: var(--text3);
-  gap: 10px;
-}
-.placeholder-icon { font-size: 36px; }
-.placeholder-title { font-size: 14px; color: var(--text2); font-weight: 500; }
-.placeholder-sub { font-size: 12px; line-height: 1.5; }
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px}
+.toast.visible{display:flex}
+.toast.success{border-color:var(--lime-b)}
+.toast.error{border-color:var(--coral-b)}
 
-/* ── Inline comment tooltip ── */
-.comment-tooltip {
-  display: none;
-  position: fixed;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--text);
-  max-width: 280px;
-  z-index: 500;
-  pointer-events: none;
-  line-height: 1.5;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-}
-.comment-tooltip.visible { display: block; }
-.tooltip-type {
-  font-size: 10px;
-  font-family: 'DM Mono', monospace;
-  color: var(--accent);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-/* ── Toast ── */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 13px;
-  color: var(--text);
-  z-index: 999;
-  display: none;
-  align-items: center;
-  gap: 8px;
-  animation: toast-in 0.2s ease;
-}
-.toast.visible { display: flex; }
-.toast.success { border-color: var(--accent-border); }
-.toast.error { border-color: rgba(240,99,90,0.4); }
-@keyframes toast-in { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; height: auto; }
-  .editor-pane { height: 60vh; }
-  .sidebar { height: 50vh; border-top: 1px solid var(--border); border-right: none; }
-}
+@media(max-width:1000px){.nav-sidebar{display:none}}
+@media(max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:1fr 44vh}.editor-pane{border-right:none;border-bottom:1px solid var(--b1)}.essay-wrap{padding:20px 24px}.rewritten-wrap{padding:20px 24px}}
 </style>
 </head>
 <body>
 
-<header class="topbar">
-  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
-  <a href="index.html" class="back-link">← All features</a>
-  <div class="topbar-right">
-    <button class="btn sm" onclick="downloadPDF()" id="dl-btn" disabled>⬇ PDF</button>
+<!-- Nav sidebar -->
+<aside class="nav-sidebar">
+  <a href="index.html" class="sidebar-logo">Notiv<span>.</span></a>
+  <div class="sidebar-nav">
+    <div class="snav-label">Main</div>
+    <a href="dashboard.html" class="snav-link"><span class="sl-icon">📊</span>Dashboard</a>
+    <div class="snav-label">Study tools</div>
+    <a href="notes.html" class="snav-link"><span class="sl-icon">📚</span>Notes Library</a>
+    <a href="essay.html" class="snav-link active"><span class="sl-icon">✏️</span>Essay Editor</a>
+    <a href="flashcards.html" class="snav-link"><span class="sl-icon">🃏</span>Flashcards</a>
+    <a href="quiz.html" class="snav-link"><span class="sl-icon">🧠</span>Quiz Me</a>
+    <a href="planner.html" class="snav-link"><span class="sl-icon">📅</span>Planner</a>
+    <a href="explainer.html" class="snav-link"><span class="sl-icon">💡</span>Explainer</a>
+    <a href="games.html" class="snav-link"><span class="sl-icon">🎮</span>Games</a>
+    <a href="writer.html" class="snav-link"><span class="sl-icon">✍️</span>AI Writer</a>
+    <a href="timer.html" class="snav-link"><span class="sl-icon">⏱</span>Timer</a>
+    <div class="snav-label">Research</div>
+    <a href="citations.html" class="snav-link"><span class="sl-icon">📎</span>Citations</a>
+    <div class="snav-label">Account</div>
+    <a href="profile.html" class="snav-link"><span class="sl-icon">👤</span>Profile</a>
+    <a href="settings.html" class="snav-link"><span class="sl-icon">⚙️</span>Settings</a>
   </div>
-</header>
+</aside>
 
 <div class="app">
 
-  <!-- ── Editor pane ── -->
+  <!-- Editor -->
   <div class="editor-pane">
     <div class="editor-toolbar">
       <span class="toolbar-label">Tone</span>
@@ -624,27 +218,23 @@ body {
         <option value="professional">Professional</option>
       </select>
 
-      <div class="view-toggle" id="view-toggle" style="margin-left:12px;">
-        <button class="toggle-btn active" onclick="setView('edit', this)">Edit</button>
-        <button class="toggle-btn" onclick="setView('comments', this)" id="btn-comments" disabled>Comments</button>
-        <button class="toggle-btn" onclick="setView('rewritten', this)" id="btn-rewritten" disabled>Rewritten</button>
+      <div class="view-toggle">
+        <button class="vbtn active" onclick="setView('edit',this)">Edit</button>
+        <button class="vbtn" id="btn-comments" onclick="setView('comments',this)" disabled>Comments</button>
+        <button class="vbtn" id="btn-rewritten" onclick="setView('rewritten',this)" disabled>Rewritten</button>
       </div>
 
       <div class="meta-pills">
         <span class="meta-pill" id="pill-words">0 words</span>
-        <span class="meta-pill" id="pill-read">0 min read</span>
+        <span class="meta-pill" id="pill-read">0 min</span>
         <span class="meta-pill" id="pill-chars">0 chars</span>
       </div>
     </div>
 
     <div class="essay-wrap" id="essay-wrap">
-      <textarea
-        class="essay-input"
-        id="essay-input"
-        placeholder="Paste or type your essay here…&#10;&#10;When you're ready, hit Analyse below."
-        oninput="updateMeta()"
-        spellcheck="true"
-      ></textarea>
+      <textarea class="essay-input" id="essay-input"
+        placeholder="Paste or type your essay here…&#10;&#10;Claude will score it out of 100, give you a letter grade, and annotate every weak section with actionable suggestions."
+        oninput="updateMeta()" spellcheck="true"></textarea>
       <div class="essay-highlighted" id="essay-highlighted"></div>
       <div class="rewritten-wrap" id="rewritten-wrap">
         <div class="rewritten-label">✦ AI Rewritten Version</div>
@@ -653,408 +243,283 @@ body {
     </div>
   </div>
 
-  <!-- ── Sidebar ── -->
-  <div class="sidebar">
-    <div class="sidebar-tabs">
-      <button class="tab-btn active" onclick="switchTab('score', this)">Score</button>
-      <button class="tab-btn" onclick="switchTab('feedback', this)">Feedback</button>
-      <button class="tab-btn" onclick="switchTab('history', this)">History</button>
+  <!-- Right panel -->
+  <div class="right-panel">
+    <div class="panel-tabs">
+      <button class="ptab active" onclick="switchTab('score',this)">Score</button>
+      <button class="ptab" onclick="switchTab('feedback',this)">Feedback</button>
+      <button class="ptab" onclick="switchTab('history',this)">History</button>
     </div>
 
-    <!-- Score tab -->
-    <div class="tab-content active" id="tab-score">
-      <div class="sidebar-placeholder" id="score-placeholder">
-        <span class="placeholder-icon">📊</span>
-        <div class="placeholder-title">No analysis yet</div>
-        <div class="placeholder-sub">Paste your essay and hit Analyse to get a score breakdown.</div>
+    <!-- Score -->
+    <div class="tab-pane active" id="tab-score">
+      <div class="pane-placeholder" id="score-placeholder">
+        <div class="ph-icon">📊</div>
+        <div class="ph-title">No analysis yet</div>
+        <div class="ph-sub">Paste your essay and hit Analyse to get a score breakdown</div>
       </div>
       <div class="score-panel" id="score-panel" style="display:none">
-        <div class="overall-score">
-          <div class="score-num" id="score-overall">—</div>
-          <div class="score-grade" id="score-grade">—</div>
+        <div class="overall-card">
+          <div class="score-big" id="score-overall">—</div>
+          <div class="score-grade-pill" id="score-grade">—</div>
           <div class="score-summary" id="score-summary"></div>
         </div>
-        <div class="score-breakdown">
+        <div class="breakdown-title">Breakdown</div>
+        <div class="score-bars">
           <div class="score-row">
-            <div class="score-row-top">
-              <span class="score-row-label">Structure</span>
-              <span class="score-row-val" id="val-structure">—</span>
-            </div>
-            <div class="score-bar"><div class="score-bar-fill" id="bar-structure"></div></div>
+            <div class="score-row-head"><span class="score-row-label">Structure</span><span class="score-row-val" id="val-structure">—</span></div>
+            <div class="sbar"><div class="sbar-fill" id="bar-structure" style="background:var(--lime)"></div></div>
           </div>
           <div class="score-row">
-            <div class="score-row-top">
-              <span class="score-row-label">Argument</span>
-              <span class="score-row-val" id="val-argument">—</span>
-            </div>
-            <div class="score-bar"><div class="score-bar-fill purple" id="bar-argument"></div></div>
+            <div class="score-row-head"><span class="score-row-label">Argument</span><span class="score-row-val" id="val-argument">—</span></div>
+            <div class="sbar"><div class="sbar-fill" id="bar-argument" style="background:var(--purple)"></div></div>
           </div>
           <div class="score-row">
-            <div class="score-row-top">
-              <span class="score-row-label">Clarity</span>
-              <span class="score-row-val" id="val-clarity">—</span>
-            </div>
-            <div class="score-bar"><div class="score-bar-fill sky" id="bar-clarity"></div></div>
+            <div class="score-row-head"><span class="score-row-label">Clarity</span><span class="score-row-val" id="val-clarity">—</span></div>
+            <div class="sbar"><div class="sbar-fill" id="bar-clarity" style="background:var(--sky)"></div></div>
           </div>
           <div class="score-row">
-            <div class="score-row-top">
-              <span class="score-row-label">Style</span>
-              <span class="score-row-val" id="val-style">—</span>
-            </div>
-            <div class="score-bar"><div class="score-bar-fill amber" id="bar-style"></div></div>
+            <div class="score-row-head"><span class="score-row-label">Style</span><span class="score-row-val" id="val-style">—</span></div>
+            <div class="sbar"><div class="sbar-fill" id="bar-style" style="background:var(--amber)"></div></div>
           </div>
           <div class="score-row">
-            <div class="score-row-top">
-              <span class="score-row-label">Grammar</span>
-              <span class="score-row-val" id="val-grammar">—</span>
-            </div>
-            <div class="score-bar"><div class="score-bar-fill coral" id="bar-grammar"></div></div>
+            <div class="score-row-head"><span class="score-row-label">Grammar</span><span class="score-row-val" id="val-grammar">—</span></div>
+            <div class="sbar"><div class="sbar-fill" id="bar-grammar" style="background:var(--coral)"></div></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Feedback tab -->
-    <div class="tab-content" id="tab-feedback">
-      <div class="sidebar-placeholder" id="feedback-placeholder">
-        <span class="placeholder-icon">💬</span>
-        <div class="placeholder-title">No feedback yet</div>
-        <div class="placeholder-sub">Analyse your essay to get inline comments and suggestions.</div>
+    <!-- Feedback -->
+    <div class="tab-pane" id="tab-feedback">
+      <div class="pane-placeholder" id="feedback-placeholder">
+        <div class="ph-icon">💬</div>
+        <div class="ph-title">No feedback yet</div>
+        <div class="ph-sub">Analyse your essay to get inline comments on every weak section</div>
       </div>
       <div class="feedback-panel" id="feedback-panel" style="display:none"></div>
     </div>
 
-    <!-- History tab -->
-    <div class="tab-content" id="tab-history">
+    <!-- History -->
+    <div class="tab-pane" id="tab-history">
       <div class="history-panel" id="history-panel">
-        <div class="history-empty" id="history-empty">No analyses yet — your history will appear here.</div>
+        <div class="pane-placeholder" id="history-empty" style="padding:40px 20px">
+          <div class="ph-icon">📋</div>
+          <div class="ph-title">No history yet</div>
+          <div class="ph-sub">Your past analyses will appear here</div>
+        </div>
       </div>
     </div>
 
     <!-- Action bar -->
     <div class="action-bar">
-      <div class="processing-bar" id="processing-bar">
+      <div class="proc-bar" id="processing-bar">
         <div class="spinner"></div>
-        <span><span class="processing-step" id="processing-step">Analysing…</span> this may take a moment</span>
+        <span><span class="proc-step" id="processing-step">Analysing…</span> this may take a moment</span>
       </div>
-      <button class="btn primary full" id="analyse-btn" onclick="analyseEssay()">✦ Analyse Essay</button>
-      <div style="display:flex;gap:6px;">
+      <button class="btn primary full" id="analyse-btn" onclick="analyseEssay()">✦ Analyse essay</button>
+      <div class="action-row">
         <button class="btn full" id="rewrite-btn" onclick="rewriteEssay()" disabled>↺ Rewrite</button>
-        <button class="btn full" onclick="clearAll()">✕ Clear</button>
+        <button class="btn sm" id="dl-btn" onclick="downloadPDF()" disabled>⬇ PDF</button>
+        <button class="btn sm" onclick="clearAll()">✕</button>
       </div>
     </div>
   </div>
 
 </div>
 
-<!-- Inline comment tooltip -->
+<!-- Tooltip -->
 <div class="comment-tooltip" id="comment-tooltip">
-  <div class="tooltip-type" id="tooltip-type"></div>
+  <div class="tt-type" id="tooltip-type"></div>
   <div id="tooltip-body"></div>
 </div>
 
-<!-- Toast -->
-<div class="toast" id="toast">
-  <span id="toast-icon">✓</span>
-  <span id="toast-msg"></span>
-</div>
+<div class="toast" id="toast"><span id="toast-icon">✓</span><span id="toast-msg"></span></div>
 
 <script>
 const WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
-
-// ── State ──
-let currentAnalysis = null;
-let currentRewrite = null;
+let currentAnalysis = null, currentRewrite = null;
 let history = JSON.parse(localStorage.getItem('studyai-essay-history') || '[]');
 let currentView = 'edit';
 
-// ── Init ──
-document.addEventListener('DOMContentLoaded', () => {
-  updateMeta();
-  renderHistory();
-});
+document.addEventListener('DOMContentLoaded', () => { updateMeta(); renderHistory(); });
 
-// ── Meta ──
 function updateMeta() {
   const text = document.getElementById('essay-input').value;
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  const chars = text.length;
-  const readMins = Math.max(1, Math.round(words / 200));
   document.getElementById('pill-words').textContent = `${words} word${words !== 1 ? 's' : ''}`;
-  document.getElementById('pill-read').textContent = `${readMins} min read`;
-  document.getElementById('pill-chars').textContent = `${chars} chars`;
+  document.getElementById('pill-read').textContent = `${Math.max(1, Math.round(words / 200))} min`;
+  document.getElementById('pill-chars').textContent = `${text.length} chars`;
 }
 
-// ── View toggle ──
 function setView(view, btn) {
   currentView = view;
-  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.vbtn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-
   const input = document.getElementById('essay-input');
-  const highlighted = document.getElementById('essay-highlighted');
-  const rewritten = document.getElementById('rewritten-wrap');
-
+  const hl = document.getElementById('essay-highlighted');
+  const rw = document.getElementById('rewritten-wrap');
   input.style.display = view === 'edit' ? 'block' : 'none';
-  highlighted.classList.toggle('visible', view === 'comments');
-  rewritten.classList.toggle('visible', view === 'rewritten');
+  hl.classList.toggle('visible', view === 'comments');
+  rw.classList.toggle('visible', view === 'rewritten');
 }
 
-// ── Tab switch ──
 function switchTab(tab, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
 }
 
-// ── Analyse ──
 async function analyseEssay() {
   const essay = document.getElementById('essay-input').value.trim();
   if (!essay) { showToast('Please enter an essay first', 'error'); return; }
   if (essay.split(/\s+/).length < 20) { showToast('Essay is too short — add more text', 'error'); return; }
-
   const tone = document.getElementById('tone-select').value;
-  setLoading(true, 'Analysing essay…');
+  setLoading(true, 'Analysing…');
 
-  const prompt = `You are an expert essay editor and academic writing coach. Analyse the following essay written in a "${tone}" tone.
-
-Return ONLY a valid JSON object with this exact structure, no markdown, no extra text:
+  const prompt = `You are an expert essay editor. Analyse this "${tone}" essay.
+Return ONLY valid JSON, no markdown:
 {
-  "scores": {
-    "overall": <number 0-100>,
-    "structure": <number 0-100>,
-    "argument": <number 0-100>,
-    "clarity": <number 0-100>,
-    "style": <number 0-100>,
-    "grammar": <number 0-100>
-  },
-  "grade": "<letter grade A+ to F>",
+  "scores": { "overall": <0-100>, "structure": <0-100>, "argument": <0-100>, "clarity": <0-100>, "style": <0-100>, "grammar": <0-100> },
+  "grade": "<A+/A/B/C/D/F>",
   "summary": "<2 sentence overall assessment>",
   "comments": [
-    {
-      "quote": "<exact short phrase from the essay, max 8 words>",
-      "type": "<Structure|Argument|Clarity|Style|Grammar>",
-      "title": "<short issue title>",
-      "suggestion": "<specific actionable suggestion, 1-2 sentences>"
-    }
+    { "quote": "<exact short phrase from essay, max 8 words>", "type": "<Structure|Argument|Clarity|Style|Grammar>", "title": "<issue title>", "suggestion": "<1-2 sentence fix>" }
   ]
 }
-
-Include 4-8 comments covering different parts of the essay. The "quote" must be an exact substring from the essay text.
-
-Essay:
-${essay.slice(0, 6000)}`;
+Include 5-8 comments. Quotes must be exact substrings from the essay.
+Essay: ${essay.slice(0, 6000)}`;
 
   try {
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
+    const res = await fetch(WORKER_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }) });
     if (!res.ok) throw new Error(`API error ${res.status}`);
     const data = await res.json();
-    const raw = data.content.map(b => b.text || '').join('');
-
-    // Parse JSON — strip any accidental markdown fences
-    const clean = raw.replace(/```json|```/g, '').trim();
-    currentAnalysis = JSON.parse(clean);
-
+    currentAnalysis = JSON.parse(data.content.map(b => b.text||'').join('').replace(/```json|```/g,'').trim());
     renderScore(currentAnalysis);
     renderFeedback(currentAnalysis, essay);
     renderHighlights(currentAnalysis, essay);
-    saveHistory(currentAnalysis, essay, tone);
+    saveToHistory(currentAnalysis, essay, tone);
     renderHistory();
-
     document.getElementById('btn-comments').disabled = false;
     document.getElementById('rewrite-btn').disabled = false;
     document.getElementById('dl-btn').disabled = false;
-
-    switchTab('score', document.querySelector('.tab-btn'));
+    switchTab('score', document.querySelector('.ptab'));
     showToast('Analysis complete ✦', 'success');
-  } catch (err) {
-    showToast('Analysis failed: ' + err.message, 'error');
-  } finally {
-    setLoading(false);
-  }
+  } catch (err) { showToast('Analysis failed: ' + err.message, 'error'); }
+  finally { setLoading(false); }
 }
 
-// ── Rewrite ──
 async function rewriteEssay() {
   const essay = document.getElementById('essay-input').value.trim();
   if (!essay) return;
   const tone = document.getElementById('tone-select').value;
-
-  setLoading(true, 'Rewriting essay…');
-
-  const prompt = `You are an expert writing editor. Rewrite the following essay to improve it significantly while maintaining the author's core ideas and voice. The tone should be ${tone}.
-
-Improve:
-- Structure and flow between paragraphs
-- Clarity and precision of language
-- Strength of arguments and evidence presentation
-- Opening and closing impact
-- Grammar and style
-
-Return ONLY the rewritten essay text, no commentary, no preamble.
-
-Original essay:
-${essay.slice(0, 6000)}`;
-
+  setLoading(true, 'Rewriting…');
   try {
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
+    const res = await fetch(WORKER_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: `Rewrite this essay to be significantly better while keeping the author's core ideas. Tone: ${tone}. Return ONLY the rewritten essay.\n\n${essay.slice(0,6000)}` }] }) });
     if (!res.ok) throw new Error(`API error ${res.status}`);
     const data = await res.json();
-    currentRewrite = data.content.map(b => b.text || '').join('');
-
+    currentRewrite = data.content.map(b => b.text||'').join('');
     document.getElementById('rewritten-text').textContent = currentRewrite;
     document.getElementById('btn-rewritten').disabled = false;
     setView('rewritten', document.getElementById('btn-rewritten'));
     showToast('Rewrite complete ✦', 'success');
-  } catch (err) {
-    showToast('Rewrite failed: ' + err.message, 'error');
-  } finally {
-    setLoading(false);
-  }
+  } catch (err) { showToast('Rewrite failed: ' + err.message, 'error'); }
+  finally { setLoading(false); }
 }
 
-// ── Render score ──
-function renderScore(analysis) {
+function renderScore(a) {
   document.getElementById('score-placeholder').style.display = 'none';
   document.getElementById('score-panel').style.display = 'flex';
-
-  const s = analysis.scores;
+  const s = a.scores;
   document.getElementById('score-overall').textContent = s.overall;
-  document.getElementById('score-grade').textContent = `Grade: ${analysis.grade}`;
-  document.getElementById('score-summary').textContent = analysis.summary;
+  document.getElementById('score-grade').textContent = `Grade: ${a.grade}`;
+  document.getElementById('score-summary').textContent = a.summary;
 
-  const fields = ['structure', 'argument', 'clarity', 'style', 'grammar'];
-  fields.forEach(f => {
+  // Color the overall score
+  const score = s.overall;
+  const color = score >= 80 ? 'var(--lime)' : score >= 60 ? 'var(--amber)' : 'var(--coral)';
+  document.getElementById('score-overall').style.color = color;
+  document.getElementById('score-grade').style.background = score >= 80 ? 'var(--lime-d)' : score >= 60 ? 'var(--amber-d)' : 'var(--coral-d)';
+  document.getElementById('score-grade').style.color = color;
+  document.getElementById('score-grade').style.borderColor = score >= 80 ? 'var(--lime-b)' : score >= 60 ? 'var(--amber-b)' : 'var(--coral-b)';
+  document.querySelector('.overall-card::before');
+  document.querySelector('.overall-card').style.setProperty('--card-accent', color);
+
+  ['structure','argument','clarity','style','grammar'].forEach(f => {
     document.getElementById('val-' + f).textContent = s[f] + '/100';
-    setTimeout(() => {
-      document.getElementById('bar-' + f).style.width = s[f] + '%';
-    }, 100);
+    setTimeout(() => { document.getElementById('bar-' + f).style.width = s[f] + '%'; }, 100);
   });
 }
 
-// ── Render feedback ──
-function renderFeedback(analysis, essay) {
+function renderFeedback(a, essay) {
   document.getElementById('feedback-placeholder').style.display = 'none';
   const panel = document.getElementById('feedback-panel');
   panel.style.display = 'flex';
   panel.innerHTML = '';
-
-  const colorMap = { Structure: 'accent', Argument: 'purple', Clarity: 'sky', Style: 'amber', Grammar: 'coral' };
-
-  analysis.comments.forEach((c, i) => {
-    const color = colorMap[c.type] || 'accent';
+  const colorMap = { Structure: 'lime', Argument: 'purple', Clarity: 'sky', Style: 'amber', Grammar: 'coral' };
+  a.comments.forEach(c => {
+    const color = colorMap[c.type] || 'lime';
     const card = document.createElement('div');
     card.className = `feedback-card ${color}`;
     card.innerHTML = `
-      <div class="feedback-tag">${c.type}</div>
-      <div class="feedback-title">${c.title}</div>
-      <div class="feedback-body">${c.suggestion}</div>
+      <div class="fc-type">${c.type}</div>
+      <div class="fc-title">${escH(c.title)}</div>
+      <div class="fc-body">${escH(c.suggestion)}</div>
+      ${c.quote ? `<div class="fc-quote">"${escH(c.quote)}"</div>` : ''}
     `;
-    card.onclick = () => {
-      setView('comments', document.getElementById('btn-comments'));
-      highlightQuote(c.quote);
-    };
+    card.onclick = () => { setView('comments', document.getElementById('btn-comments')); highlightQuote(c.quote); };
     panel.appendChild(card);
   });
 }
 
-// ── Render highlights ──
-function renderHighlights(analysis, essay) {
-  const colorMap = { Structure: 'accent', Argument: 'purple', Clarity: 'coral', Style: 'amber', Grammar: 'coral' };
-  let html = escHtml(essay);
-
-  // Build sorted list of replacements (longest first to avoid overlap issues)
-  const replacements = analysis.comments
-    .filter(c => c.quote && essay.includes(c.quote))
-    .sort((a, b) => b.quote.length - a.quote.length);
-
-  const colorClass = { Structure: '', Argument: 'purple', Clarity: 'coral', Style: '', Grammar: 'coral' };
-
-  replacements.forEach((c, i) => {
-    const escaped = escHtml(c.quote);
+function renderHighlights(a, essay) {
+  const colorClass = { Structure: '', Argument: 'purple', Clarity: 'sky', Style: 'amber', Grammar: 'coral' };
+  let html = escH(essay);
+  const sorted = a.comments.filter(c => c.quote && essay.includes(c.quote)).sort((x,y) => y.quote.length - x.quote.length);
+  sorted.forEach(c => {
+    const esc = escH(c.quote);
     const cls = colorClass[c.type] || '';
-    const tooltip = escAttr(JSON.stringify({ type: c.type, title: c.title, suggestion: c.suggestion }));
-    html = html.replace(
-      escaped,
-      `<span class="highlight-comment ${cls}" data-comment='${tooltip}'>${escaped}</span>`
-    );
+    const tip = escAttr(JSON.stringify({ type: c.type, title: c.title, suggestion: c.suggestion }));
+    html = html.replace(esc, `<span class="highlight-comment ${cls}" data-comment='${tip}'>${esc}</span>`);
   });
-
   const el = document.getElementById('essay-highlighted');
   el.innerHTML = html;
-
-  // Attach tooltip events
-  el.querySelectorAll('.highlight-comment').forEach(span => {
-    span.addEventListener('mouseenter', showTooltip);
-    span.addEventListener('mouseleave', hideTooltip);
-    span.addEventListener('mousemove', moveTooltip);
+  el.querySelectorAll('.highlight-comment').forEach(s => {
+    s.addEventListener('mouseenter', showTip);
+    s.addEventListener('mouseleave', hideTip);
+    s.addEventListener('mousemove', moveTip);
   });
 }
 
 function highlightQuote(quote) {
-  const el = document.getElementById('essay-highlighted');
-  const spans = el.querySelectorAll('.highlight-comment');
-  spans.forEach(s => {
-    if (s.textContent.includes(quote.slice(0, 20))) {
+  document.querySelectorAll('.highlight-comment').forEach(s => {
+    if (s.textContent.includes((quote||'').slice(0,20))) {
       s.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      s.style.outline = '2px solid var(--accent)';
+      s.style.outline = '2px solid var(--lime)';
       setTimeout(() => s.style.outline = '', 2000);
     }
   });
 }
 
-// ── Tooltip ──
-function showTooltip(e) {
+function showTip(e) {
   try {
-    const data = JSON.parse(e.target.dataset.comment);
-    document.getElementById('tooltip-type').textContent = data.type;
-    document.getElementById('tooltip-body').textContent = data.suggestion;
-    const tip = document.getElementById('comment-tooltip');
-    tip.classList.add('visible');
-    moveTooltip(e);
+    const d = JSON.parse(e.target.dataset.comment);
+    document.getElementById('tooltip-type').textContent = d.type;
+    document.getElementById('tooltip-body').textContent = d.suggestion;
+    document.getElementById('comment-tooltip').classList.add('visible');
+    moveTip(e);
   } catch {}
 }
-function hideTooltip() { document.getElementById('comment-tooltip').classList.remove('visible'); }
-function moveTooltip(e) {
+function hideTip() { document.getElementById('comment-tooltip').classList.remove('visible'); }
+function moveTip(e) {
   const tip = document.getElementById('comment-tooltip');
-  const x = Math.min(e.clientX + 12, window.innerWidth - 300);
-  const y = Math.max(e.clientY - 80, 8);
-  tip.style.left = x + 'px';
-  tip.style.top = y + 'px';
+  tip.style.left = Math.min(e.clientX + 12, window.innerWidth - 280) + 'px';
+  tip.style.top = Math.max(e.clientY - 70, 8) + 'px';
 }
 
-// ── History ──
-function saveHistory(analysis, essay, tone) {
-  const entry = {
-    id: Date.now(),
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    score: analysis.scores.overall,
-    grade: analysis.grade,
-    tone,
-    preview: essay.slice(0, 80),
-    essay,
-    analysis,
-  };
-  history.unshift(entry);
+function saveToHistory(a, essay, tone) {
+  history.unshift({ id: Date.now(), date: new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}), score: a.scores.overall, grade: a.grade, tone, preview: essay.slice(0,80), essay, analysis: a });
   if (history.length > 20) history = history.slice(0, 20);
   try { localStorage.setItem('studyai-essay-history', JSON.stringify(history)); } catch {}
 }
@@ -1062,24 +527,22 @@ function saveHistory(analysis, essay, tone) {
 function renderHistory() {
   const panel = document.getElementById('history-panel');
   const empty = document.getElementById('history-empty');
-
-  if (history.length === 0) {
-    empty.style.display = 'block';
-    return;
-  }
+  if (!history.length) { empty.style.display = 'flex'; return; }
   empty.style.display = 'none';
-  panel.innerHTML = '';
-
+  // Keep empty div but render items after it
+  const existing = panel.querySelectorAll('.hist-item');
+  existing.forEach(e => e.remove());
   history.forEach(entry => {
     const item = document.createElement('div');
-    item.className = 'history-item';
+    item.className = 'hist-item';
+    const color = entry.score >= 80 ? 'var(--lime)' : entry.score >= 60 ? 'var(--amber)' : 'var(--coral)';
     item.innerHTML = `
-      <div class="history-item-top">
-        <span class="history-score">${entry.score}/100 · ${entry.grade}</span>
-        <span class="history-date">${entry.date}</span>
+      <div class="hist-top">
+        <span class="hist-score" style="color:${color}">${entry.score}/100 · ${entry.grade}</span>
+        <span class="hist-date">${entry.date}</span>
       </div>
-      <div class="history-preview">${escHtml(entry.preview)}…</div>
-      <div class="history-tone">${entry.tone}</div>
+      <div class="hist-preview">${escH(entry.preview)}…</div>
+      <div class="hist-meta">${entry.tone}</div>
     `;
     item.onclick = () => restoreHistory(entry);
     panel.appendChild(item);
@@ -1096,84 +559,48 @@ function restoreHistory(entry) {
   document.getElementById('btn-comments').disabled = false;
   document.getElementById('rewrite-btn').disabled = false;
   document.getElementById('dl-btn').disabled = false;
-  setView('edit', document.querySelector('.toggle-btn'));
-  switchTab('score', document.querySelector('.tab-btn'));
-  showToast('Revision restored', 'success');
+  setView('edit', document.querySelector('.vbtn'));
+  switchTab('score', document.querySelector('.ptab'));
+  showToast('Restored ✦', 'success');
 }
 
-// ── Download PDF ──
 function downloadPDF() {
   const essay = document.getElementById('essay-input').value.trim();
   if (!essay) return;
-
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-  const margin = 56;
-  const pageW = doc.internal.pageSize.getWidth();
-  const maxW = pageW - margin * 2;
-
-  // Title
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.setTextColor(30, 30, 30);
+  const margin = 56, pageW = doc.internal.pageSize.getWidth(), maxW = pageW - margin * 2;
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(30,30,30);
   doc.text('Essay', margin, 60);
-
-  // Score badge
   if (currentAnalysis) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.setTextColor(100, 100, 100);
+    doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(100,100,100);
     doc.text(`Score: ${currentAnalysis.scores.overall}/100 · Grade: ${currentAnalysis.grade} · Tone: ${document.getElementById('tone-select').value}`, margin, 80);
   }
-
-  doc.setDrawColor(200, 240, 94);
-  doc.setLineWidth(1.5);
-  doc.line(margin, 92, pageW - margin, 92);
-
-  // Essay body
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(12);
-  doc.setTextColor(40, 40, 40);
+  doc.setDrawColor(200,240,94); doc.setLineWidth(1.5); doc.line(margin, 92, pageW-margin, 92);
+  doc.setFont('helvetica','normal'); doc.setFontSize(12); doc.setTextColor(40,40,40);
   let y = 116;
-  const lines = doc.splitTextToSize(essay, maxW);
-  for (const line of lines) {
-    if (y > doc.internal.pageSize.getHeight() - 60) { doc.addPage(); y = 60; }
-    doc.text(line, margin, y);
-    y += 18;
+  for (const line of doc.splitTextToSize(essay, maxW)) {
+    if (y > doc.internal.pageSize.getHeight()-60) { doc.addPage(); y = 60; }
+    doc.text(line, margin, y); y += 18;
   }
-
-  // Feedback appendix
-  if (currentAnalysis && currentAnalysis.comments.length) {
+  if (currentAnalysis?.comments?.length) {
     doc.addPage();
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(30, 30, 30);
-    doc.text('AI Feedback', margin, 60);
-    doc.setLineWidth(1);
-    doc.line(margin, 68, pageW - margin, 68);
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(30,30,30);
+    doc.text('AI Feedback', margin, 60); doc.setLineWidth(1); doc.line(margin, 68, pageW-margin, 68);
     y = 88;
-
     currentAnalysis.comments.forEach(c => {
-      if (y > doc.internal.pageSize.getHeight() - 80) { doc.addPage(); y = 60; }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(60, 60, 60);
-      doc.text(`[${c.type}] ${c.title}`, margin, y);
-      y += 16;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(90, 90, 90);
-      const wrapped = doc.splitTextToSize(c.suggestion, maxW);
-      wrapped.forEach(l => { doc.text(l, margin, y); y += 14; });
+      if (y > doc.internal.pageSize.getHeight()-80) { doc.addPage(); y = 60; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(60,60,60);
+      doc.text(`[${c.type}] ${c.title}`, margin, y); y += 16;
+      doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(90,90,90);
+      doc.splitTextToSize(c.suggestion, maxW).forEach(l => { doc.text(l, margin, y); y += 14; });
       y += 6;
     });
   }
-
-  doc.save('essay-studyai.pdf');
+  doc.save('essay-notiv.pdf');
   showToast('PDF downloaded', 'success');
 }
 
-// ── Clear ──
 function clearAll() {
   document.getElementById('essay-input').value = '';
   document.getElementById('essay-highlighted').innerHTML = '';
@@ -1184,18 +611,12 @@ function clearAll() {
   document.getElementById('score-panel').style.display = 'none';
   document.getElementById('feedback-placeholder').style.display = 'flex';
   document.getElementById('feedback-panel').style.display = 'none';
-  document.getElementById('btn-comments').disabled = true;
-  document.getElementById('btn-rewritten').disabled = true;
-  document.getElementById('rewrite-btn').disabled = true;
-  document.getElementById('dl-btn').disabled = true;
-  currentAnalysis = null;
-  currentRewrite = null;
+  ['btn-comments','btn-rewritten','rewrite-btn','dl-btn'].forEach(id => document.getElementById(id).disabled = true);
+  currentAnalysis = null; currentRewrite = null;
   updateMeta();
-  setView('edit', document.querySelector('.toggle-btn'));
-  document.querySelectorAll('.toggle-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  setView('edit', document.querySelector('.vbtn'));
 }
 
-// ── Loading ──
 function setLoading(on, step = '') {
   document.getElementById('processing-bar').classList.toggle('visible', on);
   document.getElementById('processing-step').textContent = step;
@@ -1203,23 +624,17 @@ function setLoading(on, step = '') {
   document.getElementById('rewrite-btn').disabled = on;
 }
 
-// ── Toast ──
-function showToast(msg, type = 'success') {
-  const toast = document.getElementById('toast');
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
   document.getElementById('toast-msg').textContent = msg;
   document.getElementById('toast-icon').textContent = type === 'error' ? '✕' : '✓';
-  toast.className = `toast visible ${type}`;
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => toast.classList.remove('visible'), 3000);
+  t.className = `toast visible ${type}`;
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('visible'), 3000);
 }
 
-// ── Helpers ──
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function escAttr(str) {
-  return String(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-}
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/'/g,"&#39;").replace(/"/g,'&quot;'); }
 </script>
+<script src="ai-assistant.js" defer></script>
 </body>
 </html>
