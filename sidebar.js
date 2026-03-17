@@ -24,9 +24,20 @@
 
   const XP_THRESHOLDS = [0,500,1200,2200,3500,5000,7000,9500,12500,16000,20000];
 
-  // Skip on login/onboarding/landing pages
+  // Skip on login/onboarding/landing pages and pages with their own sidebar
   const path = window.location.pathname;
   if (/login|onboarding|landing/.test(path)) return;
+
+  // If the page already has a hand-coded nav-sidebar, skip injection but still wire XP
+  const hasOwnSidebar = !!document.getElementById('nav-sidebar');
+  if (hasOwnSidebar) {
+    // Still expose notivAwardXP for XP toasts on these pages
+    document.addEventListener('DOMContentLoaded', function() {
+      injectXPToast();
+      restoreCollapse();
+    });
+    return;
+  }
 
   // ── Inject styles ────────────────────────────────────────
   const style = document.createElement('style');
@@ -375,7 +386,86 @@
   `;
   document.head.appendChild(style);
 
-  // ── Build sidebar HTML ────────────────────────────────────
+  // ── Helpers for pages with own sidebar ─────────────────
+  function injectXPToast() {
+    if (document.getElementById('notiv-xp-toast')) return;
+
+    const toastStyle = document.createElement('style');
+    toastStyle.textContent = `
+      #notiv-xp-toast{position:fixed;bottom:80px;right:24px;background:#0f0f12;border:1px solid rgba(200,240,94,0.3);border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:10px;font-family:'Instrument Sans',sans-serif;font-size:13px;color:#f0ede8;z-index:9999;transform:translateY(20px);opacity:0;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);pointer-events:none;}
+      #notiv-xp-toast.show{transform:translateY(0);opacity:1;}
+      .xp-toast-icon{font-size:20px;}
+      .xp-toast-amount{font-family:'Playfair Display',serif;font-size:18px;color:#c8f05e;}
+      .xp-toast-label{color:#9b9893;font-size:12px;}
+      #notiv-levelup{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;pointer-events:none;transition:opacity 0.3s;}
+      #notiv-levelup.show{opacity:1;pointer-events:all;}
+      .levelup-card{background:#0f0f12;border:1px solid rgba(200,240,94,0.3);border-radius:20px;padding:40px 48px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;animation:levelup-pop 0.4s cubic-bezier(0.4,0,0.2,1);}
+      @keyframes levelup-pop{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+      .levelup-icon{font-size:52px;}
+      .levelup-title{font-family:'Playfair Display',serif;font-size:28px;color:#f0ede8;}
+      .levelup-num{font-family:'Playfair Display',serif;font-size:64px;color:#c8f05e;line-height:1;}
+      .levelup-sub{font-size:13px;color:#5a5855;}
+      .levelup-btn{margin-top:8px;padding:9px 28px;border-radius:9px;border:none;background:#c8f05e;color:#080809;font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+      .levelup-btn:hover{background:#d8ff74;}
+    `;
+    document.head.appendChild(toastStyle);
+
+    const toast = document.createElement('div');
+    toast.id = 'notiv-xp-toast';
+    toast.innerHTML = `<span class="xp-toast-icon">✦</span><span class="xp-toast-amount" id="xp-toast-amount">+50</span><span class="xp-toast-label">XP</span>`;
+    document.body.appendChild(toast);
+
+    const levelup = document.createElement('div');
+    levelup.id = 'notiv-levelup';
+    levelup.innerHTML = `<div class="levelup-card"><div class="levelup-icon">🏆</div><div class="levelup-title">Level Up!</div><div class="levelup-num" id="levelup-num">2</div><div class="levelup-sub">Keep studying to reach the next level</div><button class="levelup-btn" onclick="document.getElementById('notiv-levelup').classList.remove('show')">Keep going →</button></div>`;
+    document.body.appendChild(levelup);
+
+    wireNotivAwardXP();
+  }
+
+  function restoreCollapse() {
+    const sidebar = document.getElementById('nav-sidebar');
+    const btn = document.getElementById('sidebar-toggle-btn');
+    if (!sidebar || !btn) return;
+    if (localStorage.getItem('notiv-sidebar-collapsed') === '1') {
+      sidebar.classList.add('collapsed');
+      btn.textContent = '›';
+      btn.title = 'Expand sidebar';
+    }
+    // Wire toggle button if not already wired
+    if (!btn._wired) {
+      btn._wired = true;
+      btn.addEventListener('click', function() {
+        const collapsed = sidebar.classList.toggle('collapsed');
+        btn.textContent = collapsed ? '›' : '‹';
+        btn.title = (collapsed ? 'Expand' : 'Collapse') + ' sidebar';
+        localStorage.setItem('notiv-sidebar-collapsed', collapsed ? '1' : '0');
+      });
+    }
+  }
+
+  function wireNotivAwardXP() {
+    const prevXP   = calcXP();
+    const prevLvl  = calcLevel(prevXP);
+    window.notivAwardXP = function(amount) {
+      const toast = document.getElementById('notiv-xp-toast');
+      if (!toast) return;
+      document.getElementById('xp-toast-amount').textContent = '+' + amount;
+      toast.classList.add('show');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => toast.classList.remove('show'), 2500);
+      const newXP  = calcXP();
+      const newLvl = calcLevel(newXP);
+      if (newLvl > prevLvl) {
+        setTimeout(() => {
+          document.getElementById('levelup-num').textContent = newLvl;
+          document.getElementById('notiv-levelup').classList.add('show');
+        }, 600);
+      }
+    };
+  }
+
+  // ── Helpers for pages with own sidebar ─────────────────
   function getActivePage() {
     const p = window.location.pathname.split('/').pop() || 'dashboard.html';
     return p;
@@ -618,9 +708,9 @@
 
   // ── Run ──────────────────────────────────────────────────
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inject);
+    document.addEventListener('DOMContentLoaded', function() { inject(); wireNotivAwardXP(); });
   } else {
-    inject();
+    inject(); wireNotivAwardXP();
   }
 
 })();
