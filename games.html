@@ -220,6 +220,8 @@ body { background: var(--bg); color: var(--t1); font-family: 'Instrument Sans', 
       <div class="lb-title">Your high scores</div>
       <div id="lb-list"></div>
     </div>
+
+    <div id="daily-goals-section"></div>
   </div>
 </div>
 
@@ -558,23 +560,29 @@ function endGame(type) {
 
   if (type === 'scramble') {
     score = scScore;
-    stats = [{ num: scScore, lbl: 'Points' }, { num: scIdx, lbl: 'Words solved' }, { num: Math.max(0, scIdx * 10 - scScore), lbl: 'XP earned' }];
+    stats = [{ num: scScore, lbl: 'Points' }, { num: scIdx, lbl: 'Words solved' }, { num: Math.round(scScore/10), lbl: 'XP earned' }];
   } else if (type === 'memory') {
     score = Math.max(0, 1000 - mmMoves * 20 - mmSeconds);
-    stats = [{ num: mmMatched, lbl: 'Pairs found' }, { num: mmMoves, lbl: 'Moves' }, { num: mmSeconds + 's', lbl: 'Time' }];
+    stats = [{ num: mmMatched, lbl: 'Pairs found' }, { num: mmMoves, lbl: 'Moves' }, { num: Math.round(score/10), lbl: 'XP earned' }];
   } else if (type === 'speed') {
     score = spScore;
-    stats = [{ num: spScore, lbl: 'Points' }, { num: spCorrect, lbl: 'Correct' }, { num: spStreak, lbl: 'Best streak' }];
+    stats = [{ num: spScore, lbl: 'Points' }, { num: spCorrect, lbl: 'Correct' }, { num: Math.round(score/10), lbl: 'XP earned' }];
   }
 
-  // Update high score
   const key = type;
   if (!scores[key] || score > scores[key]) { scores[key] = score; localStorage.setItem('notiv-game-scores', JSON.stringify(scores)); }
 
-  // Add XP
   const xpEarned = Math.round(score / 10);
   sessionXP += xpEarned;
   updateXPDisplay();
+
+  // Fire global XP award (sidebar + level up)
+  if (xpEarned > 0 && typeof window.notivAwardXP === 'function') {
+    setTimeout(() => window.notivAwardXP(xpEarned, type + ' game'), 400);
+  }
+
+  // Track daily goal
+  trackDailyGoal(type, score);
 
   showScreen('end');
   const titles = { scramble: '🔤 Word Scramble', memory: '🧩 Memory Match', speed: '⚡ Speed Recall' };
@@ -583,9 +591,90 @@ function endGame(type) {
   const statsEl = document.getElementById('end-stats');
   statsEl.innerHTML = stats.map(s => `<div class="end-stat"><div class="end-stat-num">${s.num}</div><div class="end-stat-lbl">${s.lbl}</div></div>`).join('');
   document.getElementById('end-icon').textContent = score > 200 ? '🏆' : score > 100 ? '⭐' : '🎯';
+
+  // Show XP earned prominently on end screen
+  const existing = document.getElementById('end-xp-earned');
+  if (!existing) {
+    const xpBadge = document.createElement('div');
+    xpBadge.id = 'end-xp-earned';
+    xpBadge.style.cssText = 'font-family:\'DM Mono\',monospace;font-size:13px;color:var(--lime);background:var(--lime-d);border:1px solid var(--lime-b);padding:5px 14px;border-radius:20px;margin-top:4px;';
+    xpBadge.textContent = '+' + xpEarned + ' XP earned';
+    document.getElementById('end-score').insertAdjacentElement('afterend', xpBadge);
+  } else {
+    existing.textContent = '+' + xpEarned + ' XP earned';
+  }
+
   renderHighScores();
   renderLeaderboard();
+  renderDailyGoals();
 }
+
+// ── Daily goals ──
+const DAILY_GOALS = [
+  { id: 'play1',   label: 'Play 1 game',           target: 1,   xpBonus: 50  },
+  { id: 'play3',   label: 'Play 3 games',           target: 3,   xpBonus: 100 },
+  { id: 'score100',label: 'Score 100+ points',      target: 100, xpBonus: 75  },
+  { id: 'score300',label: 'Score 300+ in one game', target: 300, xpBonus: 150 },
+];
+
+function getDailyProgress() {
+  const today = new Date().toISOString().split('T')[0];
+  const stored = JSON.parse(localStorage.getItem('notiv-daily-goals') || '{}');
+  if (stored.date !== today) return { date: today, gamesPlayed: 0, bestScore: 0, completed: [] };
+  return stored;
+}
+
+function trackDailyGoal(type, score) {
+  const prog = getDailyProgress();
+  prog.gamesPlayed = (prog.gamesPlayed || 0) + 1;
+  prog.bestScore = Math.max(prog.bestScore || 0, score);
+  const prevCompleted = [...(prog.completed || [])];
+
+  DAILY_GOALS.forEach(g => {
+    if (prog.completed.includes(g.id)) return;
+    let met = false;
+    if (g.id === 'play1' && prog.gamesPlayed >= 1) met = true;
+    if (g.id === 'play3' && prog.gamesPlayed >= 3) met = true;
+    if (g.id === 'score100' && prog.bestScore >= 100) met = true;
+    if (g.id === 'score300' && score >= 300) met = true;
+    if (met) {
+      prog.completed.push(g.id);
+      if (typeof window.notivAwardXP === 'function') {
+        setTimeout(() => window.notivAwardXP(g.xpBonus, 'Daily goal: ' + g.label), 1200);
+      }
+    }
+  });
+
+  localStorage.setItem('notiv-daily-goals', JSON.stringify(prog));
+}
+
+function renderDailyGoals() {
+  const section = document.getElementById('daily-goals-section');
+  if (!section) return;
+  const prog = getDailyProgress();
+  section.innerHTML = '<div style="font-size:11px;font-family:\'DM Mono\',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">Daily Goals</div>';
+  DAILY_GOALS.forEach(g => {
+    const done = (prog.completed || []).includes(g.id);
+    let current = 0;
+    if (g.id === 'play1' || g.id === 'play3') current = Math.min(prog.gamesPlayed || 0, g.target);
+    if (g.id === 'score100' || g.id === 'score300') current = Math.min(prog.bestScore || 0, g.target);
+    const pct = Math.round(current / g.target * 100);
+    const el = document.createElement('div');
+    el.style.cssText = 'background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;margin-bottom:6px;' + (done?'border-color:var(--lime-b);':'');
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:12px;color:${done?'var(--lime)':'var(--t2)'}">${done?'✓ ':''}${g.label}</span>
+        <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--lime);background:var(--lime-d);border:1px solid var(--lime-b);padding:1px 7px;border-radius:10px">+${g.xpBonus} XP</span>
+      </div>
+      <div style="height:3px;background:var(--b2);border-radius:2px;overflow:hidden">
+        <div style="height:100%;background:${done?'var(--lime)':'var(--b3)'};border-radius:2px;width:${done?100:pct}%;transition:width 0.6s ease"></div>
+      </div>
+    `;
+    section.appendChild(el);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', renderDailyGoals);
 
 function replayGame() { startGame(currentGame); }
 
@@ -618,7 +707,8 @@ function updateXPDisplay() {
     const decks = JSON.parse(localStorage.getItem('studyai-decks')||'[]');
     return notes.length*50 + notes.filter(n=>n.polishedText).length*100 + essays.length*75 + decks.length*60;
   })();
-  document.getElementById('xp-display').textContent = (baseXP + sessionXP) + ' XP';
+  const el = document.getElementById('xp-display');
+  if (el) el.textContent = (baseXP + sessionXP) + ' XP';
 }
 
 function showScreen(s) {
@@ -638,6 +728,7 @@ function showToast(msg) {
 
 function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
+<script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
 </html>
