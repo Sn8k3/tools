@@ -561,6 +561,7 @@ function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').r
 // Prevent timer reset on page unload
 window.addEventListener('beforeunload', () => { clearInterval(timerId); });
 </script>
+<script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
 </html>
