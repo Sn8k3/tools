@@ -403,7 +403,6 @@ body::after {
   display: flex; flex-direction: column; gap: 1px;
 }
 body { padding-left: 220px; }
-.topbar { padding-left: 24px; }
 .nav-divider, .nav-links { display: none; }
 
 /* Animations */
@@ -462,11 +461,7 @@ body { padding-left: 220px; }
   </div>
 </aside>
 
-<header class="topbar">
-  <a href="index.html" class="logo" style="display:none">Notiv<span class="logo-dot">.</span></a>
-  <div class="nav-divider"></div>
-  <nav class="nav-links"></nav>
-</header>
+
 
 <div class="page">
 
@@ -910,6 +905,7 @@ function fmtDate(str) { try { const d=new Date(str+'T00:00:00'); return d.toLoca
 function hashStr(s) { let h=0; for(let i=0;i<(s||'').length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0; return h; }
 function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
+<script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
 </html>
