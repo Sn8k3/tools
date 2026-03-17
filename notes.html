@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notes Library — Notiv</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;--s4:#26262e;
+  --b1:#22222a;--b2:#2e2e38;--b3:#3c3c48;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);--purple-b:rgba(160,126,232,0.25);
+  --coral:#f0635a;--coral-d:rgba(240,99,90,0.10);--coral-b:rgba(240,99,90,0.3);
+  --amber:#f0ae50;--amber-d:rgba(240,174,80,0.10);
+  --sky:#58b2ee;--sky-d:rgba(88,178,238,0.10);
+  --r:10px;--rl:14px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;display:flex}
+
+/* ── Global nav sidebar (collapsible) ── */
+.nav-sidebar{
+  width:220px;background:var(--s1);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;height:100vh;
+  position:sticky;top:0;flex-shrink:0;overflow:hidden;
+  transition:width 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+.nav-sidebar.collapsed{width:52px}
+
+.sidebar-logo{
+  padding:16px 14px;border-bottom:1px solid var(--b1);
+  font-family:'Playfair Display',serif;font-size:20px;font-weight:500;
+  color:var(--t1);text-decoration:none;display:flex;align-items:center;
+  justify-content:space-between;gap:8px;flex-shrink:0;white-space:nowrap;overflow:hidden;
+}
+.sidebar-logo span{color:var(--lime)}
+.logo-text{overflow:hidden;transition:opacity 0.15s,width 0.22s;white-space:nowrap}
+.nav-sidebar.collapsed .logo-text{opacity:0;width:0;pointer-events:none}
+
+.sidebar-toggle{
+  background:none;border:1px solid var(--b1);border-radius:6px;
+  color:var(--t4);cursor:pointer;width:24px;height:24px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+  transition:all 0.12s;
+}
+.sidebar-toggle:hover{border-color:var(--b2);color:var(--t2)}
+
+.sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 6px;display:flex;flex-direction:column;gap:1px}
+.sidebar-nav::-webkit-scrollbar{width:3px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+.snav-label{
+  font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);
+  letter-spacing:0.1em;text-transform:uppercase;padding:10px 8px 3px;
+  white-space:nowrap;overflow:hidden;transition:opacity 0.15s;
+}
+.nav-sidebar.collapsed .snav-label{opacity:0;height:0;padding:0;margin:0}
+
+.snav-link{
+  display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;
+  font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;
+  position:relative;white-space:nowrap;overflow:hidden;
+}
+.snav-link:hover{background:var(--s2);color:var(--t2)}
+.snav-link.active{background:var(--s2);color:var(--t1)}
+.snav-link.active::after{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0;
+}
+.sl-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.sl-text{overflow:hidden;transition:opacity 0.15s,width 0.22s;white-space:nowrap}
+.nav-sidebar.collapsed .sl-text{opacity:0;width:0}
+
+/* Tooltip on collapsed sidebar */
+.nav-sidebar.collapsed .snav-link{justify-content:center;padding:8px}
+.nav-sidebar.collapsed .snav-link:hover::before{
+  content:attr(data-label);
+  position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);
+  background:var(--s2);border:1px solid var(--b2);border-radius:6px;
+  padding:4px 10px;font-size:12px;color:var(--t1);white-space:nowrap;
+  pointer-events:none;z-index:200;
+}
+
+/* ── Library sidebar ── */
+.lib-sidebar{
+  width:220px;background:var(--s1);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;height:100vh;
+  position:sticky;top:0;flex-shrink:0;overflow:hidden;
+}
+.lib-header{padding:18px 16px 12px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.lib-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:400}
+.lib-sub{font-size:11px;color:var(--t3);margin-top:2px}
+
+.lib-search{padding:8px 10px 4px;flex-shrink:0;position:relative}
+.lib-search svg{position:absolute;left:19px;top:50%;transform:translateY(-50%);color:var(--t4);pointer-events:none}
+.lib-search-input{
+  width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+  padding:7px 8px 7px 28px;font-family:inherit;font-size:12px;color:var(--t1);
+  outline:none;transition:border-color 0.15s;
+}
+.lib-search-input:focus{border-color:var(--lime-b)}
+.lib-search-input::placeholder{color:var(--t4)}
+
+.lib-filters{padding:4px 8px;display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.lib-filter{
+  display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:8px;
+  border:none;background:none;color:var(--t3);font-family:inherit;font-size:13px;
+  cursor:pointer;transition:all 0.12s;text-align:left;width:100%;position:relative;
+}
+.lib-filter:hover{background:var(--s2);color:var(--t2)}
+.lib-filter.active{background:var(--s2);color:var(--t1)}
+.lib-filter.active::after{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0;
+}
+.lf-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.lf-count{
+  margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;
+  color:var(--t4);background:var(--s3);padding:1px 6px;border-radius:8px;border:1px solid var(--b1);
+}
+.lib-filter.active .lf-count{background:var(--lime-d);color:var(--lime);border-color:var(--lime-b)}
+
+.lib-stats{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--b1);border-top:1px solid var(--b1);
+  border-bottom:1px solid var(--b1);flex-shrink:0;margin-top:auto;
+}
+.lstat{background:var(--s1);padding:10px;text-align:center}
+.lstat-num{font-family:'Playfair Display',serif;font-size:18px;color:var(--t1)}
+.lstat-lbl{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);text-transform:uppercase;letter-spacing:0.04em}
+
+.lib-upload{padding:8px;flex-shrink:0}
+.upload-btn-full{
+  display:flex;align-items:center;justify-content:center;gap:7px;width:100%;
+  padding:9px;border-radius:var(--r);border:1px dashed var(--lime-b);
+  background:var(--lime-d);color:var(--lime);font-family:inherit;font-size:12px;
+  font-weight:500;cursor:pointer;transition:background 0.15s;position:relative;
+}
+.upload-btn-full:hover{background:rgba(200,240,94,0.14)}
+.upload-btn-full input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* ── Main layout ── */
+.main-wrap{flex:1;display:flex;flex-direction:column;min-height:100vh;overflow:hidden}
+
+/* ── Content area ── */
+.content-area{display:flex;flex-direction:column;overflow:hidden;height:100vh}
+
+/* Content header */
+.content-header{padding:18px 24px 14px;border-bottom:1px solid var(--b1);background:var(--s1);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.content-header-left{}
+.content-section-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px}
+.content-section-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400}
+.content-header-actions{display:flex;gap:8px;flex-shrink:0}
+
+/* Drop zone */
+.drop-zone{margin:16px;border:1.5px dashed var(--b2);border-radius:var(--rl);padding:28px 20px;text-align:center;transition:all 0.15s;cursor:pointer;position:relative;flex-shrink:0;background:var(--s1)}
+.drop-zone.drag-over{border-color:var(--lime);background:var(--lime-d)}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-zone-inner{display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.drop-icon-wrap{width:48px;height:48px;border-radius:12px;background:var(--s2);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:4px}
+.drop-title{font-size:14px;font-weight:500;color:var(--t1)}
+.drop-sub{font-size:12px;color:var(--t3)}
+.drop-types{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.type-pill{font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:6px;background:var(--s2);border:1px solid var(--b1);color:var(--t4)}
+
+/* Processing */
+.proc-bar{display:none;margin:0 16px 4px;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);font-size:13px;color:var(--t2);flex-shrink:0}
+.proc-bar.visible{display:flex}
+.spinner{width:14px;height:14px;border:2px solid var(--b2);border-top-color:var(--lime);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-step{color:var(--lime);font-weight:500}
+
+/* Notes scroll area */
+.notes-scroll{flex:1;overflow-y:auto;padding:16px}
+.notes-scroll::-webkit-scrollbar{width:4px}
+.notes-scroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+/* Empty state */
+.empty-state{display:none;flex-direction:column;gap:28px;padding:20px}
+.empty-state.show{display:flex}
+
+/* Big drop zone */
+.big-drop{border:1.5px dashed var(--b2);border-radius:var(--rl);padding:40px 20px;text-align:center;transition:all 0.15s;cursor:pointer;position:relative;background:var(--s1)}
+.big-drop:hover,.big-drop.drag-over{border-color:var(--lime);background:var(--lime-d)}
+.big-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.big-drop-inner{display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none}
+.big-drop-icon{width:64px;height:64px;border-radius:16px;background:var(--s2);border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;color:var(--t3);margin-bottom:4px;transition:all 0.15s}
+.big-drop:hover .big-drop-icon{border-color:var(--lime-b);color:var(--lime);background:var(--lime-d)}
+.big-drop-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--t1)}
+.big-drop-sub{font-size:13px;color:var(--t3)}
+
+/* How it works flow */
+.empty-flow{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:20px}
+.empty-flow-title{font-size:11px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:16px}
+.empty-flow-steps{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.flow-step{flex:1;min-width:160px;display:flex;gap:12px;align-items:flex-start}
+.flow-step-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--t4);padding-top:2px;flex-shrink:0}
+.flow-step-icon{font-size:20px;flex-shrink:0}
+.flow-step-title{font-size:13px;font-weight:500;color:var(--t1);margin-bottom:3px}
+.flow-step-desc{font-size:12px;color:var(--t3);line-height:1.5}
+.flow-arrow{font-size:16px;color:var(--b2);flex-shrink:0}
+
+/* Feature cards */
+.empty-features{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.empty-feat{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.ef-icon{width:32px;height:32px;border-radius:8px;border:1px solid;display:flex;align-items:center;justify-content:center;font-size:15px}
+.ef-title{font-size:13px;font-weight:500;color:var(--t1)}
+.ef-desc{font-size:12px;color:var(--t3);line-height:1.5}
+
+@media(max-width:800px){.empty-features{grid-template-columns:1fr 1fr}.empty-flow-steps{flex-direction:column}.flow-arrow{transform:rotate(90deg)}}
+
+/* Notes list (rows, not grid) */
+.note-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--b1);background:var(--s1);margin-bottom:6px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden}
+.note-row:hover{border-color:var(--b2);background:var(--s2)}
+.note-row.polished{border-color:var(--lime-b)}
+.note-row.polished::before{content:'';position:absolute;top:0;left:0;bottom:0;width:2px;background:var(--lime)}
+.note-row-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.note-row-icon.pdf{background:var(--coral-d);border:1px solid var(--coral-b)}
+.note-row-icon.txt{background:var(--purple-d);border:1px solid var(--purple-b)}
+.note-row-icon.img{background:var(--amber-d);border:1px solid rgba(240,174,80,0.3)}
+.note-row-body{flex:1;min-width:0}
+.note-row-name{font-size:13px;font-weight:500;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-row-meta{display:flex;align-items:center;gap:8px;margin-top:2px;flex-wrap:wrap}
+.note-row-date{font-size:11px;color:var(--t4);font-family:'DM Mono',monospace}
+.note-row-size{font-size:11px;color:var(--t4);font-family:'DM Mono',monospace}
+.note-row-preview{font-size:12px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px;margin-top:2px}
+.polished-badge{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:10px;background:var(--lime-d);color:var(--lime);border:1px solid var(--lime-b);white-space:nowrap;flex-shrink:0}
+.note-row-actions{display:flex;gap:6px;flex-shrink:0;opacity:0;transition:opacity 0.15s}
+.note-row:hover .note-row-actions{opacity:1}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+.modal-overlay.visible{display:flex}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:20px;width:100%;max-width:780px;display:flex;flex-direction:column;animation:modal-in 0.2s ease;overflow:hidden}
+@keyframes modal-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:var(--s2)}
+.modal-header-left{flex:1;min-width:0}
+.modal-title{font-family:'Playfair Display',serif;font-size:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+.modal-badge{font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;background:var(--lime-d);color:var(--lime);border:1px solid var(--lime-b);display:none}
+.modal-close{background:var(--s3);border:1px solid var(--b2);border-radius:8px;color:var(--t3);cursor:pointer;font-size:16px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:all 0.12s;flex-shrink:0}
+.modal-close:hover{border-color:var(--b3);color:var(--t1)}
+.modal-body{padding:24px;overflow-y:auto;max-height:60vh}
+.polished-content{font-family:'Instrument Sans',sans-serif;line-height:1.8;color:var(--t1)}
+.polished-content h1,.polished-content h2{font-family:'Playfair Display',serif;font-weight:400;color:var(--t1);margin:20px 0 10px}
+.polished-content h1{font-size:24px}
+.polished-content h2{font-size:19px}
+.polished-content h3{font-size:16px;font-weight:600;margin:16px 0 8px}
+.polished-content p{margin-bottom:12px;color:var(--t2)}
+.polished-content ul,.polished-content ol{padding-left:20px;margin-bottom:12px}
+.polished-content li{margin-bottom:4px;color:var(--t2)}
+.polished-content strong{color:var(--lime);font-weight:600}
+.polished-content code{font-family:'DM Mono',monospace;font-size:12px;background:var(--s2);padding:1px 5px;border-radius:4px;color:var(--purple)}
+.polished-content blockquote{border-left:2px solid var(--lime-b);padding-left:14px;color:var(--t3);font-style:italic;margin:12px 0}
+.polished-content hr{border:none;border-top:1px solid var(--b1);margin:20px 0}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--s2)}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s;white-space:nowrap;text-decoration:none}
+.btn:hover{border-color:var(--b3);color:var(--t1)}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:#080809;font-weight:600}
+.btn.primary:hover{background:#d8ff74}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.danger:hover{border-color:var(--coral-b);color:var(--coral)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px}
+.toast.visible{display:flex}
+.toast.success{border-color:var(--lime-b)}
+.toast.error{border-color:var(--coral-b)}
+
+@media(max-width:900px){.nav-sidebar{display:none}.lib-sidebar{display:none}}
+@media(max-width:640px){.note-row-preview{display:none}}
+</style>
+</head>
+<body>
+
+<!-- Global nav sidebar (collapsible) -->
+<aside class="nav-sidebar" id="nav-sidebar">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 14px;border-bottom:1px solid var(--b1);flex-shrink:0;">
+    <a href="index.html" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--t1);text-decoration:none;display:flex;align-items:center;gap:1px;overflow:hidden;">
+      <span class="logo-text">Notiv<span style="color:var(--lime)">.</span></span>
+    </a>
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
+  </div>
+  <div class="sidebar-nav">
+    <div class="snav-label">Main</div>
+    <a href="dashboard.html" class="snav-link" data-label="Dashboard"><span class="sl-icon">📊</span><span class="sl-text">Dashboard</span></a>
+    <div class="snav-label">Study tools</div>
+    <a href="notes.html" class="snav-link active" data-label="Notes Library"><span class="sl-icon">📚</span><span class="sl-text">Notes Library</span></a>
+    <a href="essay.html" class="snav-link" data-label="Essay Editor"><span class="sl-icon">✏️</span><span class="sl-text">Essay Editor</span></a>
+    <a href="flashcards.html" class="snav-link" data-label="Flashcards"><span class="sl-icon">🃏</span><span class="sl-text">Flashcards</span></a>
+    <a href="quiz.html" class="snav-link" data-label="Quiz Me"><span class="sl-icon">🧠</span><span class="sl-text">Quiz Me</span></a>
+    <a href="planner.html" class="snav-link" data-label="Planner"><span class="sl-icon">📅</span><span class="sl-text">Planner</span></a>
+    <a href="explainer.html" class="snav-link" data-label="Concept Explainer"><span class="sl-icon">💡</span><span class="sl-text">Explainer</span></a>
+    <a href="games.html" class="snav-link" data-label="Study Games"><span class="sl-icon">🎮</span><span class="sl-text">Games</span></a>
+    <a href="writer.html" class="snav-link" data-label="AI Writer"><span class="sl-icon">✍️</span><span class="sl-text">AI Writer</span></a>
+    <a href="timer.html" class="snav-link" data-label="Study Timer"><span class="sl-icon">⏱</span><span class="sl-text">Timer</span></a>
+    <div class="snav-label">Research</div>
+    <a href="citations.html" class="snav-link" data-label="Citations"><span class="sl-icon">📎</span><span class="sl-text">Citations</span></a>
+    <div class="snav-label">Account</div>
+    <a href="profile.html" class="snav-link" data-label="Profile"><span class="sl-icon">👤</span><span class="sl-text">Profile</span></a>
+    <a href="settings.html" class="snav-link" data-label="Settings"><span class="sl-icon">⚙️</span><span class="sl-text">Settings</span></a>
+  </div>
+</aside>
+
+<!-- Library sidebar -->
+<aside class="lib-sidebar">
+  <div class="lib-header">
+    <div class="lib-title">Notes Library</div>
+    <div class="lib-sub">Your study materials</div>
+  </div>
+  <div class="lib-search">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="lib-search-input" type="text" id="search-input" placeholder="Search notes…" oninput="filterNotes()">
+  </div>
+  <div class="lib-filters">
+    <button class="lib-filter active" onclick="setFilter('all',this)"><span class="lf-icon">📁</span>All notes<span class="lf-count" id="count-all">0</span></button>
+    <button class="lib-filter" onclick="setFilter('polished',this)"><span class="lf-icon">✦</span>AI Polished<span class="lf-count" id="count-polished">0</span></button>
+    <button class="lib-filter" onclick="setFilter('pdf',this)"><span class="lf-icon">📕</span>PDFs<span class="lf-count" id="count-pdf">0</span></button>
+    <button class="lib-filter" onclick="setFilter('txt',this)"><span class="lf-icon">📄</span>Text files<span class="lf-count" id="count-txt">0</span></button>
+    <button class="lib-filter" onclick="setFilter('img',this)"><span class="lf-icon">🖼</span>Images<span class="lf-count" id="count-img">0</span></button>
+  </div>
+  <div class="lib-stats">
+    <div class="lstat"><div class="lstat-num" id="stat-total">0</div><div class="lstat-lbl">Notes</div></div>
+    <div class="lstat"><div class="lstat-num" id="stat-polished">0</div><div class="lstat-lbl">Polished</div></div>
+  </div>
+  <div class="lib-upload">
+    <label class="upload-btn-full">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,5 5,12"/></svg>
+      Upload notes
+      <input type="file" accept=".txt,.pdf,.png,.jpg,.jpeg,.md" multiple onchange="handleFiles(this.files)">
+    </label>
+  </div>
+</aside>
+
+<div class="main-wrap">
+
+  <!-- Content -->
+  <main class="content-area">
+
+    <div class="content-header">
+      <div class="content-header-left">
+        <div class="content-section-label" id="section-label">ALL NOTES</div>
+        <div class="content-section-title" id="section-title">All notes</div>
+      </div>
+      <div class="content-header-actions">
+        <label class="btn primary">
+          ↑ Upload
+          <input type="file" style="display:none" accept=".txt,.pdf,.png,.jpg,.jpeg,.md" multiple onchange="handleFiles(this.files)">
+        </label>
+      </div>
+    </div>
+
+    <!-- Processing -->
+    <div class="proc-bar" id="processing-bar">
+      <div class="spinner"></div>
+      <span><span class="proc-step" id="processing-step">Processing…</span> <span id="processing-file"></span></span>
+    </div>
+
+    <!-- Notes list + empty state -->
+    <div class="notes-scroll">
+      <div id="notes-grid"></div>
+
+      <!-- Empty / welcome state -->
+      <div class="empty-state" id="empty-state">
+
+        <!-- Big drop zone -->
+        <div class="big-drop" id="drop-zone">
+          <input type="file" accept=".txt,.pdf,.png,.jpg,.jpeg,.md" multiple onchange="handleFiles(this.files)">
+          <div class="big-drop-inner">
+            <div class="big-drop-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="big-drop-title">Drop your notes here</div>
+            <div class="big-drop-sub">or <span style="color:var(--lime);text-decoration:underline;text-underline-offset:3px;">click to browse</span></div>
+            <div class="drop-types" style="margin-top:8px">
+              <span class="type-pill">.pdf</span>
+              <span class="type-pill">.txt</span>
+              <span class="type-pill">.md</span>
+              <span class="type-pill">.png</span>
+              <span class="type-pill">.jpg</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- What happens next -->
+        <div class="empty-flow">
+          <div class="empty-flow-title">What happens after you upload</div>
+          <div class="empty-flow-steps">
+            <div class="flow-step">
+              <div class="flow-step-num">01</div>
+              <div class="flow-step-icon">📂</div>
+              <div class="flow-step-body">
+                <div class="flow-step-title">Upload anything</div>
+                <div class="flow-step-desc">PDFs, text files, images, handwritten notes — Notiv reads them all</div>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="flow-step-num">02</div>
+              <div class="flow-step-icon">✦</div>
+              <div class="flow-step-body">
+                <div class="flow-step-title">AI polishes them</div>
+                <div class="flow-step-desc">Claude cleans up formatting, fixes grammar, adds headings and key takeaways</div>
+              </div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step">
+              <div class="flow-step-num">03</div>
+              <div class="flow-step-icon">📥</div>
+              <div class="flow-step-body">
+                <div class="flow-step-title">Export or study</div>
+                <div class="flow-step-desc">Download as a clean PDF, generate flashcards, or create a quiz from your notes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- What you get -->
+        <div class="empty-features">
+          <div class="empty-feat">
+            <div class="ef-icon" style="background:var(--lime-d);border-color:var(--lime-b)">🧹</div>
+            <div class="ef-title">Clean formatting</div>
+            <div class="ef-desc">Messy lecture notes become structured, readable documents with proper headings</div>
+          </div>
+          <div class="empty-feat">
+            <div class="ef-icon" style="background:var(--purple-d);border-color:var(--purple-b)">🔑</div>
+            <div class="ef-title">Key terms bolded</div>
+            <div class="ef-desc">Important concepts are automatically highlighted so you never miss what matters</div>
+          </div>
+          <div class="empty-feat">
+            <div class="ef-icon" style="background:var(--sky-d);border-color:rgba(88,178,238,0.3)">📋</div>
+            <div class="ef-title">Key takeaways</div>
+            <div class="ef-desc">Every polished note ends with a summary of the 3–5 most important points</div>
+          </div>
+          <div class="empty-feat">
+            <div class="ef-icon" style="background:var(--amber-d);border-color:rgba(240,174,80,0.3)">📄</div>
+            <div class="ef-title">PDF export</div>
+            <div class="ef-desc">Download any polished note as a beautifully formatted PDF ready to print or share</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-title" id="modal-title">Note</div>
+        <div class="modal-meta">
+          <span class="modal-badge" id="modal-badge">✦ AI Polished</span>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="polished-content" id="modal-content"></div>
+    </div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toast-icon">✓</span><span id="toast-msg"></span></div>
+
+<script>
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
+let notes = JSON.parse(localStorage.getItem('studyai-notes') || '[]');
+let currentFilter = 'all';
+let openNoteId = null;
+
+document.addEventListener('DOMContentLoaded', () => { setupDragDrop(); renderNotes(); });
+
+function setupDragDrop() {
+  const zone = document.getElementById('drop-zone');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+  // Also allow dropping anywhere on the page
+  document.addEventListener('dragover', e => e.preventDefault());
+  document.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
+}
+
+async function handleFiles(fileList) {
+  for (const file of Array.from(fileList)) await processFile(file);
+}
+
+async function processFile(file) {
+  showProcessing(`Reading "${file.name}"…`, 'Extracting text…');
+  let rawText = '';
+  try {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext === 'txt' || ext === 'md') rawText = await readText(file);
+    else if (ext === 'pdf') rawText = await extractPdfText(file);
+    else if (['png','jpg','jpeg'].includes(ext)) rawText = `[Image file: ${file.name}]\n\nThis is an image. Claude will analyze it as a visual note.`;
+    else rawText = await readText(file);
+
+    const note = {
+      id: Date.now() + Math.random(),
+      name: file.name,
+      type: file.name.split('.').pop().toLowerCase(),
+      size: formatBytes(file.size),
+      rawText,
+      preview: rawText.slice(0, 250).replace(/\s+/g, ' '),
+      polishedText: null,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
+    notes.unshift(note);
+    saveNotes();
+    renderNotes();
+    showToast(`"${file.name}" added`, 'success');
+  } catch (err) {
+    showToast(`Error reading ${file.name}: ${err.message}`, 'error');
+  } finally { hideProcessing(); }
+}
+
+function readText(file) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(new Error('Could not read file')); r.readAsText(file); });
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) throw new Error('pdf.js not loaded');
+  const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    text += (await page.getTextContent()).items.map(s => s.str).join(' ') + '\n\n';
+  }
+  return text.trim() || '[No extractable text found in PDF]';
+}
+
+async function polishNote(noteId) {
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return;
+  showProcessing(`Polishing "${note.name}"…`, 'Sending to Claude…');
+  const prompt = `You are a brilliant study notes editor. Clean and polish the following raw notes into a well-structured, student-friendly study document.
+
+Instructions:
+- Start with a short **Summary** section (2-3 sentences overview)
+- Organize with clear ## headings and ### subheadings
+- Use bullet points for lists and key points
+- Bold **key terms and important concepts**
+- Fix all grammar, spelling, and formatting issues
+- Add a ## Key Takeaways section at the end with the 3-5 most important points
+- Keep all original information — just make it cleaner, clearer, and more useful
+- Format in clean Markdown
+
+Here are the raw notes:
+
+${note.rawText.slice(0, 6000)}`;
+
+  try {
+    const res = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }) });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error?.message || `API error ${res.status}`); }
+    note.polishedText = (await res.json()).content.map(b => b.text || '').join('');
+    saveNotes(); renderNotes();
+    showToast('Notes polished ✦', 'success'); if(typeof window.notivAwardXP==='function') setTimeout(()=>window.notivAwardXP(100,'Note polished'),400);
+    openNote(noteId, true);
+  } catch (err) { showToast(`Polish failed: ${err.message}`, 'error'); }
+  finally { hideProcessing(); }
+}
+
+function openNote(noteId, showPolished = false) {
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return;
+  openNoteId = noteId;
+  document.getElementById('modal-title').textContent = note.name;
+  const badge = document.getElementById('modal-badge');
+  badge.style.display = note.polishedText ? 'inline-flex' : 'none';
+  const content = document.getElementById('modal-content');
+  const displayText = (showPolished && note.polishedText) ? note.polishedText : (note.polishedText || note.rawText);
+  if (note.polishedText && showPolished !== false) {
+    content.innerHTML = marked.parse(displayText);
+  } else {
+    content.innerHTML = `<pre style="font-family:'DM Mono',monospace;font-size:12px;white-space:pre-wrap;color:var(--t2);line-height:1.7">${escHtml(note.rawText)}</pre>`;
+  }
+  const footer = document.getElementById('modal-footer');
+  footer.innerHTML = '';
+  if (note.polishedText) {
+    const toggle = document.createElement('button'); toggle.className = 'btn'; toggle.innerHTML = showPolished ? '📄 View raw' : '✦ View polished'; toggle.onclick = () => openNote(noteId, !showPolished); footer.appendChild(toggle);
+    const dlPdf = document.createElement('button'); dlPdf.className = 'btn primary'; dlPdf.innerHTML = '⬇ Download PDF'; dlPdf.onclick = () => downloadPolishedPDF(noteId); footer.appendChild(dlPdf);
+  } else {
+    const polishBtn = document.createElement('button'); polishBtn.className = 'btn primary'; polishBtn.innerHTML = '✦ Polish with AI'; polishBtn.onclick = () => { closeModal(); polishNote(noteId); }; footer.appendChild(polishBtn);
+  }
+  const dlRaw = document.createElement('button'); dlRaw.className = 'btn'; dlRaw.innerHTML = '⬇ Raw'; dlRaw.onclick = () => downloadRaw(noteId); footer.appendChild(dlRaw);
+  const delBtn = document.createElement('button'); delBtn.className = 'btn danger'; delBtn.innerHTML = '🗑'; delBtn.onclick = () => { deleteNote(noteId); closeModal(); }; footer.appendChild(delBtn);
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('visible'); openNoteId = null; }
+function closeModalOnOverlay(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function downloadPolishedPDF(noteId) {
+  const note = notes.find(n => n.id === noteId);
+  if (!note?.polishedText) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const margin = 50, pageW = doc.internal.pageSize.getWidth(), maxW = pageW - margin * 2;
+  doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(30,30,30);
+  doc.text(note.name.replace(/\.[^.]+$/,''), margin, 70);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(120,120,120);
+  doc.text(`AI-Polished Notes · ${note.date} · Notiv`, margin, 90);
+  doc.setDrawColor(200,240,94); doc.setLineWidth(1.5); doc.line(margin, 100, pageW-margin, 100);
+  const lines = note.polishedText.replace(/\*\*(.*?)\*\*/g,'$1').replace(/\*(.*?)\*/g,'$1').replace(/^#{1,3}\s+/gm,'').replace(/^[-*]\s+/gm,'• ').split('\n');
+  let y = 125;
+  for (const raw of lines) {
+    const line = raw.trim(); if (!line) { y += 8; continue; }
+    const isH = note.polishedText.includes('## '+line) || note.polishedText.includes('# '+line);
+    if (isH) { y += 6; doc.setFont('helvetica','bold'); doc.setFontSize(13); } else { doc.setFont('helvetica','normal'); doc.setFontSize(11); }
+    const wrapped = doc.splitTextToSize(line, maxW);
+    for (const wl of wrapped) { if (y > doc.internal.pageSize.getHeight()-60) { doc.addPage(); y = 60; } doc.text(wl, margin, y); y += isH ? 18 : 16; }
+  }
+  doc.save(`${note.name.replace(/\.[^.]+$/,'')}-polished.pdf`);
+  showToast('PDF downloaded', 'success');
+}
+
+function downloadRaw(noteId) {
+  const note = notes.find(n => n.id === noteId); if (!note) return;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([note.rawText], {type:'text/plain'})); a.download = note.name; a.click();
+}
+
+function deleteNote(noteId) { notes = notes.filter(n => n.id !== noteId); saveNotes(); renderNotes(); showToast('Note deleted', 'success'); }
+
+function renderNotes() {
+  const grid = document.getElementById('notes-grid');
+  const empty = document.getElementById('empty-state');
+  const query = document.getElementById('search-input').value.toLowerCase();
+  let filtered = notes;
+  if (currentFilter === 'polished') filtered = notes.filter(n => n.polishedText);
+  else if (currentFilter === 'pdf') filtered = notes.filter(n => n.type === 'pdf');
+  else if (currentFilter === 'txt') filtered = notes.filter(n => ['txt','md'].includes(n.type));
+  else if (currentFilter === 'img') filtered = notes.filter(n => ['png','jpg','jpeg'].includes(n.type));
+  if (query) filtered = filtered.filter(n => n.name.toLowerCase().includes(query) || n.rawText?.toLowerCase().includes(query));
+
+  document.getElementById('count-all').textContent = notes.length;
+  document.getElementById('count-polished').textContent = notes.filter(n => n.polishedText).length;
+  document.getElementById('count-pdf').textContent = notes.filter(n => n.type === 'pdf').length;
+  document.getElementById('count-txt').textContent = notes.filter(n => ['txt','md'].includes(n.type)).length;
+  document.getElementById('count-img').textContent = notes.filter(n => ['png','jpg','jpeg'].includes(n.type)).length;
+  document.getElementById('stat-total').textContent = notes.length;
+  document.getElementById('stat-polished').textContent = notes.filter(n => n.polishedText).length;
+
+  if (!filtered.length) { grid.innerHTML = ''; empty.classList.add('show'); return; }
+  empty.classList.remove('show');
+
+  const iconMap = { pdf: ['📕','pdf'], png: ['🖼','img'], jpg: ['🖼','img'], jpeg: ['🖼','img'] };
+  grid.innerHTML = filtered.map(n => {
+    const [icon, cls] = iconMap[n.type] || ['📄','txt'];
+    return `<div class="note-row${n.polishedText?' polished':''}" onclick="openNote(${n.id})">
+      <div class="note-row-icon ${cls}">${icon}</div>
+      <div class="note-row-body">
+        <div class="note-row-name">${escHtml(n.name)}</div>
+        <div class="note-row-meta">
+          <span class="note-row-date">${n.date}</span>
+          <span class="note-row-size">${n.size}</span>
+          ${n.polishedText ? '<span class="polished-badge">✦ Polished</span>' : ''}
+        </div>
+        ${n.preview ? `<div class="note-row-preview">${escHtml(n.preview)}</div>` : ''}
+      </div>
+      <div class="note-row-actions" onclick="event.stopPropagation()">
+        ${n.polishedText
+          ? `<button class="btn sm" onclick="openNote(${n.id},true)">View</button><button class="btn sm primary" onclick="downloadPolishedPDF(${n.id})">⬇ PDF</button>`
+          : `<button class="btn sm primary" onclick="polishNote(${n.id})">✦ Polish</button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterNotes() { renderNotes(); }
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.lib-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const titles = { all:'All notes', polished:'AI Polished', pdf:'PDF Files', txt:'Text Files', img:'Images' };
+  const labels = { all:'ALL NOTES', polished:'AI POLISHED', pdf:'PDF FILES', txt:'TEXT FILES', img:'IMAGES' };
+  document.getElementById('section-title').textContent = titles[filter] || 'Notes';
+  document.getElementById('section-label').textContent = labels[filter] || 'NOTES';
+  renderNotes();
+}
+
+function showProcessing(file, step) { document.getElementById('processing-bar').classList.add('visible'); document.getElementById('processing-step').textContent = step; document.getElementById('processing-file').textContent = file; }
+function hideProcessing() { document.getElementById('processing-bar').classList.remove('visible'); }
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'error' ? '✕' : '✓';
+  t.className = `toast visible ${type}`;
+  clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
+function saveNotes() {
+  try { localStorage.setItem('studyai-notes', JSON.stringify(notes.map(n => ({...n, rawText: n.rawText?.slice(0,50000)})))); } catch {}
+}
+
+function formatBytes(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+// ── Sidebar collapse ──
+function toggleSidebar() {
+  const sidebar = document.getElementById('nav-sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '›' : '‹';
+  btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  localStorage.setItem('notiv-sidebar-collapsed', collapsed ? '1' : '0');
+}
+
+// Restore sidebar state on load
+(function() {
+  if (localStorage.getItem('notiv-sidebar-collapsed') === '1') {
+    const sidebar = document.getElementById('nav-sidebar');
+    const btn = document.getElementById('sidebar-toggle-btn');
+    if (sidebar) { sidebar.classList.add('collapsed'); btn.textContent = '›'; btn.title = 'Expand sidebar'; }
+  }
+})();
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+<script src="sidebar.js" defer></script>
+<script src="ai-assistant.js" defer></script>
+</body>
+</html>
