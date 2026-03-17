@@ -410,6 +410,7 @@ function setLoading(tool,on){document.getElementById('proc-'+tool).classList.tog
 
 function toast(msg,ok=true){const t=document.getElementById('toast');document.getElementById('t-msg').textContent=msg;t.className='toast on'+(ok?' ok':'');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2500);}
 </script>
+<script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
 </html>
