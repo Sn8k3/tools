@@ -564,7 +564,7 @@ ${sourceText.slice(0, 6000)}`;
     decks.unshift(deck);
     saveDecks();
     renderDecks();
-    showToast(`${cards.length} cards generated ✦`, 'success');
+    showToast(`${cards.length} cards generated ✦`, 'success'); if(typeof window.notivAwardXP==='function') setTimeout(()=>window.notivAwardXP(60,'Flashcard deck generated'),400);
     openDeck(deck);
   } catch (err) { showToast('Failed: ' + err.message, 'error'); }
   finally { setGenerating(false); }
@@ -826,6 +826,7 @@ function showToast(msg, type='success') {
 }
 function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
+<script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
 </html>
