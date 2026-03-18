@@ -243,31 +243,47 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 
 @media(max-width:1000px){.nav-sidebar{display:none}}
 @media(max-width:800px){.create-layout{grid-template-columns:1fr}.decks-panel{display:none}.study-layout{grid-template-columns:1fr}.study-sidebar{display:none}.quiz-options{grid-template-columns:1fr}}
+
+/* Sidebar collapse */
+.nav-sidebar{transition:width 0.22s cubic-bezier(0.4,0,0.2,1)}
+.nav-sidebar.collapsed{width:52px!important}
+.logo-text{transition:opacity 0.15s;white-space:nowrap;overflow:hidden}
+.nav-sidebar.collapsed .logo-text{opacity:0;width:0;pointer-events:none}
+.sl-text{transition:opacity 0.15s;white-space:nowrap;overflow:hidden}
+.nav-sidebar.collapsed .sl-text{opacity:0;width:0}
+.nav-sidebar.collapsed .snav-link{justify-content:center;padding:8px}
+.nav-sidebar.collapsed .snav-label{opacity:0;height:0;padding:0;margin:0;overflow:hidden}
+.nav-sidebar.collapsed .snav-link:hover::before{content:attr(data-label);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);background:#16161a;border:1px solid #2e2e38;border-radius:7px;padding:5px 12px;font-size:12px;color:#f0ede8;white-space:nowrap;pointer-events:none;z-index:9999;}
 </style>
 </head>
 <body>
 
 <!-- Nav sidebar -->
-<aside class="nav-sidebar">
-  <a href="index.html" class="sidebar-logo">Notiv<span>.</span></a>
+<aside class="nav-sidebar" id="nav-sidebar">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 14px;border-bottom:1px solid var(--b1);flex-shrink:0;">
+    <a href="index.html" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--t1);text-decoration:none;overflow:hidden;white-space:nowrap;">
+      <span class="logo-text">Notiv<span style="color:var(--lime)">.</span></span>
+    </a>
+    <button class="sidebar-toggle" id="sidebar-toggle-btn" title="Collapse sidebar" style="background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t4);cursor:pointer;width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.12s;">‹</button>
+  </div>
   <div class="sidebar-nav">
     <div class="snav-label">Main</div>
-    <a href="dashboard.html" class="snav-link"><span class="sl-icon">📊</span>Dashboard</a>
+    <a href="dashboard.html" class="snav-link" data-label="Dashboard"><span class="sl-icon">📊</span><span class="sl-text">Dashboard</span></a>
     <div class="snav-label">Study tools</div>
-    <a href="notes.html" class="snav-link"><span class="sl-icon">📚</span>Notes Library</a>
-    <a href="essay.html" class="snav-link"><span class="sl-icon">✏️</span>Essay Editor</a>
-    <a href="flashcards.html" class="snav-link active"><span class="sl-icon">🃏</span>Flashcards</a>
-    <a href="quiz.html" class="snav-link"><span class="sl-icon">🧠</span>Quiz Me</a>
-    <a href="planner.html" class="snav-link"><span class="sl-icon">📅</span>Planner</a>
-    <a href="explainer.html" class="snav-link"><span class="sl-icon">💡</span>Explainer</a>
-    <a href="games.html" class="snav-link"><span class="sl-icon">🎮</span>Games</a>
-    <a href="writer.html" class="snav-link"><span class="sl-icon">✍️</span>AI Writer</a>
-    <a href="timer.html" class="snav-link"><span class="sl-icon">⏱</span>Timer</a>
+    <a href="notes.html" class="snav-link" data-label="Notes Library"><span class="sl-icon">📚</span><span class="sl-text">Notes Library</span></a>
+    <a href="essay.html" class="snav-link" data-label="Essay Editor"><span class="sl-icon">✏️</span><span class="sl-text">Essay Editor</span></a>
+    <a href="flashcards.html" class="snav-link active" data-label="Flashcards"><span class="sl-icon">🃏</span><span class="sl-text">Flashcards</span></a>
+    <a href="quiz.html" class="snav-link" data-label="Quiz Me"><span class="sl-icon">🧠</span><span class="sl-text">Quiz Me</span></a>
+    <a href="planner.html" class="snav-link" data-label="Planner"><span class="sl-icon">📅</span><span class="sl-text">Planner</span></a>
+    <a href="explainer.html" class="snav-link" data-label="Concept Explainer"><span class="sl-icon">💡</span><span class="sl-text">Explainer</span></a>
+    <a href="games.html" class="snav-link" data-label="Study Games"><span class="sl-icon">🎮</span><span class="sl-text">Games</span></a>
+    <a href="writer.html" class="snav-link" data-label="AI Writer"><span class="sl-icon">✍️</span><span class="sl-text">AI Writer</span></a>
+    <a href="timer.html" class="snav-link" data-label="Study Timer"><span class="sl-icon">⏱</span><span class="sl-text">Timer</span></a>
     <div class="snav-label">Research</div>
-    <a href="citations.html" class="snav-link"><span class="sl-icon">📎</span>Citations</a>
+    <a href="citations.html" class="snav-link" data-label="Citations"><span class="sl-icon">📎</span><span class="sl-text">Citations</span></a>
     <div class="snav-label">Account</div>
-    <a href="profile.html" class="snav-link"><span class="sl-icon">👤</span>Profile</a>
-    <a href="settings.html" class="snav-link"><span class="sl-icon">⚙️</span>Settings</a>
+    <a href="profile.html" class="snav-link" data-label="Profile"><span class="sl-icon">👤</span><span class="sl-text">Profile</span></a>
+    <a href="settings.html" class="snav-link" data-label="Settings"><span class="sl-icon">⚙️</span><span class="sl-text">Settings</span></a>
   </div>
 </aside>
 
@@ -825,6 +841,21 @@ function showToast(msg, type='success') {
   clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('visible'), 3000);
 }
 function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Sidebar collapse
+(function(){
+  const sidebar = document.getElementById('nav-sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  if (!sidebar || !btn) return;
+  if (localStorage.getItem('notiv-sidebar-collapsed') === '1') {
+    sidebar.classList.add('collapsed'); btn.textContent = '›';
+  }
+  btn.addEventListener('click', function() {
+    const collapsed = sidebar.classList.toggle('collapsed');
+    btn.textContent = collapsed ? '›' : '‹';
+    localStorage.setItem('notiv-sidebar-collapsed', collapsed ? '1' : '0');
+  });
+})();
 </script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
