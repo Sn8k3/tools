@@ -304,6 +304,7 @@ function quickExplain(concept) {
 }
 
 async function explain() {
+  if (!await requireAuth()) return;
   const concept = document.getElementById('concept-input').value.trim();
   if (!concept) return;
 
