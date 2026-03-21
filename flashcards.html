@@ -547,6 +547,7 @@ async function extractDocx(file) {
 }
 
 async function generateCards() {
+  if (!await requireAuth()) return;
   const activeTab = document.querySelector('.src-tab.active').textContent.trim();
   const count = Math.min(40, Math.max(5, parseInt(document.getElementById('card-count').value) || 10));
   const deckName = document.getElementById('deck-name-input').value.trim() || 'My Deck';
