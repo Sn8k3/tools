@@ -6,6 +6,9 @@
 const SUPABASE_URL = 'https://uorlszhcjrblrbmhgyqb.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg';
 
+// ── Pages that DON'T require login ──
+const PUBLIC_PAGES = ['login.html', 'onboarding.html', 'landing.html', 'index.html'];
+
 let _sb = null;
 function getSB() {
   if (_sb) return _sb;
@@ -15,6 +18,23 @@ function getSB() {
 
 let currentUser = null;
 let currentProfile = null;
+
+// ── Auth gate — runs immediately on every protected page ──
+async function authGate() {
+  const page = window.location.pathname.split('/').pop() || 'index.html';
+  const isPublic = PUBLIC_PAGES.some(p => page === p || page === '');
+  if (isPublic) return; // no check needed
+
+  const sb = getSB();
+  if (!sb) return;
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    // Not logged in — redirect to login, preserve intended destination
+    const redirect = encodeURIComponent(window.location.href);
+    window.location.href = `https://sn8k3.github.io/tools/login.html?redirect=${redirect}`;
+  }
+}
 
 // ── Auth helpers ──
 async function initAuth(cb) {
@@ -161,6 +181,7 @@ function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').r
 
 // ── Auto-init ──
 document.addEventListener('DOMContentLoaded', () => {
+  authGate();          // redirect if not logged in
   injectTopbarAuth();
   initAuth(() => updateTopbarAuth());
 });
