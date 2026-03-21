@@ -340,6 +340,7 @@ function autosave(){
 }
 
 async function runTool(tool){
+  if (!await requireAuth()) return;
   const editor=document.getElementById('editor');
   const text=editor.value.trim();
   const selection=window.getSelection()?.toString().trim()||'';
