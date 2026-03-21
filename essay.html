@@ -386,6 +386,7 @@ function switchTab(tab, btn) {
 }
 
 async function analyseEssay() {
+  if (!await requireAuth()) return;
   const essay = document.getElementById('essay-input').value.trim();
   if (!essay) { showToast('Please enter an essay first', 'error'); return; }
   if (essay.split(/\s+/).length < 20) { showToast('Essay is too short — add more text', 'error'); return; }
@@ -425,6 +426,7 @@ Essay: ${essay.slice(0, 6000)}`;
 }
 
 async function rewriteEssay() {
+  if (!await requireAuth()) return;
   const essay = document.getElementById('essay-input').value.trim();
   if (!essay) return;
   const tone = document.getElementById('tone-select').value;
