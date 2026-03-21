@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="guard.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flashcards — Notiv</title>
@@ -85,6 +86,16 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 
 /* Options row */
 .options-row{display:flex;align-items:center;gap:8px;padding:10px;border-top:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap}
+.diff-row{display:flex;align-items:center;gap:10px;padding:0 10px 10px;flex-shrink:0}
+.diff-tabs{display:flex;gap:4px;flex:1}
+.diff-tab{flex:1;padding:6px 8px;border-radius:8px;border:1px solid var(--b1);background:none;font-family:inherit;font-size:12px;color:var(--t3);cursor:pointer;transition:all 0.12s;text-align:center}
+.diff-tab:hover{border-color:var(--b2);color:var(--t2)}
+.diff-tab.active{border-color:var(--lime-b);background:var(--lime-d);color:var(--lime)}
+.diff-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:8px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;margin-bottom:8px}
+.diff-badge.easy{background:var(--lime-d);color:var(--lime);border:1px solid var(--lime-b)}
+.diff-badge.medium{background:var(--amber-d);color:var(--amber);border:1px solid rgba(240,174,80,0.3)}
+.diff-badge.hard{background:var(--coral-d);color:var(--coral);border:1px solid var(--coral-b)}
+.diff-badge.mixed{background:var(--purple-d);color:var(--purple);border:1px solid var(--purple-b)}
 .opt-label{font-size:11px;color:var(--t4);font-family:'DM Mono',monospace;white-space:nowrap}
 .count-input{width:60px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:13px;color:var(--t1);outline:none;text-align:center}
 .name-input{flex:1;min-width:100px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:6px 10px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;transition:border-color 0.15s}
@@ -343,6 +354,15 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
         <input class="name-input" id="deck-name-input" placeholder="Deck name…">
       </div>
 
+      <div class="diff-row">
+        <span class="opt-label" style="flex-shrink:0">Difficulty:</span>
+        <div class="diff-tabs">
+          <button class="diff-tab" onclick="setDiff('easy',this)">🟢 Easy</button>
+          <button class="diff-tab active" onclick="setDiff('mixed',this)">⚡ Mixed</button>
+          <button class="diff-tab" onclick="setDiff('hard',this)">🔴 Hard</button>
+        </div>
+      </div>
+
       <div class="input-action">
         <div class="proc-bar" id="processing-bar">
           <div class="spinner"></div>
@@ -421,6 +441,7 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
           <div class="flip-card" id="flip-card">
             <div class="card-face card-front">
               <div class="card-face-label">Question</div>
+              <div id="card-diff-badge" class="diff-badge" style="display:none"></div>
               <div class="card-face-text" id="card-front-text">—</div>
               <div class="card-hint">Click to reveal answer</div>
             </div>
@@ -459,6 +480,7 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
         <div class="card-counter-label" id="quiz-counter">Question 1 of 10</div>
         <div class="quiz-q-card">
           <div class="quiz-q-label">What is…</div>
+          <div id="quiz-diff-badge" class="diff-badge" style="display:none;margin-bottom:8px"></div>
           <div class="quiz-q-text" id="quiz-question-text">—</div>
         </div>
         <div class="quiz-options" id="quiz-options"></div>
@@ -546,6 +568,14 @@ async function extractDocx(file) {
   return (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value.trim();
 }
 
+let currentDifficulty = 'mixed';
+
+function setDiff(diff, btn) {
+  currentDifficulty = diff;
+  document.querySelectorAll('.diff-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
 async function generateCards() {
   if (!await requireAuth()) return;
   const activeTab = document.querySelector('.src-tab.active').textContent.trim();
@@ -556,7 +586,7 @@ async function generateCards() {
   if (activeTab.includes('Topic')) {
     const t = document.getElementById('topic-input').value.trim();
     if (!t) { showToast('Enter a topic first', 'error'); return; }
-    sourceText = `Generate flashcards about: "${t}"`;
+    sourceText = 'Generate flashcards about: "' + t + '"';
   } else if (activeTab.includes('Paste')) {
     sourceText = document.getElementById('text-input').value.trim();
     if (!sourceText) { showToast('Paste some notes first', 'error'); return; }
@@ -567,21 +597,29 @@ async function generateCards() {
 
   setGenerating(true);
 
-  const prompt = `Create exactly ${count} flashcards from this content. Return ONLY a valid JSON array, no markdown:
-[{"id":1,"question":"...","answer":"..."}]
-Rules: clear single-concept questions, concise complete answers (1-3 sentences), wide coverage, no repetition.
-${sourceText.slice(0, 6000)}`;
+  const diffMap = {
+    easy: 'EASY difficulty only — basic recall, simple definitions, single-fact questions. Perfect for beginners or first review. Label each card \"difficulty\":\"easy\".',
+    mixed: 'MIXED difficulty — roughly 30% easy (basic recall), 40% medium (application/understanding), 30% hard (analysis, edge cases, nuance). Label each card with \"difficulty\":\"easy\", \"medium\", or \"hard\".',
+    hard: 'HARD difficulty only — complex reasoning, nuanced distinctions, tricky edge cases, application in unusual contexts. Challenging even for those who know the topic. Label each card \"difficulty\":\"hard\".'
+  };
+
+  const prompt = 'Create exactly ' + count + ' flashcards from this content. Return ONLY a valid JSON array, no markdown:\n' +
+    '[{"id":1,"question":"...","answer":"...","difficulty":"easy|medium|hard"}]\n' +
+    'Difficulty setting: ' + diffMap[currentDifficulty] + '\n' +
+    'Rules: clear single-concept questions, concise complete answers (1-3 sentences), wide topic coverage, no repetition.\n' +
+    sourceText.slice(0, 6000);
 
   try {
     const res = await fetch(WORKER_URL, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }) });
     if (!res.ok) throw new Error('API error ' + res.status);
     const data = await res.json();
     const cards = JSON.parse(data.content.map(b => b.text||'').join('').replace(/```json|```/g,'').trim());
-    const deck = { id: Date.now(), name: deckName, cards, created: new Date().toLocaleDateString('en-US', {month:'short',day:'numeric'}), status: {} };
+    const deck = { id: Date.now(), name: deckName, cards, difficulty: currentDifficulty, created: new Date().toLocaleDateString('en-US', {month:'short',day:'numeric'}), status: {} };
     decks.unshift(deck);
     saveDecks();
     renderDecks();
-    showToast(`${cards.length} cards generated ✦`, 'success'); if(typeof window.notivAwardXP==='function') setTimeout(()=>window.notivAwardXP(60,'Flashcard deck generated'),400);
+    showToast(cards.length + ' cards generated ❖', 'success');
+    if (typeof window.notivAwardXP === 'function') setTimeout(() => window.notivAwardXP(60, 'Flashcard deck generated'), 400);
     openDeck(deck);
   } catch (err) { showToast('Failed: ' + err.message, 'error'); }
   finally { setGenerating(false); }
@@ -614,6 +652,7 @@ function renderDecks() {
         </div>
         <button class="deck-delete" onclick="deleteDeck(${deck.id},event)">✕</button>
       </div>
+      ${deck.difficulty ? `<span class="diff-badge ${deck.difficulty}" style="margin-bottom:6px">${{easy:'🟢 Easy',mixed:'⚡ Mixed',hard:'🔴 Hard'}[deck.difficulty]||deck.difficulty}</span>` : ''}
       <div class="deck-progress"><div class="deck-progress-fill" style="width:${pct}%"></div></div>
       <div class="deck-pct">${pct}% known</div>
     `;
@@ -690,6 +729,15 @@ function showFlipCard() {
   document.getElementById('card-front-text').textContent = c.question;
   document.getElementById('card-back-text').textContent = c.answer;
   document.getElementById('card-counter').textContent = `Card ${currentIndex + 1} of ${currentDeck.cards.length}`;
+  // Difficulty badge
+  const diffBadgeEl = document.getElementById('card-diff-badge');
+  if (diffBadgeEl) {
+    const diff = c.difficulty || 'medium';
+    const diffLabel = { easy: '🟢 Easy', medium: '🟡 Medium', hard: '🔴 Hard' }[diff] || diff;
+    diffBadgeEl.textContent = diffLabel;
+    diffBadgeEl.className = 'diff-badge ' + diff;
+    diffBadgeEl.style.display = 'inline-flex';
+  }
   updateCardList();
 }
 
@@ -768,6 +816,14 @@ function showQuizCard() {
   const c = quizCards[quizIndex];
   document.getElementById('quiz-counter').textContent = `Question ${quizIndex + 1} of ${quizCards.length}`;
   document.getElementById('quiz-question-text').textContent = c.question;
+  // Difficulty badge in quiz
+  const qBadge = document.getElementById('quiz-diff-badge');
+  if (qBadge) {
+    const d = c.difficulty || 'medium';
+    qBadge.textContent = {easy:'🟢 Easy',medium:'🟡 Medium',hard:'🔴 Hard'}[d] || d;
+    qBadge.className = 'diff-badge ' + d;
+    qBadge.style.display = 'inline-flex';
+  }
   document.getElementById('quiz-feedback').textContent = '';
   document.getElementById('quiz-next-btn').style.display = 'none';
   const others = quizCards.filter((_, i) => i !== quizIndex).sort(() => Math.random() - 0.5).slice(0, 3);
