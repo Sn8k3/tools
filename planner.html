@@ -449,6 +449,7 @@ function showToast(msg,type='success'){const t=document.getElementById('toast');
 
 (function(){const s=document.getElementById('nav-sidebar');const btn=document.getElementById('sidebar-toggle-btn');if(!s||!btn)return;if(localStorage.getItem('notiv-sidebar-collapsed')==='1'){s.classList.add('collapsed');btn.textContent='›';}btn.addEventListener('click',()=>{const c=s.classList.toggle('collapsed');btn.textContent=c?'›':'‹';localStorage.setItem('notiv-sidebar-collapsed',c?'1':'0');});})();
 </script>
+<script src="prefs.js" defer></script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
