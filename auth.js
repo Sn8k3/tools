@@ -3,9 +3,27 @@ const SUPABASE_URL = 'https://uorlszhcjrblrbmhgyqb.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg';
 
 let _sb = null;
+
 function getSB() {
   if (_sb) return _sb;
-  if (window.supabase) { _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON); return _sb; }
+  if (window.supabase) {
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    return _sb;
+  }
+  return null;
+}
+
+// Wait up to 5 seconds for window.supabase to be available
+async function getSBAsync() {
+  if (_sb) return _sb;
+  for (let i = 0; i < 50; i++) {
+    if (window.supabase) {
+      _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+      return _sb;
+    }
+    await new Promise(r => setTimeout(r, 100));
+  }
+  console.error('Notiv: Supabase SDK never loaded');
   return null;
 }
 
@@ -15,13 +33,20 @@ let currentProfile = null;
 // ── requireAuth — call before any AI action ──
 // Usage: if (!await requireAuth()) return;
 async function requireAuth() {
-  const sb = getSB(); if (!sb) return false;
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) return true;
+  const sb = await getSBAsync();
+  if (!sb) {
+    alert('Could not connect to auth service. Please reload the page.');
+    return false;
+  }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) return true;
+  } catch (e) {
+    console.error('requireAuth error:', e);
+  }
   showAuthModal();
   return false;
 }
-
 // ── Auth modal ──
 function showAuthModal() {
   if (document.getElementById('notiv-auth-modal')) {
