@@ -505,30 +505,54 @@ async function handleFiles(fileList) {
 async function processFile(file) {
   showProcessing(`Reading "${file.name}"…`, 'Extracting text…');
   let rawText = '';
+  let imageBase64 = null;
+  let imageMediaType = null;
   try {
     const ext = file.name.split('.').pop().toLowerCase();
     if (ext === 'txt' || ext === 'md') rawText = await readText(file);
     else if (ext === 'pdf') rawText = await extractPdfText(file);
-    else if (['png','jpg','jpeg'].includes(ext)) rawText = `[Image file: ${file.name}]\n\nThis is an image. Claude will analyze it as a visual note.`;
+    else if (['png','jpg','jpeg'].includes(ext)) {
+      // Read image as base64 for vision API
+      const result = await readAsBase64(file);
+      imageBase64 = result.base64;
+      imageMediaType = result.mediaType;
+      rawText = `[Image: ${file.name}]`;
+    }
     else rawText = await readText(file);
 
     const note = {
       id: Date.now() + Math.random(),
       name: file.name,
-      type: file.name.split('.').pop().toLowerCase(),
+      type: ext,
       size: formatBytes(file.size),
       rawText,
-      preview: rawText.slice(0, 250).replace(/\s+/g, ' '),
+      imageBase64,        // stored for vision API
+      imageMediaType,
+      preview: ['png','jpg','jpeg'].includes(ext) ? `🖼 Image file — click "Polish with AI" to extract and organise its content` : rawText.slice(0, 250).replace(/\s+/g, ' '),
       polishedText: null,
       date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     };
     notes.unshift(note);
     saveNotes();
     renderNotes();
-    showToast(`"${file.name}" added`, 'success');
+    showToast(`"${file.name}" added — click Polish to extract content`, 'success');
   } catch (err) {
     showToast(`Error reading ${file.name}: ${err.message}`, 'error');
   } finally { hideProcessing(); }
+}
+
+function readAsBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const dataUrl = r.result;
+      const base64 = dataUrl.split(',')[1];
+      const mediaType = file.type || 'image/jpeg';
+      res({ base64, mediaType });
+    };
+    r.onerror = () => rej(new Error('Could not read image'));
+    r.readAsDataURL(file);
+  });
 }
 
 function readText(file) {
@@ -551,7 +575,33 @@ async function polishNote(noteId) {
   const note = notes.find(n => n.id === noteId);
   if (!note) return;
   showProcessing(`Polishing "${note.name}"…`, 'Sending to Claude…');
-  const prompt = `You are a brilliant study notes editor. Clean and polish the following raw notes into a well-structured, student-friendly study document.
+
+  const isImage = note.imageBase64 && note.imageMediaType;
+
+  // Build message content — vision for images, text otherwise
+  let messageContent;
+  if (isImage) {
+    messageContent = [
+      {
+        type: 'image',
+        source: { type: 'base64', media_type: note.imageMediaType, data: note.imageBase64 }
+      },
+      {
+        type: 'text',
+        text: `You are a brilliant study notes editor. This is an image of notes (handwritten, typed, a screenshot, or a photo). Please:
+1. Extract ALL text and content from the image as accurately as possible
+2. Organise it into a clean, well-structured study document in Markdown
+3. Start with a short **Summary** section (2-3 sentences overview)
+4. Use ## headings and ### subheadings to organise topics
+5. Use bullet points for lists and key points
+6. Bold **key terms and important concepts**
+7. Add a ## Key Takeaways section at the end with the 3-5 most important points
+8. If the image contains diagrams or figures, describe them clearly in text
+Format your output in clean Markdown only.`
+      }
+    ];
+  } else {
+    messageContent = `You are a brilliant study notes editor. Clean and polish the following raw notes into a well-structured, student-friendly study document.
 
 Instructions:
 - Start with a short **Summary** section (2-3 sentences overview)
@@ -566,13 +616,23 @@ Instructions:
 Here are the raw notes:
 
 ${note.rawText.slice(0, 6000)}`;
+  }
 
   try {
-    const res = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }) });
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: messageContent }]
+      })
+    });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error?.message || `API error ${res.status}`); }
     note.polishedText = (await res.json()).content.map(b => b.text || '').join('');
     saveNotes(); renderNotes();
-    showToast('Notes polished ✦', 'success'); if(typeof window.notivAwardXP==='function') setTimeout(()=>window.notivAwardXP(100,'Note polished'),400);
+    showToast('Notes polished ✦', 'success');
+    if (typeof window.notivAwardXP === 'function') setTimeout(() => window.notivAwardXP(100, 'Note polished'), 400);
     openNote(noteId, true);
   } catch (err) { showToast(`Polish failed: ${err.message}`, 'error'); }
   finally { hideProcessing(); }
@@ -709,7 +769,24 @@ function showToast(msg, type='success') {
 }
 
 function saveNotes() {
-  try { localStorage.setItem('studyai-notes', JSON.stringify(notes.map(n => ({...n, rawText: n.rawText?.slice(0,50000)})))); } catch {}
+  try {
+    // Strip imageBase64 before saving — too large for localStorage.
+    // Once an image is polished, the polishedText is all we need.
+    const toSave = notes.map(n => {
+      const copy = { ...n, rawText: n.rawText?.slice(0, 50000) };
+      // Keep imageBase64 only if note hasn't been polished yet (needed for retry)
+      // but drop it once polished to save space
+      if (n.polishedText) { delete copy.imageBase64; delete copy.imageMediaType; }
+      return copy;
+    });
+    localStorage.setItem('studyai-notes', JSON.stringify(toSave));
+  } catch (e) {
+    // If still too large (multiple unpolished images), save without any base64
+    try {
+      const stripped = notes.map(n => { const c = { ...n }; delete c.imageBase64; delete c.imageMediaType; return c; });
+      localStorage.setItem('studyai-notes', JSON.stringify(stripped));
+    } catch {}
+  }
 }
 
 function formatBytes(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
