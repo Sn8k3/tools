@@ -332,6 +332,7 @@ function useNoteTopic() {
 }
 
 async function startGame(type) {
+  if (!await requireAuth()) return;
   const topic = document.getElementById('hub-topic').value.trim();
   if (!topic) { showToast('Enter a topic first'); return; }
   currentGame = type;
