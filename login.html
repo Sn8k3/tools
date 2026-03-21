@@ -244,11 +244,14 @@ const BASE = 'https://sn8k3.github.io/tools/';
 const params = new URLSearchParams(window.location.search);
 const redirectTo = params.get('redirect') || BASE + 'dashboard.html';
 
-// If already logged in, redirect (but not if already on dashboard)
+// Auto-switch to signup tab if requested
+if (params.get('tab') === 'signup') {
+  document.addEventListener('DOMContentLoaded', () => switchTab('signup'));
+}
+
+// If already logged in, go to redirect target
 sb.auth.getSession().then(({ data: { session } }) => {
-  if (session && !window.location.href.includes('dashboard')) {
-    window.location.href = BASE + 'dashboard.html';
-  }
+  if (session) window.location.href = redirectTo;
 });
 
 function switchTab(tab) {
