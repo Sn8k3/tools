@@ -519,7 +519,12 @@ let decks = JSON.parse(localStorage.getItem('studyai-decks') || '[]');
 let currentDeck = null, currentIndex = 0, cardStatus = {}, studyMode = 'flip', fileText = '';
 let quizCards = [], quizIndex = 0, quizCorrect = 0, quizWrong = 0, quizAnswered = false;
 
-document.addEventListener('DOMContentLoaded', () => { renderDecks(); setupDrop(); });
+document.addEventListener('DOMContentLoaded', () => {
+  renderDecks(); setupDrop();
+  // Apply saved defaults from prefs
+  const prefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
+  if (prefs.cardCount) { const el = document.getElementById('card-count'); if (el) el.value = prefs.cardCount; }
+});
 
 function setMode(mode, btn) {
   document.querySelectorAll('.src-tab').forEach(b => b.classList.remove('active'));
@@ -914,6 +919,7 @@ function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').r
   });
 })();
 </script>
+<script src="prefs.js" defer></script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
