@@ -409,6 +409,7 @@ function setFormat(fmt, btn) {
 }
 
 async function generateCitation() {
+  if (!await requireAuth()) return;
   const input = document.getElementById('main-input').value.trim();
   if (!input) { showToast('Please enter a source first', 'error'); return; }
 
