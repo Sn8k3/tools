@@ -368,9 +368,17 @@ let prefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
 
 document.addEventListener('DOMContentLoaded', () => {
   loadPrefs();
-  // Load user email
+  applyPrefs();
+  // Load user email + name from Supabase session
   const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON);
-  if (sb) sb.auth.getSession().then(({data:{session}}) => { if (session) document.getElementById('user-email').value = session.user.email || ''; });
+  if (sb) sb.auth.getSession().then(({data:{session}}) => {
+    if (session) {
+      document.getElementById('user-email').value = session.user.email || '';
+      if (!document.getElementById('display-name').value) {
+        document.getElementById('display-name').value = session.user.user_metadata?.full_name || prefs.displayName || '';
+      }
+    }
+  });
 });
 
 function showSection(id, btn) {
@@ -383,28 +391,72 @@ function showSection(id, btn) {
 function savePref(key, value) {
   prefs[key] = value;
   localStorage.setItem('notiv-prefs', JSON.stringify(prefs));
+  applyPrefs();
   toast('Saved', true);
 }
 
 function loadPrefs() {
-  if (prefs.sidebarDefault) document.getElementById('sidebar-default').value = prefs.sidebarDefault;
-  if (prefs.fontSize) document.getElementById('font-size').value = prefs.fontSize;
-  if (prefs.reduceMotion) document.getElementById('reduce-motion').checked = prefs.reduceMotion;
-  if (prefs.essayTone) document.getElementById('essay-tone').value = prefs.essayTone;
-  if (prefs.explainerLevel) document.getElementById('explainer-level').value = prefs.explainerLevel;
-  if (prefs.autoPolish) document.getElementById('auto-polish').checked = prefs.autoPolish;
-  if (prefs.focusDuration) document.getElementById('focus-duration').value = prefs.focusDuration;
-  if (prefs.autoBreak) document.getElementById('auto-break').checked = prefs.autoBreak;
-  if (prefs.cardCount) document.getElementById('card-count').value = prefs.cardCount;
-  if (prefs.timerSound !== undefined) document.getElementById('timer-sound').checked = prefs.timerSound;
-  if (prefs.xpNotif !== undefined) document.getElementById('xp-notif').checked = prefs.xpNotif;
-  if (prefs.streakRemind) document.getElementById('streak-remind').checked = prefs.streakRemind;
+  const get = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) { if (el.type === 'checkbox') el.checked = !!val; else el.value = val; } };
+  get('sidebar-default', prefs.sidebarDefault);
+  get('font-size', prefs.fontSize);
+  get('reduce-motion', prefs.reduceMotion);
+  get('essay-tone', prefs.essayTone);
+  get('explainer-level', prefs.explainerLevel);
+  get('auto-polish', prefs.autoPolish);
+  get('focus-duration', prefs.focusDuration);
+  get('auto-break', prefs.autoBreak);
+  get('card-count', prefs.cardCount);
+  get('timer-sound', prefs.timerSound !== undefined ? prefs.timerSound : true);
+  get('xp-notif', prefs.xpNotif !== undefined ? prefs.xpNotif : true);
+  get('streak-remind', prefs.streakRemind);
+  get('display-name', prefs.displayName);
+}
+
+// Apply prefs that have visible effect on THIS page and store flags for other pages
+function applyPrefs() {
+  // Font size — affects body font-size
+  const fontSizeMap = { small: '13px', medium: '14px', large: '15px' };
+  if (prefs.fontSize) document.body.style.fontSize = fontSizeMap[prefs.fontSize] || '14px';
+
+  // Reduce motion — disable CSS transitions
+  if (prefs.reduceMotion) {
+    if (!document.getElementById('reduce-motion-style')) {
+      const s = document.createElement('style');
+      s.id = 'reduce-motion-style';
+      s.textContent = '*,*::before,*::after{transition:none!important;animation:none!important}';
+      document.head.appendChild(s);
+    }
+  } else {
+    document.getElementById('reduce-motion-style')?.remove();
+  }
+
+  // Sidebar default — apply immediately if sidebar exists
+  const sidebar = document.getElementById('nav-sidebar');
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  if (sidebar && toggleBtn && prefs.sidebarDefault) {
+    const shouldCollapse = prefs.sidebarDefault === 'collapsed';
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    if (shouldCollapse && !isCollapsed) {
+      sidebar.classList.add('collapsed');
+      toggleBtn.textContent = '›';
+      localStorage.setItem('notiv-sidebar-collapsed', '1');
+    } else if (!shouldCollapse && isCollapsed) {
+      sidebar.classList.remove('collapsed');
+      toggleBtn.textContent = '‹';
+      localStorage.setItem('notiv-sidebar-collapsed', '0');
+    }
+  }
 }
 
 function saveProfile() {
   const name = document.getElementById('display-name').value.trim();
-  if (name) { prefs.displayName = name; localStorage.setItem('notiv-prefs', JSON.stringify(prefs)); }
-  toast('Profile saved', true);
+  if (name) {
+    prefs.displayName = name;
+    localStorage.setItem('notiv-prefs', JSON.stringify(prefs));
+    toast('Profile saved', true);
+  } else {
+    toast('Enter a display name first', false);
+  }
 }
 
 async function signOut() {
@@ -414,29 +466,34 @@ async function signOut() {
 }
 
 function confirmDelete() {
-  if (confirm('Are you sure? This will permanently delete your account and all your data.')) {
+  if (confirm('Are you sure? This will permanently delete your account and all your data. This cannot be undone.')) {
     toast('Account deletion requested — contact support to complete', false);
   }
 }
 
 function exportData() {
-  const data = {};
-  const keys = ['studyai-notes','studyai-essay-history','studyai-decks','notiv-quizzes','notiv-citations','notiv-timer-stats','notiv-game-scores'];
+  const data = { exportedAt: new Date().toISOString() };
+  const keys = ['studyai-notes','studyai-essay-history','studyai-decks','notiv-quizzes','notiv-citations','notiv-timer-stats','notiv-game-scores','notiv-prefs'];
   keys.forEach(k => { try { data[k] = JSON.parse(localStorage.getItem(k) || 'null'); } catch {} });
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'notiv-export.json'; a.click();
-  toast('Data exported', true);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'notiv-export-' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  toast('Data exported ✓', true);
 }
 
 function clearHistory() {
-  ['notiv-quizzes','notiv-game-scores','notiv-timer-stats','notiv-daily-goals'].forEach(k => localStorage.removeItem(k));
-  toast('Study history cleared', true);
+  if (confirm('Clear quiz history, game scores and timer sessions? Your notes and flashcards will be kept.')) {
+    ['notiv-quizzes','notiv-game-scores','notiv-timer-stats','notiv-daily-goals','notiv-citations'].forEach(k => localStorage.removeItem(k));
+    toast('Study history cleared', true);
+  }
 }
 
 function clearAllData() {
-  if (confirm('Clear ALL local data? This removes notes, essays, flashcards and all history.')) {
+  if (confirm('Clear ALL local data? This removes notes, essays, flashcards and all history. Settings will be kept.')) {
     const keep = ['notiv-sidebar-collapsed','notiv-prefs'];
-    Object.keys(localStorage).forEach(k => { if (!keep.includes(k)) localStorage.removeItem(k); });
+    Object.keys(localStorage).filter(k => !keep.includes(k)).forEach(k => localStorage.removeItem(k));
     toast('All data cleared', true);
   }
 }
@@ -457,6 +514,7 @@ function toast(msg, ok = true) {
   btn.addEventListener('click', () => { const c = s.classList.toggle('collapsed'); btn.textContent = c ? '›' : '‹'; localStorage.setItem('notiv-sidebar-collapsed', c ? '1' : '0'); });
 })();
 </script>
+<script src="prefs.js" defer></script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
