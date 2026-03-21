@@ -546,6 +546,7 @@ async function extractPdfText(file) {
 }
 
 async function polishNote(noteId) {
+  if (!await requireAuth()) return;
   const note = notes.find(n => n.id === noteId);
   if (!note) return;
   showProcessing(`Polishing "${note.name}"…`, 'Sending to Claude…');
