@@ -385,6 +385,63 @@ body { padding-left: 220px; transition: padding-left 0.22s cubic-bezier(0.4,0,0.
 body.sidebar-collapsed { padding-left: 52px; }
 .nav-divider, .nav-links { display: none; }
 
+/* ── GPA block ── */
+.gpa-grades-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; margin-bottom: 16px; }
+.gpa-block {
+  background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl);
+  padding: 20px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px; position: relative; overflow: hidden;
+}
+.gpa-block::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(200,240,94,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.gpa-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); letter-spacing: 0.12em; text-transform: uppercase; }
+.gpa-number { font-family: 'Playfair Display', serif; font-size: 56px; line-height: 1; color: var(--lime); font-weight: 400; }
+.gpa-number.no-data { color: var(--t4); font-size: 40px; }
+.gpa-scale { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--t3); }
+.gpa-letter { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--t2); margin-top: 2px; }
+
+/* ── Grades card ── */
+.grades-card { background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl); overflow: hidden; }
+.grades-head { padding: 14px 18px; border-bottom: 1px solid var(--b1); display: flex; align-items: center; justify-content: space-between; }
+.grades-head-left { display: flex; align-items: center; gap: 10px; }
+.grades-list { display: flex; flex-direction: column; }
+.grade-row {
+  display: grid; grid-template-columns: 1fr 80px 60px 60px 32px;
+  align-items: center; gap: 10px;
+  padding: 10px 18px; border-bottom: 1px solid var(--b1);
+  transition: background 0.12s;
+}
+.grade-row:last-child { border-bottom: none; }
+.grade-row:hover { background: var(--s2); }
+.grade-subject { font-size: 13px; color: var(--t1); font-weight: 500; }
+.grade-score-wrap { position: relative; }
+.grade-score-input {
+  width: 100%; background: var(--s2); border: 1px solid var(--b1);
+  border-radius: 7px; padding: 5px 8px; font-family: 'DM Mono', monospace;
+  font-size: 13px; color: var(--t1); outline: none; text-align: center;
+  transition: border-color 0.15s;
+}
+.grade-score-input:focus { border-color: var(--lime-b); }
+.grade-letter-badge {
+  font-size: 13px; font-family: 'DM Mono', monospace; font-weight: 500;
+  text-align: center; padding: 4px 8px; border-radius: 7px;
+}
+.grade-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.grade-mini-bar { flex: 1; height: 3px; background: var(--b2); border-radius: 2px; overflow: hidden; }
+.grade-mini-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.grade-delete { background: none; border: none; color: var(--t4); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 5px; transition: color 0.12s; }
+.grade-delete:hover { color: var(--coral); }
+.grades-add-row { padding: 10px 18px; display: grid; grid-template-columns: 1fr 80px auto; gap: 8px; border-top: 1px solid var(--b1); }
+.g-input { background: var(--s2); border: 1px solid var(--b1); border-radius: 8px; padding: 7px 12px; font-family: inherit; font-size: 13px; color: var(--t1); outline: none; transition: border-color 0.15s; width: 100%; }
+.g-input:focus { border-color: var(--lime-b); }
+.g-input::placeholder { color: var(--t4); }
+.grades-empty { padding: 28px; text-align: center; color: var(--t4); font-size: 13px; }
+
+@media (max-width: 680px) { .gpa-grades-row { grid-template-columns: 1fr; } .grade-row { grid-template-columns: 1fr 70px 50px 24px; } }
+
 /* Animations */
 @keyframes fade-up { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 .fu { animation: fade-up 0.4s ease both; }
@@ -517,6 +574,40 @@ body.sidebar-collapsed { padding-left: 52px; }
       <div class="stat-cell-sub" id="s-notes-sub">of 0 uploaded</div>
       <div class="stat-bar"><div class="stat-bar-fill" id="s-notes-bar" style="width:0%;background:var(--amber)"></div></div>
     </div>
+  </div>
+
+  <!-- GPA + Grades -->
+  <div class="gpa-grades-row fu d2">
+
+    <!-- GPA block -->
+    <div class="gpa-block">
+      <div class="gpa-label">GPA</div>
+      <div class="gpa-number" id="gpa-number">—</div>
+      <div class="gpa-scale" id="gpa-scale">out of 4.0</div>
+      <div class="gpa-letter" id="gpa-letter"></div>
+    </div>
+
+    <!-- Grades card -->
+    <div class="grades-card">
+      <div class="grades-head">
+        <div class="grades-head-left">
+          <div class="card-icon" style="background:var(--purple-d)">📊</div>
+          <div class="card-title">Grades</div>
+        </div>
+        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4)" id="grades-avg-label"></div>
+      </div>
+
+      <div class="grades-list" id="grades-list">
+        <div class="grades-empty" id="grades-empty">No grades yet — add a subject below</div>
+      </div>
+
+      <div class="grades-add-row">
+        <input class="g-input" id="new-subject" placeholder="Subject name…" onkeydown="if(event.key==='Enter')addGrade()">
+        <input class="g-input" id="new-score" type="number" placeholder="Score %" min="0" max="100" onkeydown="if(event.key==='Enter')addGrade()">
+        <button class="btn accent" onclick="addGrade()" style="white-space:nowrap;padding:7px 16px">+ Add</button>
+      </div>
+    </div>
+
   </div>
 
   <!-- Quick strip -->
@@ -890,6 +981,140 @@ function fmtDate(str) { try { const d=new Date(str+'T00:00:00'); return d.toLoca
 function hashStr(s) { let h=0; for(let i=0;i<(s||'').length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0; return h; }
 function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ── Grades & GPA ──
+let grades = JSON.parse(localStorage.getItem('notiv-grades') || '[]');
+
+function saveGrades() {
+  localStorage.setItem('notiv-grades', JSON.stringify(grades));
+}
+
+function scoreToGPA(score) {
+  if (score >= 93) return 4.0;
+  if (score >= 90) return 3.7;
+  if (score >= 87) return 3.3;
+  if (score >= 83) return 3.0;
+  if (score >= 80) return 2.7;
+  if (score >= 77) return 2.3;
+  if (score >= 73) return 2.0;
+  if (score >= 70) return 1.7;
+  if (score >= 67) return 1.3;
+  if (score >= 63) return 1.0;
+  if (score >= 60) return 0.7;
+  return 0.0;
+}
+
+function scoreToLetter(score) {
+  if (score >= 93) return 'A+';
+  if (score >= 90) return 'A';
+  if (score >= 87) return 'A−';
+  if (score >= 83) return 'B+';
+  if (score >= 80) return 'B';
+  if (score >= 77) return 'B−';
+  if (score >= 73) return 'C+';
+  if (score >= 70) return 'C';
+  if (score >= 67) return 'C−';
+  if (score >= 63) return 'D+';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+
+function gradeColor(score) {
+  if (score >= 80) return 'var(--lime)';
+  if (score >= 70) return 'var(--amber)';
+  if (score >= 60) return 'var(--coral)';
+  return 'var(--coral)';
+}
+
+function addGrade() {
+  const subjectEl = document.getElementById('new-subject');
+  const scoreEl = document.getElementById('new-score');
+  const subject = subjectEl.value.trim();
+  const score = parseFloat(scoreEl.value);
+  if (!subject) { subjectEl.focus(); return; }
+  if (isNaN(score) || score < 0 || score > 100) { scoreEl.focus(); return; }
+  grades.push({ id: Date.now(), subject, score });
+  saveGrades();
+  subjectEl.value = '';
+  scoreEl.value = '';
+  subjectEl.focus();
+  renderGrades();
+}
+
+function deleteGrade(id) {
+  grades = grades.filter(g => g.id !== id);
+  saveGrades();
+  renderGrades();
+}
+
+function updateGradeScore(id, newScore) {
+  const g = grades.find(g => g.id === id);
+  if (!g) return;
+  const val = parseFloat(newScore);
+  if (isNaN(val) || val < 0 || val > 100) return;
+  g.score = val;
+  saveGrades();
+  renderGrades();
+}
+
+function renderGrades() {
+  const list = document.getElementById('grades-list');
+  const empty = document.getElementById('grades-empty');
+  const avgLabel = document.getElementById('grades-avg-label');
+
+  if (!grades.length) {
+    list.innerHTML = '';
+    list.appendChild(empty);
+    empty.style.display = 'block';
+    document.getElementById('gpa-number').textContent = '—';
+    document.getElementById('gpa-number').className = 'gpa-number no-data';
+    document.getElementById('gpa-letter').textContent = '';
+    avgLabel.textContent = '';
+    return;
+  }
+
+  empty.style.display = 'none';
+  list.innerHTML = '';
+
+  grades.forEach(g => {
+    const letter = scoreToLetter(g.score);
+    const color = gradeColor(g.score);
+    const row = document.createElement('div');
+    row.className = 'grade-row';
+    row.innerHTML = `
+      <div class="grade-subject">${escH(g.subject)}</div>
+      <div class="grade-score-wrap">
+        <input class="grade-score-input" type="number" value="${g.score}" min="0" max="100"
+          onchange="updateGradeScore(${g.id}, this.value)"
+          onblur="updateGradeScore(${g.id}, this.value)">
+      </div>
+      <div class="grade-bar-wrap">
+        <div class="grade-mini-bar"><div class="grade-mini-fill" style="width:${g.score}%;background:${color}"></div></div>
+      </div>
+      <div class="grade-letter-badge" style="color:${color};background:${color}18">${letter}</div>
+      <button class="grade-delete" onclick="deleteGrade(${g.id})" title="Remove">✕</button>
+    `;
+    list.appendChild(row);
+  });
+
+  // Recalculate GPA
+  const avg = grades.reduce((s, g) => s + g.score, 0) / grades.length;
+  const gpa = grades.reduce((s, g) => s + scoreToGPA(g.score), 0) / grades.length;
+  const gpaRounded = Math.round(gpa * 100) / 100;
+  const letter = scoreToLetter(avg);
+  const color = gradeColor(avg);
+
+  const gpaEl = document.getElementById('gpa-number');
+  gpaEl.textContent = gpaRounded.toFixed(2);
+  gpaEl.className = 'gpa-number';
+  gpaEl.style.color = color;
+  document.getElementById('gpa-letter').textContent = letter + ' · ' + Math.round(avg) + '%';
+  document.getElementById('gpa-letter').style.color = color;
+  avgLabel.textContent = grades.length + ' subject' + (grades.length !== 1 ? 's' : '');
+}
+
+// Init grades on load
+document.addEventListener('DOMContentLoaded', () => { renderGrades(); });
+
 // Sidebar collapse
 (function(){
   const sidebar = document.getElementById('nav-sidebar');
@@ -908,6 +1133,7 @@ function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').r
   });
 })();
 </script>
+<script src="prefs.js" defer></script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
