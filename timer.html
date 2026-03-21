@@ -253,10 +253,11 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 <div class="toast" id="toast"><span id="t-icon">✓</span><span id="t-msg"></span></div>
 
 <script>
-let presets = { focus: 25, short: 5, long: 15, custom: 20 };
+const _timerPrefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
+let presets = { focus: parseInt(_timerPrefs.focusDuration) || 25, short: 5, long: 15, custom: 20 };
 let currentMode = 'pomodoro';
-let timeLeft = 25 * 60;
-let totalTime = 25 * 60;
+let timeLeft = presets.focus * 60;
+let totalTime = presets.focus * 60;
 let running = false;
 let intervalId = null;
 let sessionCount = 0;
@@ -408,6 +409,7 @@ function escH(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
   btn.addEventListener('click', () => { const c = s.classList.toggle('collapsed'); btn.textContent = c ? '›' : '‹'; localStorage.setItem('notiv-sidebar-collapsed', c ? '1' : '0'); });
 })();
 </script>
+<script src="prefs.js" defer></script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
