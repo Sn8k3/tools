@@ -624,6 +624,7 @@ function renderSubjects() {
 
 // ── Generate schedule ──
 async function generateSchedule() {
+  if (!await requireAuth()) return;
   // Collect exams
   exams = [];
   document.querySelectorAll('.exam-row').forEach(row => {
@@ -971,6 +972,7 @@ function closeAdjustModal() { document.getElementById('adjust-modal').classList.
 function closeAdjustOnOverlay(e) { if (e.target === document.getElementById('adjust-modal')) closeAdjustModal(); }
 
 async function adjustSchedule() {
+  if (!await requireAuth()) return;
   const note = document.getElementById('adjust-input').value.trim();
   if (!note) { showToast('Describe what needs adjusting', 'error'); return; }
 
