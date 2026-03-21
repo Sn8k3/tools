@@ -1,633 +1,427 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="guard.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Citation Helper — Notiv</title>
+<title>Citations — Notiv</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js" defer></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #0e0e10; --surface: #17171a; --surface2: #1f1f24; --surface3: #252529;
-  --border: #2a2a30; --border2: #38383f;
-  --text: #eeecea; --text2: #9b9899; --text3: #5c5a5e;
-  --accent: #c8f05e; --accent-dim: rgba(200,240,94,0.10); --accent-border: rgba(200,240,94,0.25);
-  --purple: #9d7bea; --purple-dim: rgba(157,123,234,0.12); --purple-border: rgba(157,123,234,0.3);
-  --coral: #f0635a; --coral-dim: rgba(240,99,90,0.10); --coral-border: rgba(240,99,90,0.3);
-  --amber: #f0b05a; --amber-dim: rgba(240,176,90,0.10); --amber-border: rgba(240,176,90,0.3);
-  --sky: #5ab4f0; --sky-dim: rgba(90,180,240,0.10); --sky-border: rgba(90,180,240,0.3);
-  --radius: 10px; --radius-lg: 16px;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;
+  --b1:#22222a;--b2:#2e2e38;--b3:#3c3c48;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);--purple-b:rgba(160,126,232,0.25);
+  --coral:#f0635a;--coral-d:rgba(240,99,90,0.10);--coral-b:rgba(240,99,90,0.3);
+  --amber:#f0ae50;--amber-d:rgba(240,174,80,0.10);
+  --sky:#58b2ee;--sky-d:rgba(88,178,238,0.10);
+  --r:10px;--rl:14px;
 }
-html { scroll-behavior: smooth; }
-body {
-  background: var(--bg); color: var(--text);
-  font-family: 'Instrument Sans', sans-serif;
-  font-size: 15px; min-height: 100vh; display: flex; flex-direction: column;
-}
-body::before {
-  content: ''; position: fixed; inset: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 50% 35% at 80% 10%, rgba(200,240,94,0.05) 0%, transparent 60%),
-    radial-gradient(ellipse 35% 25% at 10% 80%, rgba(157,123,234,0.05) 0%, transparent 60%);
-}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;height:100vh;display:flex;overflow:hidden}
 
-/* ── Topbar ── */
-.topbar {
-  display: flex; align-items: center; gap: 12px;
-  padding: 0 24px; height: 56px;
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 100; flex-shrink: 0;
-}
-.logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); text-decoration: none; }
-.logo-dot { color: var(--accent); }
-.back-link { font-size: 13px; color: var(--text2); text-decoration: none; display: flex; align-items: center; gap: 5px; transition: color 0.15s; }
-.back-link:hover { color: var(--text); }
+/* Nav sidebar */
+.nav-sidebar{width:220px;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;flex-shrink:0;overflow:hidden;transition:width 0.22s cubic-bezier(0.4,0,0.2,1)}
+.nav-sidebar.collapsed{width:52px}
+.sidebar-logo-wrap{display:flex;align-items:center;justify-content:space-between;padding:16px 14px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.sidebar-logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--t1);text-decoration:none;overflow:hidden;white-space:nowrap}
+.sidebar-logo span{color:var(--lime)}
+.logo-text{transition:opacity 0.15s}
+.nav-sidebar.collapsed .logo-text{opacity:0;width:0;display:none}
+.sidebar-toggle{background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t4);cursor:pointer;width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.12s}
+.sidebar-toggle:hover{border-color:var(--b2);color:var(--t2)}
+.sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 6px;display:flex;flex-direction:column;gap:1px}
+.sidebar-nav::-webkit-scrollbar{width:3px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.snav-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;padding:10px 8px 3px;white-space:nowrap;overflow:hidden;transition:opacity 0.15s}
+.nav-sidebar.collapsed .snav-label{opacity:0;height:0;padding:0}
+.snav-link{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;position:relative;white-space:nowrap;overflow:hidden}
+.snav-link:hover{background:var(--s2);color:var(--t2)}
+.snav-link.active{background:var(--s2);color:var(--t1)}
+.snav-link.active::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0}
+.sl-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.sl-text{overflow:hidden;transition:opacity 0.15s}
+.nav-sidebar.collapsed .sl-text{opacity:0;width:0}
+.nav-sidebar.collapsed .snav-link{justify-content:center;padding:8px}
+.nav-sidebar.collapsed .snav-link:hover::before{content:attr(data-label);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);background:var(--s2);border:1px solid var(--b2);border-radius:7px;padding:5px 12px;font-size:12px;color:var(--t1);white-space:nowrap;pointer-events:none;z-index:9999}
 
-/* ── Layout ── */
-.app {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  flex: 1;
-  overflow: hidden;
-  height: calc(100vh - 56px);
-  position: relative; z-index: 1;
-}
+/* Layout */
+.app{flex:1;display:grid;grid-template-columns:340px 1fr;height:100vh;overflow:hidden;min-width:0}
 
-/* ── Input pane ── */
-.input-pane {
-  display: flex; flex-direction: column;
-  border-right: 1px solid var(--border);
-  overflow-y: auto;
-  padding: 32px;
-  gap: 24px;
-}
+/* Input panel */
+.input-panel{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.panel-head{padding:20px 18px 14px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.panel-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400}
+.panel-sub{font-size:12px;color:var(--t3);margin-top:3px}
 
-.page-title { font-family: 'DM Serif Display', serif; font-size: 28px; }
-.page-sub { font-size: 14px; color: var(--text3); margin-top: 4px; }
+.input-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.field-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px}
+.f-input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;transition:border-color 0.15s}
+.f-input:focus{border-color:var(--lime-b)}
+.f-input::placeholder{color:var(--t4)}
+.f-select{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:9px 12px;font-family:inherit;font-size:13px;color:var(--t2);outline:none;cursor:pointer}
 
-/* Input type tabs */
-.type-tabs {
-  display: flex; gap: 8px; flex-wrap: wrap;
-}
-.type-tab {
-  padding: 7px 14px; border-radius: 20px;
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--text2); font-family: inherit; font-size: 13px;
-  cursor: pointer; transition: all 0.12s;
-}
-.type-tab:hover { border-color: var(--border2); color: var(--text); }
-.type-tab.active { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
+.format-tabs{display:flex;gap:4px}
+.ftab{flex:1;padding:7px 8px;border-radius:8px;border:1px solid var(--b1);background:none;color:var(--t3);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all 0.12s;text-align:center}
+.ftab:hover{border-color:var(--b2);color:var(--t2)}
+.ftab.active{border-color:var(--lime-b);background:var(--lime-d);color:var(--lime)}
 
-/* Main input */
-.input-wrap { display: flex; flex-direction: column; gap: 8px; }
-.input-label { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; letter-spacing: 0.06em; text-transform: uppercase; }
-.main-input {
-  width: 100%; background: var(--surface);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 14px 16px; font-family: inherit; font-size: 15px;
-  color: var(--text); outline: none; transition: border-color 0.15s;
-  resize: none; line-height: 1.6;
-}
-.main-input:focus { border-color: var(--accent-border); }
-.main-input::placeholder { color: var(--text3); }
+.examples{display:flex;flex-direction:column;gap:4px}
+.example-chip{padding:7px 10px;border-radius:8px;background:var(--s2);border:1px solid var(--b1);font-size:12px;color:var(--t3);cursor:pointer;transition:all 0.12s;text-align:left}
+.example-chip:hover{border-color:var(--b2);color:var(--t2)}
 
-/* Format selector */
-.format-row {
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-}
-.format-label { font-size: 13px; color: var(--text2); }
-.format-toggle {
-  display: flex; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 3px; gap: 3px;
-}
-.fmt-btn {
-  padding: 5px 14px; border-radius: 6px; border: none;
-  background: none; color: var(--text3); font-family: 'DM Mono', monospace;
-  font-size: 12px; cursor: pointer; transition: all 0.12s;
-}
-.fmt-btn.active { background: var(--surface3); color: var(--text); }
+.panel-action{padding:12px;border-top:1px solid var(--b1);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
+.proc-bar{display:none;align-items:center;gap:8px;padding:9px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);font-size:12px;color:var(--t2)}
+.proc-bar.on{display:flex}
+.spinner{width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--lime);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-step{color:var(--lime);font-weight:500}
 
-/* Processing */
-.processing-bar {
-  display: none; align-items: center; gap: 10px; padding: 12px 16px;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius); font-size: 13px; color: var(--text2);
-}
-.processing-bar.visible { display: flex; }
-.spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.processing-step { color: var(--accent); font-weight: 500; }
+/* Results panel */
+.results-panel{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.results-header{padding:18px 24px 14px;background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.results-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400}
+.results-scroll{flex:1;overflow-y:auto;padding:20px}
+.results-scroll::-webkit-scrollbar{width:4px}
+.results-scroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
 
-/* ── Result pane ── */
-.result-pane {
-  display: flex; flex-direction: column;
-  overflow-y: auto; background: var(--surface);
-}
+/* Citation result card */
+.citation-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden;margin-bottom:16px;transition:border-color 0.15s}
+.citation-card:hover{border-color:var(--b2)}
+.cc-head{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--s2)}
+.cc-format{font-size:11px;font-family:'DM Mono',monospace;color:var(--lime);letter-spacing:0.08em;text-transform:uppercase;background:var(--lime-d);border:1px solid var(--lime-b);padding:2px 9px;border-radius:10px}
+.cc-actions{display:flex;gap:6px}
+.cc-body{padding:18px;font-size:14px;color:var(--t1);line-height:1.8;font-family:'Playfair Display',serif;font-style:italic}
 
-.result-placeholder {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 40px 24px; text-align: center;
-  color: var(--text3); gap: 12px;
-}
-.placeholder-icon { font-size: 40px; }
-.placeholder-title { font-size: 15px; color: var(--text2); font-weight: 500; }
-.placeholder-sub { font-size: 13px; line-height: 1.6; max-width: 260px; }
+/* Credibility */
+.cred-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden;margin-bottom:16px}
+.cred-head{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;background:var(--s2)}
+.cred-score-wrap{display:flex;align-items:center;gap:12px}
+.cred-score{font-family:'Playfair Display',serif;font-size:36px;line-height:1}
+.cred-label{font-size:12px;font-family:'DM Mono',monospace;color:var(--t3)}
+.cred-bar-wrap{flex:1;height:4px;background:var(--b2);border-radius:2px;overflow:hidden;margin-top:2px}
+.cred-bar-fill{height:100%;border-radius:2px;transition:width 0.8s ease}
+.cred-body{padding:16px 18px;font-size:13px;color:var(--t2);line-height:1.7}
+.cred-points{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.cred-point{display:flex;gap:8px;font-size:12px;color:var(--t3)}
+.cred-point-icon{flex-shrink:0}
 
-/* Citation output */
-.citation-output { display: none; flex-direction: column; gap: 0; flex: 1; }
-.citation-output.visible { display: flex; }
+/* History list */
+.hist-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r);background:var(--s1);border:1px solid var(--b1);cursor:pointer;transition:all 0.12s;margin-bottom:6px}
+.hist-item:hover{border-color:var(--b2)}
+.hist-item-body{flex:1;min-width:0}
+.hist-item-title{font-size:13px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-item-meta{font-size:10px;color:var(--t4);font-family:'DM Mono',monospace;margin-top:1px}
+.hist-format-tag{font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:8px;background:var(--s3);color:var(--t3);border:1px solid var(--b1);flex-shrink:0}
 
-/* Source info card */
-.source-card {
-  padding: 20px; border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 12px;
-}
-.source-type-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 11px; font-family: 'DM Mono', monospace;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  padding: 3px 10px; border-radius: 20px;
-  background: var(--purple-dim); color: var(--purple);
-  border: 1px solid var(--purple-border); align-self: flex-start;
-}
-.source-title { font-family: 'DM Serif Display', serif; font-size: 20px; line-height: 1.3; }
-.source-meta { font-size: 13px; color: var(--text2); line-height: 1.6; }
-.source-url {
-  font-size: 12px; color: var(--sky); font-family: 'DM Mono', monospace;
-  word-break: break-all; text-decoration: none;
-}
-.source-url:hover { text-decoration: underline; }
+/* Empty */
+.empty-results{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;text-align:center;padding:40px;color:var(--t4)}
+.er-icon{font-size:40px;opacity:0.25}
+.er-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--t2)}
+.er-sub{font-size:13px;max-width:280px;line-height:1.6}
 
-/* Credibility card */
-.credibility-card {
-  padding: 16px 20px; border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 10px;
-}
-.cred-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.cred-label { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; letter-spacing: 0.06em; text-transform: uppercase; }
-.cred-score-wrap { display: flex; align-items: center; gap: 8px; }
-.cred-score {
-  font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1;
-}
-.cred-score.high { color: var(--accent); }
-.cred-score.medium { color: var(--amber); }
-.cred-score.low { color: var(--coral); }
-.cred-verdict {
-  font-size: 12px; padding: 3px 10px; border-radius: 20px;
-  font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
-}
-.cred-verdict.high { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
-.cred-verdict.medium { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-border); }
-.cred-verdict.low { background: var(--coral-dim); color: var(--coral); border: 1px solid var(--coral-border); }
-.cred-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
-.cred-bar-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
-.cred-bar-fill.high { background: var(--accent); }
-.cred-bar-fill.medium { background: var(--amber); }
-.cred-bar-fill.low { background: var(--coral); }
-.cred-reasons { display: flex; flex-direction: column; gap: 5px; }
-.cred-reason {
-  font-size: 12px; color: var(--text2); line-height: 1.5;
-  display: flex; align-items: flex-start; gap: 7px;
-}
-.cred-reason-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-
-/* Citation formats */
-.formats-section { display: flex; flex-direction: column; flex: 1; }
-.format-block {
-  padding: 16px 20px; border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 8px;
-}
-.format-block:last-child { border-bottom: none; }
-.format-name {
-  font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.format-name.active-format { color: var(--accent); }
-.citation-text {
-  font-size: 13px; color: var(--text); line-height: 1.7;
-  font-family: 'DM Serif Display', serif;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 12px 14px;
-  user-select: all;
-}
-.copy-btn {
-  align-self: flex-start; display: flex; align-items: center; gap: 5px;
-  padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);
-  background: none; color: var(--text3); font-family: inherit; font-size: 11px;
-  cursor: pointer; transition: all 0.12s; font-family: 'DM Mono', monospace;
-}
-.copy-btn:hover { border-color: var(--border2); color: var(--text); }
-.copy-btn.copied { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
-
-/* ── History ── */
-.history-section {
-  margin-top: 8px; display: flex; flex-direction: column; gap: 8px;
-}
-.history-label { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; }
-.history-item {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 12px 14px;
-  cursor: pointer; transition: border-color 0.12s;
-  display: flex; flex-direction: column; gap: 3px;
-}
-.history-item:hover { border-color: var(--border2); }
-.history-item-title { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.history-item-meta { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; display: flex; gap: 8px; }
-.history-item-badge {
-  font-size: 10px; padding: 1px 6px; border-radius: 6px;
-  background: var(--purple-dim); color: var(--purple);
-  border: 1px solid var(--purple-border);
-}
-
-/* ── Buttons ── */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border);
-  background: var(--surface2); color: var(--text2);
-  font-family: inherit; font-size: 14px; cursor: pointer;
-  transition: all 0.12s; white-space: nowrap;
-}
-.btn:hover { border-color: var(--border2); color: var(--text); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #0e0e10; font-weight: 600; }
-.btn.primary:hover:not(:disabled) { background: #d4f66e; }
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.btn:hover{border-color:var(--b3);color:var(--t1)}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:#080809;font-weight:600}
+.btn.primary:hover{background:#d8ff74}
+.btn.full{width:100%;justify-content:center}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn.copied{border-color:var(--lime-b);color:var(--lime);background:var(--lime-d)}
 
 /* Toast */
-.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--text); z-index: 999; display: none; align-items: center; gap: 8px; }
-.toast.visible { display: flex; }
-.toast.success { border-color: var(--accent-border); }
-.toast.error { border-color: var(--coral-border); }
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px}
+.toast.on{display:flex}
+.toast.ok{border-color:var(--lime-b)}
+.toast.err{border-color:var(--coral-b)}
 
-@media (max-width: 800px) {
-  .app { grid-template-columns: 1fr; height: auto; overflow: visible; }
-  .input-pane { border-right: none; border-bottom: 1px solid var(--border); }
-  .result-pane { min-height: 400px; }
-}
+@media(max-width:900px){.nav-sidebar{display:none}}
+@media(max-width:700px){.app{grid-template-columns:1fr}.results-panel{display:none}}
 </style>
 </head>
 <body>
 
-<header class="topbar">
-  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
-  <a href="index.html" class="back-link">← All features</a>
-</header>
+<aside class="nav-sidebar" id="nav-sidebar">
+  <div class="sidebar-logo-wrap">
+    <a href="index.html" class="sidebar-logo"><span class="logo-text">Notiv<span>.</span></span></a>
+    <button class="sidebar-toggle" id="sidebar-toggle-btn" title="Collapse">‹</button>
+  </div>
+  <div class="sidebar-nav">
+    <div class="snav-label">Main</div>
+    <a href="dashboard.html" class="snav-link" data-label="Dashboard"><span class="sl-icon">📊</span><span class="sl-text">Dashboard</span></a>
+    <div class="snav-label">Study tools</div>
+    <a href="notes.html" class="snav-link" data-label="Notes"><span class="sl-icon">📚</span><span class="sl-text">Notes Library</span></a>
+    <a href="essay.html" class="snav-link" data-label="Essays"><span class="sl-icon">✏️</span><span class="sl-text">Essay Editor</span></a>
+    <a href="flashcards.html" class="snav-link" data-label="Flashcards"><span class="sl-icon">🃏</span><span class="sl-text">Flashcards</span></a>
+    <a href="quiz.html" class="snav-link" data-label="Quiz Me"><span class="sl-icon">🧠</span><span class="sl-text">Quiz Me</span></a>
+    <a href="planner.html" class="snav-link" data-label="Planner"><span class="sl-icon">📅</span><span class="sl-text">Planner</span></a>
+    <a href="explainer.html" class="snav-link" data-label="Explainer"><span class="sl-icon">💡</span><span class="sl-text">Explainer</span></a>
+    <a href="games.html" class="snav-link" data-label="Games"><span class="sl-icon">🎮</span><span class="sl-text">Games</span></a>
+    <a href="writer.html" class="snav-link" data-label="AI Writer"><span class="sl-icon">✍️</span><span class="sl-text">AI Writer</span></a>
+    <a href="timer.html" class="snav-link" data-label="Timer"><span class="sl-icon">⏱</span><span class="sl-text">Timer</span></a>
+    <div class="snav-label">Research</div>
+    <a href="citations.html" class="snav-link active" data-label="Citations"><span class="sl-icon">📎</span><span class="sl-text">Citations</span></a>
+    <div class="snav-label">Account</div>
+    <a href="profile.html" class="snav-link" data-label="Profile"><span class="sl-icon">👤</span><span class="sl-text">Profile</span></a>
+    <a href="settings.html" class="snav-link" data-label="Settings"><span class="sl-icon">⚙️</span><span class="sl-text">Settings</span></a>
+  </div>
+</aside>
 
 <div class="app">
 
-  <!-- ── Input pane ── -->
-  <div class="input-pane">
-    <div>
-      <div class="page-title">Citation Helper</div>
-      <div class="page-sub">Paste a URL, book title, or any source — AI generates the citation and checks credibility</div>
+  <!-- Input panel -->
+  <div class="input-panel">
+    <div class="panel-head">
+      <div class="panel-title">Citation Helper</div>
+      <div class="panel-sub">Generate APA, MLA & Chicago citations instantly</div>
     </div>
-
-    <!-- Source type -->
-    <div>
-      <div class="input-label" style="margin-bottom:10px;">Source type</div>
-      <div class="type-tabs">
-        <button class="type-tab active" onclick="setType('auto', this)">✦ Auto-detect</button>
-        <button class="type-tab" onclick="setType('website', this)">🌐 Website</button>
-        <button class="type-tab" onclick="setType('book', this)">📚 Book</button>
-        <button class="type-tab" onclick="setType('journal', this)">🔬 Journal article</button>
-        <button class="type-tab" onclick="setType('newspaper', this)">📰 Newspaper</button>
-        <button class="type-tab" onclick="setType('video', this)">🎥 Video</button>
+    <div class="input-body">
+      <div>
+        <div class="field-label">Source URL, title, or DOI</div>
+        <input class="f-input" id="source-input" type="text" placeholder="https://… or book title or DOI" onkeydown="if(event.key==='Enter')generateCitation()">
+      </div>
+      <div>
+        <div class="field-label">Source type</div>
+        <select class="f-select" id="source-type">
+          <option value="auto">Auto-detect</option>
+          <option value="website">Website / Article</option>
+          <option value="book">Book</option>
+          <option value="journal">Journal article</option>
+          <option value="video">Video / YouTube</option>
+          <option value="newspaper">Newspaper</option>
+          <option value="podcast">Podcast</option>
+        </select>
+      </div>
+      <div>
+        <div class="field-label">Format</div>
+        <div class="format-tabs">
+          <button class="ftab active" onclick="setFormat('apa',this)">APA</button>
+          <button class="ftab" onclick="setFormat('mla',this)">MLA</button>
+          <button class="ftab" onclick="setFormat('chicago',this)">Chicago</button>
+          <button class="ftab" onclick="setFormat('all',this)">All three</button>
+        </div>
+      </div>
+      <div>
+        <div class="field-label">Quick examples</div>
+        <div class="examples">
+          <div class="example-chip" onclick="setExample('https://www.bbc.com/news')">BBC News article URL</div>
+          <div class="example-chip" onclick="setExample('Atomic Habits by James Clear')">Book by title</div>
+          <div class="example-chip" onclick="setExample('10.1038/nature12373')">Academic DOI</div>
+          <div class="example-chip" onclick="setExample('https://www.youtube.com/watch?v=dQw4w9WgXcQ')">YouTube video</div>
+        </div>
       </div>
     </div>
-
-    <!-- Main input -->
-    <div class="input-wrap">
-      <div class="input-label" id="input-label">URL or source title</div>
-      <textarea class="main-input" id="main-input" rows="4"
-        placeholder="Paste a URL, book title, DOI, or describe the source…"></textarea>
-    </div>
-
-    <!-- Format selector -->
-    <div class="format-row">
-      <span class="format-label">Citation format:</span>
-      <div class="format-toggle">
-        <button class="fmt-btn active" id="fmt-apa" onclick="setFormat('APA', this)">APA</button>
-        <button class="fmt-btn" id="fmt-mla" onclick="setFormat('MLA', this)">MLA</button>
-        <button class="fmt-btn" id="fmt-chicago" onclick="setFormat('Chicago', this)">Chicago</button>
-      </div>
-      <span style="font-size:12px;color:var(--text3);">All formats generated</span>
-    </div>
-
-    <div class="processing-bar" id="processing-bar">
-      <div class="spinner"></div>
-      <span><span class="processing-step" id="processing-step">Analysing source…</span></span>
-    </div>
-
-    <div style="display:flex;gap:8px;">
-      <button class="btn primary" id="generate-btn" onclick="generateCitation()">✦ Generate Citation</button>
-      <button class="btn" onclick="clearAll()">✕ Clear</button>
-    </div>
-
-    <!-- History -->
-    <div class="history-section" id="history-section" style="display:none">
-      <div class="history-label">Recent citations</div>
-      <div id="history-list"></div>
+    <div class="panel-action">
+      <div class="proc-bar" id="proc-bar"><div class="spinner"></div><span><span class="proc-step">Generating…</span></span></div>
+      <button class="btn primary full" id="gen-btn" onclick="generateCitation()">✦ Generate citation</button>
     </div>
   </div>
 
-  <!-- ── Result pane ── -->
-  <div class="result-pane">
-
-    <div class="result-placeholder" id="result-placeholder">
-      <div class="placeholder-icon">📎</div>
-      <div class="placeholder-title">No citation yet</div>
-      <div class="placeholder-sub">Paste any source above and hit Generate — Claude will format it and check if it's credible.</div>
+  <!-- Results panel -->
+  <div class="results-panel">
+    <div class="results-header">
+      <div class="results-title" id="results-title">Results</div>
+      <button class="btn sm" onclick="clearAll()">Clear all</button>
     </div>
+    <div class="results-scroll" id="results-scroll">
 
-    <div class="citation-output" id="citation-output">
-
-      <!-- Source info -->
-      <div class="source-card">
-        <div class="source-type-badge" id="source-type-badge">Website</div>
-        <div class="source-title" id="source-title">—</div>
-        <div class="source-meta" id="source-meta"></div>
-        <a class="source-url" id="source-url" target="_blank" href="#"></a>
+      <!-- Empty state -->
+      <div class="empty-results" id="empty-state">
+        <div class="er-icon">📎</div>
+        <div class="er-title">No citations yet</div>
+        <div class="er-sub">Paste a URL, book title, or DOI and hit Generate to get formatted citations with a credibility check.</div>
       </div>
 
-      <!-- Credibility -->
-      <div class="credibility-card">
-        <div class="cred-label">Source credibility</div>
-        <div class="cred-header">
-          <div class="cred-score-wrap">
-            <div class="cred-score" id="cred-score">—</div>
-            <div class="cred-verdict" id="cred-verdict">—</div>
-          </div>
-        </div>
-        <div class="cred-bar"><div class="cred-bar-fill" id="cred-bar-fill" style="width:0%"></div></div>
-        <div class="cred-reasons" id="cred-reasons"></div>
-      </div>
+      <!-- Results injected here -->
+      <div id="results-container"></div>
 
-      <!-- Citation formats -->
-      <div class="formats-section" id="formats-section"></div>
+      <!-- History -->
+      <div id="hist-section" style="display:none">
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;padding-top:8px;border-top:1px solid var(--b1)">Recent citations</div>
+        <div id="hist-list"></div>
+      </div>
 
     </div>
   </div>
 
 </div>
 
-<div class="toast" id="toast"><span id="toast-icon">✓</span><span id="toast-msg"></span></div>
+<div class="toast" id="toast"><span id="t-icon">✓</span><span id="t-msg"></span></div>
 
 <script>
 const WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
-
-let selectedType = 'auto';
-let selectedFormat = 'APA';
+let citFormat = 'apa';
 let history = JSON.parse(localStorage.getItem('notiv-citations') || '[]');
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderHistory();
-});
-
-function setType(type, btn) {
-  selectedType = type;
-  document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const labels = {
-    auto: 'URL, title, DOI, or describe the source',
-    website: 'Paste the URL',
-    book: 'Book title, author, or ISBN',
-    journal: 'Article title, DOI, or journal name',
-    newspaper: 'Article title or URL',
-    video: 'Video title or URL (YouTube, etc.)',
-  };
-  document.getElementById('input-label').textContent = labels[type] || 'Source';
-  document.getElementById('main-input').placeholder = labels[type] + '…';
-}
+document.addEventListener('DOMContentLoaded', renderHistory);
 
 function setFormat(fmt, btn) {
-  selectedFormat = fmt;
-  document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
+  citFormat = fmt;
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+}
+
+function setExample(val) {
+  document.getElementById('source-input').value = val;
+  document.getElementById('source-input').focus();
 }
 
 async function generateCitation() {
   if (!await requireAuth()) return;
-  const input = document.getElementById('main-input').value.trim();
-  if (!input) { showToast('Please enter a source first', 'error'); return; }
+  const source = document.getElementById('source-input').value.trim();
+  if (!source) { toast('Enter a source first', false); return; }
+  const type = document.getElementById('source-type').value;
+  setLoading(true);
 
-  setLoading(true, 'Analysing source…');
+  const formats = citFormat === 'all' ? ['APA', 'MLA', 'Chicago'] : [citFormat.toUpperCase()];
 
-  const typeHint = selectedType === 'auto' ? '' : `The source type is: ${selectedType}.`;
+  const prompt = `You are an expert academic citation generator. Generate correctly formatted citations for the following source.
 
-  const prompt = `You are an expert academic citation generator and source evaluator.
+Source: "${source}"
+Source type hint: ${type}
+Required formats: ${formats.join(', ')}
 
-Analyse the following source and return ONLY valid JSON, no markdown, no extra text:
+Also assess the credibility of this source (score 0-100 and brief explanation).
 
+Return ONLY valid JSON:
 {
-  "source_type": "Website|Book|Journal Article|Newspaper|Video|Other",
-  "title": "full title of the work",
-  "author": "Author Name(s) or null",
-  "year": "publication year or null",
-  "publisher": "publisher or website name or null",
-  "url": "URL if applicable or null",
-  "extra_meta": "any other relevant details like volume, issue, pages, etc.",
+  "title": "short descriptive title for this source",
   "citations": {
-    "APA": "full APA 7th edition citation",
-    "MLA": "full MLA 9th edition citation",
-    "Chicago": "full Chicago 17th edition citation"
+    "APA": "full APA 7th edition citation or null if not requested",
+    "MLA": "full MLA 9th edition citation or null if not requested",
+    "Chicago": "full Chicago 17th edition citation or null if not requested"
   },
   "credibility": {
-    "score": <number 0-100>,
-    "verdict": "Highly credible|Generally credible|Use with caution|Low credibility",
-    "reasons": [
-      "reason 1",
-      "reason 2",
-      "reason 3"
-    ]
+    "score": 75,
+    "label": "Reliable",
+    "summary": "2-3 sentence assessment of this source's credibility",
+    "points": ["positive point", "potential concern"]
   }
-}
-
-Rules:
-- Generate all three citation formats correctly formatted
-- For credibility, consider: source type, publisher reputation, author credentials, peer review status, bias, recency
-- If the source is a URL, extract what you can from the domain and path
-- If information is unknown, make reasonable assumptions and note them in the citation with [n.d.] or [n.p.] as appropriate
-- Always provide all three citation formats even with limited info
-${typeHint}
-
-Source: ${input}`;
+}`;
 
   try {
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+    const res = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] }) });
     if (!res.ok) throw new Error('API error ' + res.status);
     const data = await res.json();
-    const raw = data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim();
-    const result = JSON.parse(raw);
-
-    renderResult(result, input);
-    saveHistory(result, input);
+    const result = JSON.parse(data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim());
+    renderResult(result, source);
+    saveHistory(result, source);
     renderHistory();
-    showToast('Citation generated ✦', 'success');
-  } catch (err) {
-    showToast('Failed: ' + err.message, 'error');
-  } finally {
-    setLoading(false);
-  }
+    document.getElementById('empty-state').style.display = 'none';
+    if (typeof window.notivAwardXP === 'function') setTimeout(() => window.notivAwardXP(25, 'Citation generated'), 400);
+  } catch (err) { toast('Failed: ' + err.message, false); }
+  finally { setLoading(false); }
 }
 
-function renderResult(result, input) {
-  document.getElementById('result-placeholder').style.display = 'none';
-  const output = document.getElementById('citation-output');
-  output.classList.add('visible');
+function renderResult(r, source) {
+  const container = document.getElementById('results-container');
+  const div = document.createElement('div');
+  div.style.cssText = 'animation:fade-in 0.3s ease;margin-bottom:24px';
 
-  // Source info
-  document.getElementById('source-type-badge').textContent = result.source_type || 'Source';
-  document.getElementById('source-title').textContent = result.title || input;
-  const metaParts = [result.author, result.year, result.publisher].filter(Boolean);
-  document.getElementById('source-meta').textContent = metaParts.join(' · ');
-  if (result.extra_meta) {
-    document.getElementById('source-meta').textContent += ' · ' + result.extra_meta;
-  }
-  const urlEl = document.getElementById('source-url');
-  if (result.url) {
-    urlEl.textContent = result.url;
-    urlEl.href = result.url;
-    urlEl.style.display = 'block';
-  } else {
-    urlEl.style.display = 'none';
-  }
+  const credColor = r.credibility.score >= 70 ? 'var(--lime)' : r.credibility.score >= 40 ? 'var(--amber)' : 'var(--coral)';
 
-  // Credibility
-  const cred = result.credibility;
-  const score = cred?.score || 0;
-  const verdict = cred?.verdict || 'Unknown';
-  const level = score >= 70 ? 'high' : score >= 40 ? 'medium' : 'low';
-
-  const scoreEl = document.getElementById('cred-score');
-  scoreEl.textContent = score;
-  scoreEl.className = 'cred-score ' + level;
-
-  const verdictEl = document.getElementById('cred-verdict');
-  verdictEl.textContent = verdict;
-  verdictEl.className = 'cred-verdict ' + level;
-
-  const barFill = document.getElementById('cred-bar-fill');
-  barFill.className = 'cred-bar-fill ' + level;
-  setTimeout(() => { barFill.style.width = score + '%'; }, 100);
-
-  const reasons = document.getElementById('cred-reasons');
-  reasons.innerHTML = '';
-  const colors = { high: 'var(--accent)', medium: 'var(--amber)', low: 'var(--coral)' };
-  (cred?.reasons || []).forEach(r => {
-    const el = document.createElement('div');
-    el.className = 'cred-reason';
-    el.innerHTML = `<div class="cred-reason-dot" style="background:${colors[level]}"></div><span>${escH(r)}</span>`;
-    reasons.appendChild(el);
+  let citHtml = '';
+  ['APA','MLA','Chicago'].forEach(fmt => {
+    if (!r.citations[fmt]) return;
+    citHtml += `
+      <div class="citation-card">
+        <div class="cc-head">
+          <span class="cc-format">${fmt}</span>
+          <div class="cc-actions">
+            <button class="btn sm" onclick="copyCit(this, \`${escH(r.citations[fmt])}\`)">Copy</button>
+          </div>
+        </div>
+        <div class="cc-body">${escH(r.citations[fmt])}</div>
+      </div>`;
   });
 
-  // Citations
-  const formats = document.getElementById('formats-section');
-  formats.innerHTML = '';
-  const fmtOrder = ['APA', 'MLA', 'Chicago'];
-  fmtOrder.forEach(fmt => {
-    const text = result.citations?.[fmt] || 'Citation not available';
-    const isActive = fmt === selectedFormat;
-    const block = document.createElement('div');
-    block.className = 'format-block';
-    block.id = 'fmt-block-' + fmt;
-    block.innerHTML = `
-      <div class="format-name ${isActive ? 'active-format' : ''}">${fmt}</div>
-      <div class="citation-text" id="citation-${fmt}">${escH(text)}</div>
-      <button class="copy-btn" onclick="copyCitation('${fmt}')">Copy ${fmt}</button>
-    `;
-    formats.appendChild(block);
-  });
+  div.innerHTML = `
+    <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--t1);margin-bottom:14px">${escH(r.title)}</div>
+    ${citHtml}
+    <div class="cred-card">
+      <div class="cred-head">
+        <div>
+          <div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px">Credibility check</div>
+          <div class="cred-score-wrap">
+            <div class="cred-score" style="color:${credColor}">${r.credibility.score}</div>
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--t1)">${escH(r.credibility.label)}</div>
+              <div class="cred-bar-wrap"><div class="cred-bar-fill" style="width:${r.credibility.score}%;background:${credColor}"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cred-body">
+        <div style="margin-bottom:8px">${escH(r.credibility.summary)}</div>
+        <div class="cred-points">
+          ${(r.credibility.points || []).map((p, i) => `<div class="cred-point"><span class="cred-point-icon">${i === 0 ? '✓' : '⚠'}</span>${escH(p)}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  container.insertBefore(div, container.firstChild);
 }
 
-function copyCitation(fmt) {
-  const text = document.getElementById('citation-' + fmt)?.textContent;
-  if (!text) return;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.querySelector(`button[onclick="copyCitation('${fmt}')"]`);
-    if (btn) {
-      btn.textContent = '✓ Copied!';
-      btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = `Copy ${fmt}`; btn.classList.remove('copied'); }, 2000);
-    }
-    showToast(`${fmt} citation copied`, 'success');
-  });
+function copyCit(btn, text) {
+  navigator.clipboard.writeText(text);
+  btn.textContent = '✓ Copied';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
 }
 
-function saveHistory(result, input) {
-  const entry = {
-    id: Date.now(),
-    title: result.title || input.slice(0, 60),
-    type: result.source_type || 'Source',
-    score: result.credibility?.score || 0,
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    result,
-    input,
-  };
+function saveHistory(r, source) {
+  const entry = { id: Date.now(), title: r.title, source, format: citFormat, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), result: r };
   history.unshift(entry);
   if (history.length > 20) history = history.slice(0, 20);
   try { localStorage.setItem('notiv-citations', JSON.stringify(history)); } catch {}
 }
 
 function renderHistory() {
-  const section = document.getElementById('history-section');
-  const list = document.getElementById('history-list');
+  const section = document.getElementById('hist-section');
+  const list = document.getElementById('hist-list');
   if (!history.length) { section.style.display = 'none'; return; }
-  section.style.display = 'flex';
+  section.style.display = 'block';
   list.innerHTML = '';
-  history.slice(0, 6).forEach(entry => {
+  history.slice(0, 8).forEach(h => {
     const item = document.createElement('div');
-    item.className = 'history-item';
-    item.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-        <div class="history-item-title">${escH(entry.title)}</div>
-        <div class="history-item-badge">${entry.type}</div>
-      </div>
-      <div class="history-item-meta">
-        <span>${entry.date}</span>
-        <span>Credibility: ${entry.score}/100</span>
-      </div>
-    `;
-    item.onclick = () => {
-      document.getElementById('main-input').value = entry.input;
-      renderResult(entry.result, entry.input);
-    };
+    item.className = 'hist-item';
+    item.innerHTML = `<div class="hist-item-body"><div class="hist-item-title">${escH(h.title)}</div><div class="hist-item-meta">${h.date} · ${escH(h.source.slice(0,40))}</div></div><span class="hist-format-tag">${h.format.toUpperCase()}</span>`;
+    item.onclick = () => { document.getElementById('source-input').value = h.source; renderResult(h.result, h.source); document.getElementById('empty-state').style.display = 'none'; };
     list.appendChild(item);
   });
 }
 
 function clearAll() {
-  document.getElementById('main-input').value = '';
-  document.getElementById('result-placeholder').style.display = 'flex';
-  document.getElementById('citation-output').classList.remove('visible');
+  document.getElementById('results-container').innerHTML = '';
+  document.getElementById('empty-state').style.display = 'flex';
 }
 
-function setLoading(on, step = '') {
-  document.getElementById('processing-bar').classList.toggle('visible', on);
-  document.getElementById('processing-step').textContent = step;
-  document.getElementById('generate-btn').disabled = on;
+function setLoading(on) {
+  document.getElementById('proc-bar').classList.toggle('on', on);
+  document.getElementById('gen-btn').disabled = on;
 }
 
-function showToast(msg, type = 'success') {
+function toast(msg, ok = true) {
   const t = document.getElementById('toast');
-  document.getElementById('toast-msg').textContent = msg;
-  document.getElementById('toast-icon').textContent = type === 'error' ? '✕' : '✓';
-  t.className = `toast visible ${type}`;
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove('visible'), 3000);
+  document.getElementById('t-msg').textContent = msg;
+  document.getElementById('t-icon').textContent = ok ? '✓' : '✕';
+  t.className = 'toast on ' + (ok ? 'ok' : 'err');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2500);
 }
 
-function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escH(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+// Sidebar collapse
+(function () {
+  const s = document.getElementById('nav-sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  if (!s || !btn) return;
+  if (localStorage.getItem('notiv-sidebar-collapsed') === '1') { s.classList.add('collapsed'); btn.textContent = '›'; }
+  btn.addEventListener('click', () => { const c = s.classList.toggle('collapsed'); btn.textContent = c ? '›' : '‹'; localStorage.setItem('notiv-sidebar-collapsed', c ? '1' : '0'); });
+})();
 </script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
