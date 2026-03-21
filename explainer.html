@@ -1,488 +1,416 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="guard.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Concept Explainer — Notiv</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #080809; --s1: #0f0f12; --s2: #16161a; --s3: #1e1e24;
-  --b1: #22222a; --b2: #2e2e38; --b3: #3c3c48;
-  --t1: #f0ede8; --t2: #9b9893; --t3: #5a5855; --t4: #383634;
-  --lime: #c8f05e; --lime-d: rgba(200,240,94,0.08); --lime-b: rgba(200,240,94,0.2);
-  --purple: #a07ee8; --purple-d: rgba(160,126,232,0.10); --purple-b: rgba(160,126,232,0.25);
-  --coral: #f0635a; --coral-d: rgba(240,99,90,0.10);
-  --amber: #f0ae50; --amber-d: rgba(240,174,80,0.10);
-  --sky: #58b2ee; --sky-d: rgba(88,178,238,0.10);
-  --r: 10px; --rl: 14px;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;
+  --b1:#22222a;--b2:#2e2e38;--b3:#3c3c48;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);--purple-b:rgba(160,126,232,0.25);
+  --coral:#f0635a;--coral-d:rgba(240,99,90,0.10);--coral-b:rgba(240,99,90,0.3);
+  --amber:#f0ae50;--amber-d:rgba(240,174,80,0.10);
+  --sky:#58b2ee;--sky-d:rgba(88,178,238,0.10);
+  --r:10px;--rl:14px;
 }
-html { scroll-behavior: smooth; }
-body { background: var(--bg); color: var(--t1); font-family: 'Instrument Sans', sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;height:100vh;display:flex;overflow:hidden}
 
-.topbar { display: flex; align-items: center; height: 52px; background: var(--s1); border-bottom: 1px solid var(--b1); position: sticky; top: 0; z-index: 100; padding: 0 24px; gap: 0; flex-shrink: 0; }
-.logo { font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 500; color: var(--t1); text-decoration: none; }
-.logo-dot { color: var(--lime); }
-.back-link { font-size: 13px; color: var(--t3); text-decoration: none; margin-left: 20px; transition: color 0.12s; }
-.back-link:hover { color: var(--t2); }
+/* Nav sidebar */
+.nav-sidebar{width:220px;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;flex-shrink:0;overflow:hidden;transition:width 0.22s cubic-bezier(0.4,0,0.2,1)}
+.nav-sidebar.collapsed{width:52px}
+.sidebar-logo-wrap{display:flex;align-items:center;justify-content:space-between;padding:16px 14px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.sidebar-logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--t1);text-decoration:none;overflow:hidden;white-space:nowrap}
+.sidebar-logo span{color:var(--lime)}
+.logo-text{transition:opacity 0.15s}
+.nav-sidebar.collapsed .logo-text{opacity:0;width:0;display:none}
+.sidebar-toggle{background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t4);cursor:pointer;width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.12s}
+.sidebar-toggle:hover{border-color:var(--b2);color:var(--t2)}
+.sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 6px;display:flex;flex-direction:column;gap:1px}
+.sidebar-nav::-webkit-scrollbar{width:3px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.snav-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;padding:10px 8px 3px;white-space:nowrap;overflow:hidden;transition:opacity 0.15s}
+.nav-sidebar.collapsed .snav-label{opacity:0;height:0;padding:0}
+.snav-link{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;position:relative;white-space:nowrap;overflow:hidden}
+.snav-link:hover{background:var(--s2);color:var(--t2)}
+.snav-link.active{background:var(--s2);color:var(--t1)}
+.snav-link.active::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0}
+.sl-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.sl-text{overflow:hidden;transition:opacity 0.15s}
+.nav-sidebar.collapsed .sl-text{opacity:0;width:0}
+.nav-sidebar.collapsed .snav-link{justify-content:center;padding:8px}
+.nav-sidebar.collapsed .snav-link:hover::before{content:attr(data-label);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);background:var(--s2);border:1px solid var(--b2);border-radius:7px;padding:5px 12px;font-size:12px;color:var(--t1);white-space:nowrap;pointer-events:none;z-index:9999}
 
-/* ── Layout ── */
-.app { display: grid; grid-template-columns: 340px 1fr; flex: 1; height: calc(100vh - 52px); overflow: hidden; }
+/* Layout */
+.app{flex:1;display:grid;grid-template-columns:320px 1fr;height:100vh;overflow:hidden;min-width:0}
 
-/* ── Left panel ── */
-.left-panel { background: var(--s1); border-right: 1px solid var(--b1); display: flex; flex-direction: column; overflow: hidden; }
-.left-inner { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+/* Input panel */
+.input-panel{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.panel-head{padding:20px 18px 14px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.panel-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:400}
+.panel-sub{font-size:12px;color:var(--t3);margin-top:3px}
 
-.panel-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; }
-.panel-sub { font-size: 13px; color: var(--t3); margin-top: 2px; }
-
-.search-bar { position: relative; }
-.search-input { width: 100%; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 10px 14px 10px 36px; font-family: inherit; font-size: 14px; color: var(--t1); outline: none; transition: border-color 0.15s; }
-.search-input:focus { border-color: var(--lime-b); }
-.search-input::placeholder { color: var(--t4); }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--t4); font-size: 14px; pointer-events: none; }
+.input-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+.field-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:5px}
+.f-input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;transition:border-color 0.15s}
+.f-input:focus{border-color:var(--lime-b)}
+.f-input::placeholder{color:var(--t4)}
 
 /* Level selector */
-.level-row { display: flex; gap: 5px; }
-.level-btn { flex: 1; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--b1); background: var(--s2); color: var(--t3); font-family: inherit; font-size: 11px; cursor: pointer; transition: all 0.12s; text-align: center; }
-.level-btn:hover { border-color: var(--b2); color: var(--t2); }
-.level-btn.active { border-color: var(--lime-b); background: var(--lime-d); color: var(--lime); }
+.level-btns{display:flex;flex-direction:column;gap:4px}
+.lvl-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid var(--b1);background:none;cursor:pointer;transition:all 0.12s;text-align:left;width:100%;font-family:inherit}
+.lvl-btn:hover{border-color:var(--b2);background:var(--s2)}
+.lvl-btn.active{border-color:var(--lime-b);background:var(--lime-d)}
+.lvl-icon{font-size:16px;flex-shrink:0}
+.lvl-info{flex:1}
+.lvl-name{font-size:13px;font-weight:500;color:var(--t1)}
+.lvl-desc{font-size:11px;color:var(--t3)}
+.lvl-btn.active .lvl-name{color:var(--lime)}
 
-/* Style selector */
-.style-row { display: flex; gap: 5px; flex-wrap: wrap; }
-.style-chip { padding: 5px 10px; border-radius: 20px; border: 1px solid var(--b1); background: var(--s2); color: var(--t3); font-family: inherit; font-size: 12px; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
-.style-chip:hover { border-color: var(--b2); color: var(--t2); }
-.style-chip.active { border-color: var(--purple-b); background: var(--purple-d); color: var(--purple); }
+/* Style chips */
+.style-chips{display:flex;gap:5px;flex-wrap:wrap}
+.style-chip{padding:5px 12px;border-radius:20px;border:1px solid var(--b1);background:none;font-family:inherit;font-size:12px;color:var(--t3);cursor:pointer;transition:all 0.12s}
+.style-chip:hover{border-color:var(--b2);color:var(--t2)}
+.style-chip.active{border-color:var(--purple-b);background:var(--purple-d);color:var(--purple)}
 
-/* Generate button */
-.gen-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: var(--r); border: none; background: var(--lime); color: #080809; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-.gen-btn:hover:not(:disabled) { background: #d8ff74; }
-.gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Suggestions */
+.sugg-wrap{display:flex;flex-direction:column;gap:4px}
+.sugg-chip{padding:7px 10px;border-radius:8px;background:var(--s2);border:1px solid var(--b1);font-size:12px;color:var(--t3);cursor:pointer;transition:all 0.12s;text-align:left}
+.sugg-chip:hover{border-color:var(--b2);color:var(--t2)}
 
-/* Processing */
-.proc { display: none; align-items: center; gap: 8px; padding: 10px; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); font-size: 12px; color: var(--t2); }
-.proc.on { display: flex; }
-.spin { width: 14px; height: 14px; border: 2px solid var(--b2); border-top-color: var(--lime); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.panel-action{padding:12px;border-top:1px solid var(--b1);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
+.proc-bar{display:none;align-items:center;gap:8px;padding:9px 12px;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);font-size:12px;color:var(--t2)}
+.proc-bar.on{display:flex}
+.spinner{width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--lime);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.proc-step{color:var(--lime);font-weight:500}
 
-/* History list */
-.hist-section { display: flex; flex-direction: column; gap: 6px; }
-.hist-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); letter-spacing: 0.1em; text-transform: uppercase; }
-.hist-item { padding: 9px 12px; border-radius: var(--r); background: var(--s2); border: 1px solid var(--b1); cursor: pointer; transition: border-color 0.12s; }
-.hist-item:hover { border-color: var(--b2); }
-.hist-name { font-size: 13px; color: var(--t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hist-meta { font-size: 10px; color: var(--t4); font-family: 'DM Mono', monospace; margin-top: 2px; }
+/* Output panel */
+.output-panel{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.output-toolbar{padding:12px 20px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.out-tabs{display:flex;gap:4px}
+.out-tab{padding:5px 12px;border-radius:7px;border:1px solid var(--b1);background:none;font-family:inherit;font-size:12px;color:var(--t3);cursor:pointer;transition:all 0.12s}
+.out-tab:hover{color:var(--t2)}
+.out-tab.active{background:var(--s2);color:var(--t1);border-color:var(--b2)}
 
-/* ── Right panel ── */
-.right-panel { display: flex; flex-direction: column; overflow: hidden; }
+.output-scroll{flex:1;overflow-y:auto;padding:28px 36px}
+.output-scroll::-webkit-scrollbar{width:4px}
+.output-scroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
 
-/* Placeholder */
-.placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 40px; color: var(--t4); }
-.ph-title { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--t2); }
-.ph-sub { font-size: 13px; max-width: 320px; line-height: 1.6; }
-.ph-suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
-.ph-pill { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--b1); background: var(--s1); font-size: 13px; color: var(--t3); cursor: pointer; transition: all 0.12s; }
-.ph-pill:hover { border-color: var(--b2); color: var(--t2); }
+/* Output content */
+.out-pane{display:none}
+.out-pane.active{display:block}
 
-/* Content area */
-.content-area { display: none; flex: 1; overflow-y: auto; }
-.content-area.visible { display: flex; flex-direction: column; }
+.out-concept{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:var(--t1);margin-bottom:6px}
+.out-level-tag{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:24px;display:flex;align-items:center;gap:6px}
+.out-body{font-size:15px;line-height:1.9;color:var(--t2)}
+.out-body p{margin-bottom:16px}
+.out-body h2{font-family:'Playfair Display',serif;font-size:20px;color:var(--t1);margin:24px 0 10px;font-weight:400}
+.out-body h3{font-size:15px;font-weight:600;color:var(--t1);margin:18px 0 8px}
+.out-body strong{color:var(--lime);font-weight:600}
+.out-body em{color:var(--purple);font-style:italic}
+.out-body ul{padding-left:20px;margin-bottom:16px}
+.out-body li{margin-bottom:6px;color:var(--t2)}
+.out-body blockquote{border-left:2px solid var(--lime-b);padding-left:16px;color:var(--t3);font-style:italic;margin:16px 0}
+.out-body code{font-family:'DM Mono',monospace;font-size:12px;background:var(--s2);padding:2px 6px;border-radius:4px;color:var(--purple)}
 
-/* Content header */
-.content-header { padding: 20px 28px 16px; border-bottom: 1px solid var(--b1); background: var(--s1); flex-shrink: 0; }
-.content-concept { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 400; }
-.content-meta { display: flex; align-items: center; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
-.content-badge { font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 8px; border-radius: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
-.badge-level { background: var(--lime-d); color: var(--lime); border: 1px solid var(--lime-b); }
-.badge-subject { background: var(--purple-d); color: var(--purple); border: 1px solid var(--purple-b); }
-.content-actions { display: flex; gap: 8px; margin-top: 12px; }
-
-/* Section tabs */
-.section-tabs { display: flex; border-bottom: 1px solid var(--b1); background: var(--s1); flex-shrink: 0; }
-.sec-tab { padding: 11px 20px; border: none; background: none; color: var(--t3); font-family: inherit; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.12s; }
-.sec-tab:hover { color: var(--t2); }
-.sec-tab.active { color: var(--t1); border-bottom-color: var(--lime); }
-
-/* Tab contents */
-.tab-pane { display: none; padding: 28px; }
-.tab-pane.active { display: block; }
-
-/* Rendered markdown */
-.md-content { font-size: 15px; line-height: 1.8; color: var(--t2); }
-.md-content h1 { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 400; color: var(--t1); margin: 24px 0 12px; }
-.md-content h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 400; color: var(--t1); margin: 20px 0 10px; }
-.md-content h3 { font-size: 16px; font-weight: 600; color: var(--t1); margin: 16px 0 8px; }
-.md-content p { margin-bottom: 14px; }
-.md-content ul, .md-content ol { padding-left: 22px; margin-bottom: 14px; }
-.md-content li { margin-bottom: 5px; }
-.md-content strong { color: var(--lime); font-weight: 600; }
-.md-content em { color: var(--t1); font-style: italic; }
-.md-content code { font-family: 'DM Mono', monospace; font-size: 13px; background: var(--s3); padding: 2px 6px; border-radius: 4px; color: var(--purple); }
-.md-content pre { background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 16px; margin: 16px 0; overflow-x: auto; }
-.md-content pre code { background: none; padding: 0; color: var(--lime); }
-.md-content blockquote { border-left: 2px solid var(--lime-b); padding-left: 16px; color: var(--t3); font-style: italic; margin: 16px 0; }
-.md-content hr { border: none; border-top: 1px solid var(--b1); margin: 24px 0; }
-.md-content table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-.md-content th { background: var(--s2); padding: 8px 12px; text-align: left; font-size: 12px; font-family: 'DM Mono', monospace; color: var(--t3); border-bottom: 1px solid var(--b1); }
-.md-content td { padding: 8px 12px; border-bottom: 1px solid var(--b1); color: var(--t2); }
-
-/* Analogy cards */
-.analogy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
-.analogy-card { background: var(--s2); border: 1px solid var(--b1); border-radius: var(--rl); padding: 16px; }
-.analogy-icon { font-size: 24px; margin-bottom: 8px; }
-.analogy-title { font-size: 13px; font-weight: 500; color: var(--t1); margin-bottom: 6px; }
-.analogy-text { font-size: 13px; color: var(--t2); line-height: 1.6; }
-
-/* Key terms */
-.terms-grid { display: flex; flex-direction: column; gap: 10px; }
-.term-card { background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 14px 16px; }
-.term-name { font-size: 14px; font-weight: 600; color: var(--lime); margin-bottom: 4px; }
-.term-def { font-size: 13px; color: var(--t2); line-height: 1.6; }
-.term-example { font-size: 12px; color: var(--t3); margin-top: 4px; font-style: italic; }
-
-/* Follow-up questions */
-.followup-list { display: flex; flex-direction: column; gap: 8px; }
-.followup-btn { text-align: left; background: var(--s2); border: 1px solid var(--b1); border-radius: var(--r); padding: 12px 14px; font-family: inherit; font-size: 13px; color: var(--t2); cursor: pointer; transition: all 0.12s; }
-.followup-btn:hover { border-color: var(--b2); color: var(--t1); background: var(--s3); }
+/* Empty state */
+.empty-out{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:14px;text-align:center;color:var(--t4)}
+.eo-icon{font-size:48px;opacity:0.2}
+.eo-title{font-family:'Playfair Display',serif;font-size:22px;color:var(--t2)}
+.eo-sub{font-size:13px;max-width:320px;line-height:1.6;color:var(--t4)}
 
 /* Buttons */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--b2); background: var(--s2); color: var(--t2); font-family: inherit; font-size: 13px; cursor: pointer; transition: all 0.12s; }
-.btn:hover { border-color: var(--b3); color: var(--t1); }
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s}
+.btn:hover{border-color:var(--b3);color:var(--t1)}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:#080809;font-weight:600}
+.btn.primary:hover{background:#d8ff74}
+.btn.full{width:100%;justify-content:center}
+.btn.sm{padding:5px 10px;font-size:12px}
 
 /* Toast */
-.toast { position: fixed; bottom: 24px; right: 24px; background: var(--s2); border: 1px solid var(--b2); border-radius: var(--r); padding: 10px 14px; font-size: 13px; color: var(--t1); z-index: 999; display: none; align-items: center; gap: 8px; }
-.toast.on { display: flex; }
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px}
+.toast.on{display:flex}
+.toast.ok{border-color:var(--lime-b)}
+.toast.err{border-color:var(--coral-b)}
 
-@media (max-width: 800px) {
-  .app { grid-template-columns: 1fr; height: auto; overflow: visible; }
-  .left-panel { border-right: none; border-bottom: 1px solid var(--b1); }
-  .right-panel { min-height: 60vh; }
-  .analogy-grid { grid-template-columns: 1fr; }
-}
+@media(max-width:900px){.nav-sidebar{display:none}}
+@media(max-width:680px){.app{grid-template-columns:1fr}.input-panel{display:none}}
 </style>
 </head>
 <body>
 
-<header class="topbar">
-  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
-  <a href="index.html" class="back-link">← All features</a>
-</header>
+<aside class="nav-sidebar" id="nav-sidebar">
+  <div class="sidebar-logo-wrap">
+    <a href="index.html" class="sidebar-logo"><span class="logo-text">Notiv<span>.</span></span></a>
+    <button class="sidebar-toggle" id="sidebar-toggle-btn" title="Collapse">‹</button>
+  </div>
+  <div class="sidebar-nav">
+    <div class="snav-label">Main</div>
+    <a href="dashboard.html" class="snav-link" data-label="Dashboard"><span class="sl-icon">📊</span><span class="sl-text">Dashboard</span></a>
+    <div class="snav-label">Study tools</div>
+    <a href="notes.html" class="snav-link" data-label="Notes"><span class="sl-icon">📚</span><span class="sl-text">Notes Library</span></a>
+    <a href="essay.html" class="snav-link" data-label="Essays"><span class="sl-icon">✏️</span><span class="sl-text">Essay Editor</span></a>
+    <a href="flashcards.html" class="snav-link" data-label="Flashcards"><span class="sl-icon">🃏</span><span class="sl-text">Flashcards</span></a>
+    <a href="quiz.html" class="snav-link" data-label="Quiz Me"><span class="sl-icon">🧠</span><span class="sl-text">Quiz Me</span></a>
+    <a href="planner.html" class="snav-link" data-label="Planner"><span class="sl-icon">📅</span><span class="sl-text">Planner</span></a>
+    <a href="explainer.html" class="snav-link active" data-label="Explainer"><span class="sl-icon">💡</span><span class="sl-text">Explainer</span></a>
+    <a href="games.html" class="snav-link" data-label="Games"><span class="sl-icon">🎮</span><span class="sl-text">Games</span></a>
+    <a href="writer.html" class="snav-link" data-label="AI Writer"><span class="sl-icon">✍️</span><span class="sl-text">AI Writer</span></a>
+    <a href="timer.html" class="snav-link" data-label="Timer"><span class="sl-icon">⏱</span><span class="sl-text">Timer</span></a>
+    <div class="snav-label">Research</div>
+    <a href="citations.html" class="snav-link" data-label="Citations"><span class="sl-icon">📎</span><span class="sl-text">Citations</span></a>
+    <div class="snav-label">Account</div>
+    <a href="profile.html" class="snav-link" data-label="Profile"><span class="sl-icon">👤</span><span class="sl-text">Profile</span></a>
+    <a href="settings.html" class="snav-link" data-label="Settings"><span class="sl-icon">⚙️</span><span class="sl-text">Settings</span></a>
+  </div>
+</aside>
 
 <div class="app">
 
-  <!-- Left panel -->
-  <div class="left-panel">
-    <div class="left-inner">
+  <!-- Input -->
+  <div class="input-panel">
+    <div class="panel-head">
+      <div class="panel-title">Concept Explainer</div>
+      <div class="panel-sub">Any topic, explained at your level</div>
+    </div>
+    <div class="input-body">
       <div>
-        <div class="panel-title">Concept Explainer</div>
-        <div class="panel-sub">Understand anything, at any level</div>
+        <div class="field-label">What do you want to understand?</div>
+        <input class="f-input" id="concept-input" placeholder="e.g. Quantum entanglement, Supply and demand, CRISPR…" onkeydown="if(event.key==='Enter')explain()">
       </div>
-
-      <div class="search-bar">
-        <span class="search-icon">🔍</span>
-        <input class="search-input" id="concept-input" type="text" placeholder="Enter a concept, topic, or question…" onkeydown="if(event.key==='Enter')explain()">
-      </div>
-
       <div>
-        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Explanation level</div>
-        <div class="level-row">
-          <button class="level-btn" onclick="setLevel('child',this)">Child</button>
-          <button class="level-btn" onclick="setLevel('beginner',this)">Beginner</button>
-          <button class="level-btn active" onclick="setLevel('student',this)">Student</button>
-          <button class="level-btn" onclick="setLevel('expert',this)">Expert</button>
+        <div class="field-label">Explanation level</div>
+        <div class="level-btns">
+          <button class="lvl-btn" onclick="setLevel('eli5',this)"><span class="lvl-icon">🧒</span><div class="lvl-info"><div class="lvl-name">ELI5</div><div class="lvl-desc">Like I'm 5 years old</div></div></button>
+          <button class="lvl-btn active" onclick="setLevel('beginner',this)"><span class="lvl-icon">📖</span><div class="lvl-info"><div class="lvl-name">Beginner</div><div class="lvl-desc">No prior knowledge needed</div></div></button>
+          <button class="lvl-btn" onclick="setLevel('intermediate',this)"><span class="lvl-icon">🎓</span><div class="lvl-info"><div class="lvl-name">Intermediate</div><div class="lvl-desc">Some background assumed</div></div></button>
+          <button class="lvl-btn" onclick="setLevel('advanced',this)"><span class="lvl-icon">🔬</span><div class="lvl-info"><div class="lvl-name">Advanced</div><div class="lvl-desc">Technical depth</div></div></button>
         </div>
       </div>
-
       <div>
-        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Style</div>
-        <div class="style-row">
-          <button class="style-chip active" onclick="setStyle('balanced',this)">Balanced</button>
+        <div class="field-label">Style</div>
+        <div class="style-chips">
+          <button class="style-chip active" onclick="setStyle('clear',this)">Clear</button>
           <button class="style-chip" onclick="setStyle('visual',this)">Visual</button>
-          <button class="style-chip" onclick="setStyle('analogies',this)">Analogies</button>
-          <button class="style-chip" onclick="setStyle('examples',this)">Examples</button>
+          <button class="style-chip" onclick="setStyle('analogy',this)">Analogies</button>
+          <button class="style-chip" onclick="setStyle('story',this)">Story</button>
           <button class="style-chip" onclick="setStyle('technical',this)">Technical</button>
         </div>
       </div>
-
-      <div class="proc" id="proc"><div class="spin"></div><span style="color:var(--lime);font-weight:500;">Thinking…</span></div>
-
-      <button class="gen-btn" id="gen-btn" onclick="explain()">✦ Explain this</button>
-
-      <div class="hist-section" id="hist-section" style="display:none">
-        <div class="hist-label">Recent explanations</div>
-        <div id="hist-list"></div>
+      <div>
+        <div class="field-label">Try these</div>
+        <div class="sugg-wrap">
+          <div class="sugg-chip" onclick="setConcept('How does the immune system work?')">How does the immune system work?</div>
+          <div class="sugg-chip" onclick="setConcept('What is machine learning?')">What is machine learning?</div>
+          <div class="sugg-chip" onclick="setConcept('Explain compound interest')">Explain compound interest</div>
+          <div class="sugg-chip" onclick="setConcept('What caused World War I?')">What caused World War I?</div>
+        </div>
       </div>
+    </div>
+    <div class="panel-action">
+      <div class="proc-bar" id="proc-bar"><div class="spinner"></div><span><span class="proc-step">Thinking…</span></span></div>
+      <button class="btn primary full" id="gen-btn" onclick="explain()">✦ Explain this</button>
     </div>
   </div>
 
-  <!-- Right panel -->
-  <div class="right-panel">
-
-    <div class="placeholder" id="placeholder">
-      <div style="font-size:48px;">💡</div>
-      <div class="ph-title">What do you want to understand?</div>
-      <div class="ph-sub">Type any concept, theory, or question and get a clear, tailored explanation with analogies, examples, and key terms.</div>
-      <div class="ph-suggestions">
-        <div class="ph-pill" onclick="quickExplain('How does DNA replication work?')">DNA replication</div>
-        <div class="ph-pill" onclick="quickExplain('What is compound interest?')">Compound interest</div>
-        <div class="ph-pill" onclick="quickExplain('Explain quantum entanglement')">Quantum entanglement</div>
-        <div class="ph-pill" onclick="quickExplain('What is the Doppler effect?')">Doppler effect</div>
-        <div class="ph-pill" onclick="quickExplain('How does machine learning work?')">Machine learning</div>
-        <div class="ph-pill" onclick="quickExplain('What caused World War I?')">World War I causes</div>
-        <div class="ph-pill" onclick="quickExplain('Explain supply and demand')">Supply &amp; demand</div>
-        <div class="ph-pill" onclick="quickExplain('What is the Krebs cycle?')">Krebs cycle</div>
+  <!-- Output -->
+  <div class="output-panel">
+    <div class="output-toolbar">
+      <div class="out-tabs">
+        <button class="out-tab active" id="tab-explain" onclick="switchTab('explain',this)">Explanation</button>
+        <button class="out-tab" id="tab-summary" onclick="switchTab('summary',this)">Summary</button>
+        <button class="out-tab" id="tab-quiz" onclick="switchTab('quiz',this)">Test yourself</button>
+        <button class="out-tab" id="tab-notes" onclick="switchTab('notes',this)">Key points</button>
       </div>
+      <button class="btn sm" style="margin-left:auto" id="save-btn" onclick="saveToNotes()" style="display:none">Save to notes</button>
     </div>
-
-    <div class="content-area" id="content-area">
-      <div class="content-header">
-        <div class="content-concept" id="content-concept">—</div>
-        <div class="content-meta">
-          <span class="content-badge badge-level" id="badge-level">Student</span>
-          <span class="content-badge badge-subject" id="badge-subject">—</span>
-        </div>
-        <div class="content-actions">
-          <button class="btn" onclick="saveToNotes()">📚 Save to notes</button>
-          <button class="btn" onclick="document.getElementById('concept-input').focus()">↺ New concept</button>
+    <div class="output-scroll">
+      <div class="out-pane active" id="pane-explain">
+        <div class="empty-out">
+          <div class="eo-icon">💡</div>
+          <div class="eo-title">Nothing yet</div>
+          <div class="eo-sub">Enter a concept on the left and Claude will explain it at whatever level you need.</div>
         </div>
       </div>
-
-      <div class="section-tabs">
-        <button class="sec-tab active" onclick="switchTab('explain',this)">Explanation</button>
-        <button class="sec-tab" onclick="switchTab('analogies',this)">Analogies</button>
-        <button class="sec-tab" onclick="switchTab('terms',this)">Key terms</button>
-        <button class="sec-tab" onclick="switchTab('followup',this)">Dig deeper</button>
-      </div>
-
-      <div class="tab-pane active" id="tab-explain">
-        <div class="md-content" id="explain-content"></div>
-      </div>
-      <div class="tab-pane" id="tab-analogies">
-        <div class="analogy-grid" id="analogies-content"></div>
-      </div>
-      <div class="tab-pane" id="tab-terms">
-        <div class="terms-grid" id="terms-content"></div>
-      </div>
-      <div class="tab-pane" id="tab-followup">
-        <div class="followup-list" id="followup-content"></div>
-      </div>
+      <div class="out-pane" id="pane-summary"></div>
+      <div class="out-pane" id="pane-quiz"></div>
+      <div class="out-pane" id="pane-notes"></div>
     </div>
-
   </div>
+
 </div>
 
-<div class="toast" id="toast"><span id="t-msg">✓</span></div>
+<div class="toast" id="toast"><span id="t-icon">✓</span><span id="t-msg"></span></div>
 
 <script>
 const WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
-let selectedLevel = 'student';
-let selectedStyle = 'balanced';
-let history = JSON.parse(localStorage.getItem('notiv-explanations') || '[]');
-let currentResult = null;
+let currentLevel = 'beginner';
+let currentStyle = 'clear';
+let lastResult = null;
 
-document.addEventListener('DOMContentLoaded', () => renderHistory());
-
-function setLevel(l, btn) {
-  selectedLevel = l;
-  document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+function setLevel(level, btn) {
+  currentLevel = level;
+  document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
 
-function setStyle(s, btn) {
-  selectedStyle = s;
+function setStyle(style, btn) {
+  currentStyle = style;
   document.querySelectorAll('.style-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
 
-function quickExplain(concept) {
-  document.getElementById('concept-input').value = concept;
-  explain();
+function setConcept(val) {
+  document.getElementById('concept-input').value = val;
+  document.getElementById('concept-input').focus();
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.out-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.out-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pane-' + tab).classList.add('active');
 }
 
 async function explain() {
   if (!await requireAuth()) return;
   const concept = document.getElementById('concept-input').value.trim();
-  if (!concept) return;
-
+  if (!concept) { toast('Enter a concept first', false); return; }
   setLoading(true);
 
-  const levelDescriptions = {
-    child: 'a 7-year-old child with no background knowledge. Use simple words, fun analogies, and very short sentences.',
-    beginner: 'a complete beginner with no prior knowledge. Avoid jargon, explain everything from scratch.',
-    student: 'a high school or university student with some general knowledge. Be clear and thorough.',
-    expert: 'an expert or professional in a related field. Use technical terminology and go into depth.',
-  };
+  const levelMap = { eli5: 'a 5-year-old child, using only simple words and fun comparisons', beginner: 'a complete beginner with no prior knowledge', intermediate: 'someone with basic background knowledge', advanced: 'an advanced student or professional with deep technical knowledge' };
+  const styleMap = { clear: 'clear and direct prose', visual: 'visual descriptions and spatial analogies', analogy: 'relatable everyday analogies and comparisons', story: 'a narrative story format', technical: 'precise technical language with definitions' };
 
-  const styleInstructions = {
-    balanced: 'balanced mix of explanation, examples, and analogies',
-    visual: 'heavy use of diagrams described in text, step-by-step visual walkthroughs',
-    analogies: 'extensive use of creative real-world analogies and metaphors',
-    examples: 'concrete examples and case studies throughout',
-    technical: 'precise technical language, formulas, and mechanisms',
-  };
+  const prompt = `You are an expert educator. Explain the concept: "${concept}" for ${levelMap[currentLevel]} using ${styleMap[currentStyle]}.
 
-  const prompt = `You are a brilliant teacher who can explain anything clearly. Explain the following concept to ${levelDescriptions[selectedLevel]}
-
-Use a ${styleInstructions[selectedStyle]} approach.
-
-Return ONLY valid JSON, no markdown wrapping:
+Return ONLY valid JSON:
 {
-  "concept": "cleaned up concept name",
-  "subject": "subject area (e.g. Biology, Economics, Physics)",
-  "explanation": "full markdown explanation (use ##headings, **bold**, bullet points, examples — aim for 300-600 words)",
-  "analogies": [
-    { "icon": "emoji", "title": "analogy name", "text": "explanation of analogy in 2-3 sentences" },
-    { "icon": "emoji", "title": "analogy name", "text": "explanation" }
-  ],
-  "key_terms": [
-    { "term": "term", "definition": "clear definition", "example": "example usage or context" }
-  ],
-  "followup_questions": [
-    "Question that digs deeper into one aspect?",
-    "Question about a related concept?",
-    "Question that tests understanding?"
+  "concept": "clean title for this concept",
+  "explanation": "Full explanation in markdown. Use ## for sections, **bold** for key terms, > for important notes. 3-5 paragraphs minimum.",
+  "summary": "2-3 sentence TL;DR of the concept",
+  "key_points": ["point 1", "point 2", "point 3", "point 4", "point 5"],
+  "quiz": [
+    {"question": "...", "answer": "..."},
+    {"question": "...", "answer": "..."},
+    {"question": "...", "answer": "..."}
   ]
-}
-
-Provide 3 analogies, 5-7 key terms, and 5 follow-up questions.
-
-Concept to explain: "${concept}"`;
+}`;
 
   try {
-    const res = await fetch(WORKER_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }),
-    });
+    const res = await fetch(WORKER_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] }) });
     if (!res.ok) throw new Error('API error ' + res.status);
     const data = await res.json();
-    const raw = data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim();
-    currentResult = JSON.parse(raw);
-    renderResult(currentResult);
-    saveHistory(currentResult, concept);
-    renderHistory();
-  } catch (err) {
-    toast('Failed: ' + err.message);
-  } finally {
-    setLoading(false);
-  }
+    lastResult = JSON.parse(data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim());
+    renderAll(lastResult, concept);
+    document.getElementById('save-btn').style.display = 'inline-flex';
+    if (typeof window.notivAwardXP === 'function') setTimeout(() => window.notivAwardXP(40, 'Concept explained'), 400);
+  } catch (err) { toast('Failed: ' + err.message, false); }
+  finally { setLoading(false); }
 }
 
-function renderResult(r) {
-  document.getElementById('placeholder').style.display = 'none';
-  const ca = document.getElementById('content-area');
-  ca.classList.add('visible');
-
-  document.getElementById('content-concept').textContent = r.concept;
-  document.getElementById('badge-level').textContent = selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1);
-  document.getElementById('badge-subject').textContent = r.subject || 'General';
+function renderAll(r, concept) {
+  const levelLabels = { eli5: '🧒 ELI5', beginner: '📖 Beginner', intermediate: '🎓 Intermediate', advanced: '🔬 Advanced' };
 
   // Explanation tab
-  document.getElementById('explain-content').innerHTML = marked.parse(r.explanation || '');
+  document.getElementById('pane-explain').innerHTML = `
+    <div class="out-concept">${escH(r.concept)}</div>
+    <div class="out-level-tag">${levelLabels[currentLevel]} · ${currentStyle}</div>
+    <div class="out-body">${mdToHtml(r.explanation)}</div>`;
 
-  // Analogies tab
-  const ag = document.getElementById('analogies-content');
-  ag.innerHTML = '';
-  (r.analogies || []).forEach(a => {
-    const card = document.createElement('div');
-    card.className = 'analogy-card';
-    card.innerHTML = `<div class="analogy-icon">${a.icon}</div><div class="analogy-title">${escH(a.title)}</div><div class="analogy-text">${escH(a.text)}</div>`;
-    ag.appendChild(card);
-  });
+  // Summary tab
+  document.getElementById('pane-summary').innerHTML = `
+    <div class="out-concept" style="font-size:22px;margin-bottom:20px">TL;DR</div>
+    <div style="font-size:16px;line-height:1.9;color:var(--t2);font-family:'Playfair Display',serif;font-style:italic;border-left:2px solid var(--lime-b);padding-left:20px">${escH(r.summary)}</div>`;
 
-  // Key terms
-  const tg = document.getElementById('terms-content');
-  tg.innerHTML = '';
-  (r.key_terms || []).forEach(t => {
-    const card = document.createElement('div');
-    card.className = 'term-card';
-    card.innerHTML = `<div class="term-name">${escH(t.term)}</div><div class="term-def">${escH(t.definition)}</div>${t.example ? `<div class="term-example">"${escH(t.example)}"</div>` : ''}`;
-    tg.appendChild(card);
-  });
+  // Key points tab
+  document.getElementById('pane-notes').innerHTML = `
+    <div class="out-concept" style="font-size:22px;margin-bottom:20px">Key Points</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${(r.key_points || []).map((p, i) => `
+        <div style="display:flex;gap:14px;padding:12px 16px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r)">
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--lime);padding-top:2px;flex-shrink:0">${String(i+1).padStart(2,'0')}</span>
+          <span style="font-size:13px;color:var(--t2);line-height:1.6">${escH(p)}</span>
+        </div>`).join('')}
+    </div>`;
 
-  // Follow-up
-  const fl = document.getElementById('followup-content');
-  fl.innerHTML = '';
-  (r.followup_questions || []).forEach(q => {
-    const btn = document.createElement('button');
-    btn.className = 'followup-btn';
-    btn.textContent = '→ ' + q;
-    btn.onclick = () => {
-      document.getElementById('concept-input').value = q;
-      explain();
-    };
-    fl.appendChild(btn);
-  });
+  // Quiz tab
+  document.getElementById('pane-quiz').innerHTML = `
+    <div class="out-concept" style="font-size:22px;margin-bottom:20px">Test Yourself</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      ${(r.quiz || []).map((q, i) => `
+        <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden">
+          <div style="padding:14px 18px;font-size:14px;color:var(--t1);font-family:'Playfair Display',serif;cursor:pointer" onclick="toggleQuizAnswer(this)">
+            <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t4);margin-right:8px">Q${i+1}</span>${escH(q.question)}
+          </div>
+          <div style="display:none;padding:12px 18px;background:var(--s2);border-top:1px solid var(--b1);font-size:13px;color:var(--lime);line-height:1.6">✓ ${escH(q.answer)}</div>
+        </div>`).join('')}
+    </div>`;
 
-  // Switch to explanation tab
-  switchTab('explain', document.querySelector('.sec-tab'));
+  switchTab('explain', document.getElementById('tab-explain'));
 }
 
-function switchTab(tab, btn) {
-  document.querySelectorAll('.sec-tab').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('tab-' + tab).classList.add('active');
+function toggleQuizAnswer(el) {
+  const ans = el.nextElementSibling;
+  ans.style.display = ans.style.display === 'none' ? 'block' : 'none';
 }
 
 function saveToNotes() {
-  if (!currentResult) return;
+  if (!lastResult) return;
   const notes = JSON.parse(localStorage.getItem('studyai-notes') || '[]');
-  const text = `# ${currentResult.concept}\n\n${currentResult.explanation}\n\n## Key Terms\n${(currentResult.key_terms||[]).map(t => `**${t.term}**: ${t.definition}`).join('\n')}`;
-  notes.unshift({
-    id: Date.now(),
-    name: currentResult.concept + ' — explanation.txt',
-    type: 'txt',
-    size: (text.length / 1024).toFixed(1) + ' KB',
-    rawText: text,
-    polishedText: null,
-    preview: text.slice(0, 200),
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-  });
-  try { localStorage.setItem('studyai-notes', JSON.stringify(notes)); } catch {}
-  toast('Saved to Notes Library ✦');
+  const note = { id: Date.now(), name: lastResult.concept, type: 'txt', size: '', date: new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'}), rawText: lastResult.explanation, polishedText: lastResult.explanation };
+  notes.unshift(note);
+  try { localStorage.setItem('studyai-notes', JSON.stringify(notes)); toast('Saved to notes ✦', true); } catch { toast('Save failed', false); }
 }
 
-function saveHistory(r, concept) {
-  const entry = { id: Date.now(), concept: r.concept, subject: r.subject, level: selectedLevel, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), result: r };
-  history.unshift(entry);
-  if (history.length > 20) history = history.slice(0, 20);
-  try { localStorage.setItem('notiv-explanations', JSON.stringify(history)); } catch {}
-}
-
-function renderHistory() {
-  const section = document.getElementById('hist-section');
-  const list = document.getElementById('hist-list');
-  if (!history.length) { section.style.display = 'none'; return; }
-  section.style.display = 'flex';
-  list.innerHTML = '';
-  history.slice(0, 8).forEach(h => {
-    const item = document.createElement('div');
-    item.className = 'hist-item';
-    item.innerHTML = `<div class="hist-name">${escH(h.concept)}</div><div class="hist-meta">${h.date} · ${h.subject} · ${h.level}</div>`;
-    item.onclick = () => { currentResult = h.result; document.getElementById('concept-input').value = h.concept; renderResult(h.result); };
-    list.appendChild(item);
-  });
+function mdToHtml(md) {
+  if (!md) return '';
+  return md
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>')
+    .replace(/^[-*] (.+)$/gm,'<li>$1</li>')
+    .replace(/<\/li>\n<li>/g,'</li><li>')
+    .replace(/(<li>.*<\/li>)/gs,'<ul>$1</ul>')
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/^(?!<[h|b|u|l|c])(.+)$/gm,'<p>$1</p>')
+    .replace(/<p><\/p>/g,'');
 }
 
 function setLoading(on) {
-  document.getElementById('proc').classList.toggle('on', on);
+  document.getElementById('proc-bar').classList.toggle('on', on);
   document.getElementById('gen-btn').disabled = on;
-  document.getElementById('gen-btn').textContent = on ? 'Thinking…' : '✦ Explain this';
 }
 
-function toast(msg) {
+function toast(msg, ok = true) {
   const t = document.getElementById('toast');
   document.getElementById('t-msg').textContent = msg;
-  t.classList.add('on');
-  clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('on'), 2500);
+  document.getElementById('t-icon').textContent = ok ? '✓' : '✕';
+  t.className = 'toast on ' + (ok ? 'ok' : 'err');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 2500);
 }
 
-function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escH(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+(function () {
+  const s = document.getElementById('nav-sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  if (!s || !btn) return;
+  if (localStorage.getItem('notiv-sidebar-collapsed') === '1') { s.classList.add('collapsed'); btn.textContent = '›'; }
+  btn.addEventListener('click', () => { const c = s.classList.toggle('collapsed'); btn.textContent = c ? '›' : '‹'; localStorage.setItem('notiv-sidebar-collapsed', c ? '1' : '0'); });
+})();
 </script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
