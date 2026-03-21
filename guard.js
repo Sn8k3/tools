@@ -1,19 +1,13 @@
 /**
  * guard.js — Notiv instant auth guard
- * Add as the FIRST script in <head> on every protected page:
- * <script src="guard.js"></script>   ← no defer, no async
- *
- * Reads the Supabase session from localStorage synchronously.
- * Redirects to login instantly — before the page renders — so
- * there's no flash and the back button can't bypass it.
+ * Add as the FIRST script in <head> on every protected page (no defer/async).
+ * Reads Supabase session from localStorage synchronously.
  */
 (function () {
-  // Pages that never need a guard
   var page = location.pathname.split('/').pop() || '';
   var pub = ['login.html', 'onboarding.html', 'landing.html', 'index.html', ''];
   if (pub.indexOf(page) !== -1) return;
 
-  // Supabase stores the session under this key pattern
   var PROJECT_REF = 'uorlszhcjrblrbmhgyqb';
   var KEY = 'sb-' + PROJECT_REF + '-auth-token';
 
@@ -21,25 +15,39 @@
   try { raw = localStorage.getItem(KEY); } catch (e) { return; }
 
   if (!raw) {
-    // No session — redirect immediately
-    var redirect = encodeURIComponent(location.href);
-    location.replace('https://sn8k3.github.io/tools/login.html?redirect=' + redirect);
+    location.replace('https://sn8k3.github.io/tools/login.html?redirect=' + encodeURIComponent(location.href));
     return;
   }
 
-  // Token exists — check it's not expired
   try {
-    var token = JSON.parse(raw);
-    var exp = token.expires_at || (token.access_token && JSON.parse(atob(token.access_token.split('.')[1])).exp);
-    if (exp && Math.floor(Date.now() / 1000) > exp) {
-      // Expired — redirect
-      var redirect = encodeURIComponent(location.href);
-      location.replace('https://sn8k3.github.io/tools/login.html?redirect=' + redirect);
+    var data = JSON.parse(raw);
+    // Supabase may nest session data — handle both formats
+    var token = data;
+    if (data.access_token === undefined && data.session) token = data.session;
+    if (data.access_token === undefined && data.currentSession) token = data.currentSession;
+
+    // Try to get expiry from expires_at, or decode the JWT
+    var exp = token.expires_at;
+    if (!exp && token.access_token) {
+      try {
+        var parts = token.access_token.split('.');
+        if (parts.length === 3) {
+          var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+          exp = payload.exp;
+        }
+      } catch (e) {}
     }
-    // Valid session — allow page to load normally
+
+    // If we have an expiry and it's in the past, redirect
+    if (exp && Math.floor(Date.now() / 1000) > Number(exp)) {
+      location.replace('https://sn8k3.github.io/tools/login.html?redirect=' + encodeURIComponent(location.href));
+      return;
+    }
+
+    // If we couldn't find an access_token at all, still let them through
+    // auth.js will do a proper session check and show the modal if needed
   } catch (e) {
-    // Can't parse token — redirect to be safe
-    var redirect = encodeURIComponent(location.href);
-    location.replace('https://sn8k3.github.io/tools/login.html?redirect=' + redirect);
+    // Can't parse — redirect to login
+    location.replace('https://sn8k3.github.io/tools/login.html?redirect=' + encodeURIComponent(location.href));
   }
 })();
