@@ -244,7 +244,14 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 @keyframes modal-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .modal-header{padding:20px 24px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:var(--s2)}
 .modal-header-left{flex:1;min-width:0}
-.modal-title{font-family:'Playfair Display',serif;font-size:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.modal-title{font-family:'Playfair Display',serif;font-size:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:6px;padding:2px 6px;margin:-2px -6px;transition:background 0.12s}
+.modal-title:hover{background:var(--s3)}
+.modal-title-input{font-family:'Playfair Display',serif;font-size:22px;color:var(--t1);background:var(--s2);border:1px solid var(--lime-b);border-radius:8px;padding:2px 10px;outline:none;width:100%;max-width:400px}
+.rename-btn{background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t4);cursor:pointer;padding:3px 8px;font-size:11px;font-family:'DM Mono',monospace;transition:all 0.12s;flex-shrink:0}
+.rename-btn:hover{border-color:var(--b2);color:var(--t2)}
+.rename-row-btn{opacity:0;transition:opacity 0.12s}
+.note-row:hover .rename-row-btn{opacity:1}
+.rename-inline-input{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:500;color:var(--t1);background:var(--s2);border:1px solid var(--lime-b);border-radius:6px;padding:1px 8px;outline:none;width:100%;max-width:300px}
 .modal-meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
 .modal-badge{font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:20px;background:var(--lime-d);color:var(--lime);border:1px solid var(--lime-b);display:none}
 .modal-close{background:var(--s3);border:1px solid var(--b2);border-radius:8px;color:var(--t3);cursor:pointer;font-size:16px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:all 0.12s;flex-shrink:0}
@@ -461,7 +468,8 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
   <div class="modal">
     <div class="modal-header">
       <div class="modal-header-left">
-        <div class="modal-title" id="modal-title">Note</div>
+        <div class="modal-title" id="modal-title" title="Click to rename" onclick="startRename()" style="cursor:text">Note</div>
+      <input class="modal-title-input" id="modal-title-input" style="display:none" onblur="commitRename()" onkeydown="if(event.key==='Enter')commitRename();if(event.key==='Escape')cancelRename()">
         <div class="modal-meta">
           <span class="modal-badge" id="modal-badge">✦ AI Polished</span>
         </div>
@@ -666,6 +674,86 @@ function openNote(noteId, showPolished = false) {
 }
 
 function closeModal() { document.getElementById('modal-overlay').classList.remove('visible'); openNoteId = null; }
+
+function startRename() {
+  const note = notes.find(n => n.id === openNoteId);
+  if (!note) return;
+  const titleEl = document.getElementById('modal-title');
+  const inputEl = document.getElementById('modal-title-input');
+  inputEl.value = note.name;
+  titleEl.style.display = 'none';
+  inputEl.style.display = 'block';
+  inputEl.focus();
+  inputEl.select();
+}
+
+function commitRename() {
+  const note = notes.find(n => n.id === openNoteId);
+  if (!note) return;
+  const inputEl = document.getElementById('modal-title-input');
+  const titleEl = document.getElementById('modal-title');
+  const newName = inputEl.value.trim();
+  if (newName && newName !== note.name) {
+    note.name = newName;
+    saveNotes();
+    renderNotes();
+    showToast('Renamed', 'success');
+  }
+  titleEl.textContent = note.name;
+  titleEl.style.display = 'block';
+  inputEl.style.display = 'none';
+}
+
+function cancelRename() {
+  const note = notes.find(n => n.id === openNoteId);
+  const titleEl = document.getElementById('modal-title');
+  const inputEl = document.getElementById('modal-title-input');
+  if (note) titleEl.textContent = note.name;
+  titleEl.style.display = 'block';
+  inputEl.style.display = 'none';
+}
+
+function renameNoteInline(noteId, event) {
+  event.stopPropagation();
+  const note = notes.find(n => n.id === noteId);
+  if (!note) return;
+
+  // Find the note-row-name element for this note
+  const rows = document.querySelectorAll('.note-row');
+  let nameEl = null;
+  rows.forEach(row => {
+    if (row.getAttribute('onclick') && row.getAttribute('onclick').includes(noteId)) {
+      nameEl = row.querySelector('.note-row-name');
+    }
+  });
+  if (!nameEl) return;
+
+  // Swap name text for an input
+  const original = note.name;
+  const input = document.createElement('input');
+  input.className = 'rename-inline-input';
+  input.value = original;
+  nameEl.textContent = '';
+  nameEl.appendChild(input);
+  input.focus();
+  input.select();
+
+  function commit() {
+    const val = input.value.trim();
+    if (val && val !== original) {
+      note.name = val;
+      saveNotes();
+      showToast('Renamed', 'success');
+    }
+    renderNotes();
+  }
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = original; input.blur(); }
+    e.stopPropagation();
+  });
+}
 function closeModalOnOverlay(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
@@ -737,6 +825,7 @@ function renderNotes() {
         ${n.preview ? `<div class="note-row-preview">${escHtml(n.preview)}</div>` : ''}
       </div>
       <div class="note-row-actions" onclick="event.stopPropagation()">
+        <button class="btn sm rename-row-btn" onclick="renameNoteInline(${n.id},event)" title="Rename">✏</button>
         ${n.polishedText
           ? `<button class="btn sm" onclick="openNote(${n.id},true)">View</button><button class="btn sm primary" onclick="downloadPolishedPDF(${n.id})">⬇ PDF</button>`
           : `<button class="btn sm primary" onclick="polishNote(${n.id})">✦ Polish</button>`}
