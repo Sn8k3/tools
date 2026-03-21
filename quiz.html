@@ -391,6 +391,7 @@ function loadNotePicker() {
 }
 
 async function generateQuiz() {
+  if (!await requireAuth()) return;
   const count = Math.min(30, Math.max(3, parseInt(document.getElementById('q-count').value) || 10));
   const qtype = document.getElementById('q-type').value;
   const diff = document.getElementById('q-diff').value;
