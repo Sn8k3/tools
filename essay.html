@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="guard.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Essay Editor — Notiv</title>
@@ -356,7 +357,12 @@ let currentAnalysis = null, currentRewrite = null;
 let history = JSON.parse(localStorage.getItem('studyai-essay-history') || '[]');
 let currentView = 'edit';
 
-document.addEventListener('DOMContentLoaded', () => { updateMeta(); renderHistory(); });
+document.addEventListener('DOMContentLoaded', () => {
+  updateMeta(); renderHistory();
+  // Apply saved essay tone default
+  const prefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
+  if (prefs.essayTone) { const el = document.getElementById('tone-select'); if (el) el.value = prefs.essayTone; }
+});
 
 function updateMeta() {
   const text = document.getElementById('essay-input').value;
@@ -667,6 +673,7 @@ function toggleSidebar() {
 function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escAttr(s) { return String(s).replace(/'/g,"&#39;").replace(/"/g,'&quot;'); }
 </script>
+<script src="prefs.js" defer></script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
