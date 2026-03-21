@@ -598,15 +598,15 @@ async function generateCards() {
   setGenerating(true);
 
   const diffMap = {
-    easy: 'EASY difficulty only — basic recall, simple definitions, single-fact questions. Perfect for beginners or first review. Label each card \"difficulty\":\"easy\".',
-    mixed: 'MIXED difficulty — roughly 30% easy (basic recall), 40% medium (application/understanding), 30% hard (analysis, edge cases, nuance). Label each card with \"difficulty\":\"easy\", \"medium\", or \"hard\".',
-    hard: 'HARD difficulty only — complex reasoning, nuanced distinctions, tricky edge cases, application in unusual contexts. Challenging even for those who know the topic. Label each card \"difficulty\":\"hard\".'
+    easy: 'EASY: simple one-fact questions. Max 8 words per question. Max 1 sentence per answer. Label \"difficulty\":\"easy\".',
+    mixed: 'MIXED: 30% easy, 40% medium, 30% hard. Max 10 words per question. Max 2 sentences per answer. Label each card \"difficulty\":\"easy\", \"medium\", or \"hard\".',
+    hard: 'HARD: deeper understanding or application. Max 12 words per question. Max 2 sentences per answer. Label \"difficulty\":\"hard\".'
   };
 
-  const prompt = 'Create exactly ' + count + ' flashcards from this content. Return ONLY a valid JSON array, no markdown:\n' +
+  const prompt = 'Create exactly ' + count + ' flashcards. Return ONLY a JSON array, no markdown:\n' +
     '[{"id":1,"question":"...","answer":"...","difficulty":"easy|medium|hard"}]\n' +
-    'Difficulty setting: ' + diffMap[currentDifficulty] + '\n' +
-    'Rules: clear single-concept questions, concise complete answers (1-3 sentences), wide topic coverage, no repetition.\n' +
+    'Difficulty: ' + diffMap[currentDifficulty] + '\n' +
+    'Rules: questions must be short and direct. Answers must be brief — one or two sentences max, no padding. No repetition. Wide topic coverage.\n' +
     sourceText.slice(0, 6000);
 
   try {
