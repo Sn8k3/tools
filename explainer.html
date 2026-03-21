@@ -257,6 +257,18 @@ let currentLevel = 'beginner';
 let currentStyle = 'clear';
 let lastResult = null;
 
+// Apply saved explainer level from prefs
+(function() {
+  const prefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
+  if (prefs.explainerLevel) {
+    currentLevel = prefs.explainerLevel;
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.querySelector(`.lvl-btn[onclick*="${prefs.explainerLevel}"]`);
+      if (btn) { document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+    });
+  }
+})();
+
 function setLevel(level, btn) {
   currentLevel = level;
   document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active'));
@@ -412,6 +424,7 @@ function escH(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
   btn.addEventListener('click', () => { const c = s.classList.toggle('collapsed'); btn.textContent = c ? '›' : '‹'; localStorage.setItem('notiv-sidebar-collapsed', c ? '1' : '0'); });
 })();
 </script>
+<script src="prefs.js" defer></script>
 <script src="sidebar.js" defer></script>
 <script src="ai-assistant.js" defer></script>
 </body>
