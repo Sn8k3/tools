@@ -482,40 +482,21 @@ body.sidebar-collapsed { padding-left: 52px; }
 .gpa-letter-tag { font-size: 13px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--t2); margin-top: 5px; }
 .gpa-subjects-count { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); margin-bottom: 4px; }
 
-/* Grades inline in GPA panel */
-.gpa-grades-inline {
+/* Gradebook connect state */
+.gpa-connect-state {
   width: 100%; flex: 1; display: flex; flex-direction: column;
-  border-top: 1px solid var(--b1); min-height: 0; overflow: hidden;
-  position: relative; z-index: 1;
+  align-items: center; justify-content: center; gap: 6px;
+  border-top: 1px solid var(--b1); padding: 14px 12px;
+  text-align: center; position: relative; z-index: 1;
 }
-.gpa-grades-inline .grades-list { flex: 1; overflow-y: auto; min-height: 0; }
-.gpa-grades-inline .grades-list::-webkit-scrollbar { width: 3px; }
-.gpa-grades-inline .grades-list::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 2px; }
-.gpa-grades-inline .grade-row {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-bottom: 1px solid var(--b1); transition: background 0.12s;
+.gpa-connect-icon { font-size: 18px; opacity: 0.4; }
+.gpa-connect-title { font-size: 12px; font-weight: 500; color: var(--t2); }
+.gpa-connect-sub { font-size: 10px; color: var(--t4); line-height: 1.5; max-width: 160px; }
+.gpa-connect-btn {
+  margin-top: 4px; background: var(--s2); border: 1px solid var(--b2);
+  border-radius: 7px; color: var(--t4); font-family: inherit; font-size: 11px;
+  padding: 5px 12px; cursor: not-allowed; opacity: 0.6;
 }
-.gpa-grades-inline .grade-row:last-child { border-bottom: none; }
-.gpa-grades-inline .grade-row:hover { background: var(--s2); }
-.gpa-grades-inline .grade-subject { flex: 1; font-size: 11px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gpa-grades-inline .grade-score-input {
-  width: 38px; background: transparent; border: none;
-  font-family: 'DM Mono', monospace; font-size: 11px;
-  color: var(--t3); outline: none; text-align: center; padding: 2px;
-  border-radius: 4px; transition: background 0.12s;
-}
-.gpa-grades-inline .grade-score-input:focus { background: var(--s2); color: var(--t1); }
-.gpa-grades-inline .grade-letter-badge { font-size: 10px; font-family: 'DM Mono', monospace; font-weight: 600; padding: 1px 5px; border-radius: 5px; flex-shrink: 0; }
-.gpa-grades-inline .grade-bar-wrap { display: none; }
-.gpa-grades-inline .grade-delete { background: none; border: none; color: var(--t4); cursor: pointer; font-size: 10px; padding: 1px 3px; border-radius: 4px; transition: color 0.12s; line-height: 1; }
-.gpa-grades-inline .grade-delete:hover { color: var(--coral); }
-.grades-empty { padding: 14px 10px; text-align: center; color: var(--t4); font-size: 11px; }
-.gpa-add-row { display: flex; gap: 4px; padding: 6px 8px; border-top: 1px solid var(--b1); flex-shrink: 0; align-items: center; }
-.gpa-g-input { flex: 1; background: var(--s2); border: 1px solid var(--b1); border-radius: 6px; padding: 4px 6px; font-family: inherit; font-size: 11px; color: var(--t1); outline: none; transition: border-color 0.15s; min-width: 0; }
-.gpa-g-input:focus { border-color: var(--lime-b); }
-.gpa-g-input::placeholder { color: var(--t4); }
-.gpa-add-btn { background: var(--lime); border: none; border-radius: 6px; color: #080809; font-weight: 700; font-size: 14px; padding: 4px 9px; cursor: pointer; transition: background 0.12s; flex-shrink: 0; line-height: 1; }
-.gpa-add-btn:hover { background: #d8ff74; }
 
 /* Classroom panel */
 .classroom-panel {
@@ -736,16 +717,11 @@ body.sidebar-collapsed { padding-left: 52px; }
       <div class="gpa-letter-tag" id="gpa-letter"></div>
       <div class="gpa-subjects-count" id="grades-avg-label"></div>
 
-      <!-- Grades inline -->
-      <div class="gpa-grades-inline">
-        <div class="grades-list" id="grades-list">
-          <div class="grades-empty" id="grades-empty">No grades yet</div>
-        </div>
-        <div class="gpa-add-row">
-          <input class="gpa-g-input" id="new-subject" placeholder="Subject…" onkeydown="if(event.key==='Enter')addGrade()">
-          <input class="gpa-g-input" id="new-score" type="number" placeholder="%" min="0" max="100" style="width:52px" onkeydown="if(event.key==='Enter')addGrade()">
-          <button class="gpa-add-btn" onclick="addGrade()">+</button>
-        </div>
+      <div class="gpa-connect-state">
+        <div class="gpa-connect-icon">🔗</div>
+        <div class="gpa-connect-title">Connect gradebook</div>
+        <div class="gpa-connect-sub">Link your school gradebook to see your real GPA and grades here</div>
+        <button class="gpa-connect-btn" disabled title="Coming soon">Coming soon</button>
       </div>
     </div>
 
