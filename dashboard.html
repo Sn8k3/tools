@@ -1239,8 +1239,16 @@ async function loadClassroom() {
 }
 
 function connectClassroom() {
-  if (!classroomUserId) return;
-  window.location.href = `${WORKER}/auth/google/start?user_id=${classroomUserId}`;
+  if (classroomUserId) {
+    window.location.href = `${WORKER}/auth/google/start?user_id=${classroomUserId}`;
+    return;
+  }
+  // userId not loaded yet — fetch session first
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) { alert('Please sign in first.'); return; }
+    classroomUserId = session.user.id;
+    window.location.href = `${WORKER}/auth/google/start?user_id=${classroomUserId}`;
+  });
 }
 
 async function disconnectClassroom() {
