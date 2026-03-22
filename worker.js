@@ -76,6 +76,11 @@ export default {
       const tokens = await tokenRes.json();
       if (!tokens.access_token) return Response.redirect("https://sn8k3.github.io/tools/dashboard.html?classroom_error=token_failed", 302);
 
+      // Check env vars are set
+      if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+        return Response.redirect("https://sn8k3.github.io/tools/dashboard.html?classroom_error=worker_not_configured", 302);
+      }
+
       await saveTokens(env, userId, tokens);
       return Response.redirect("https://sn8k3.github.io/tools/dashboard.html?classroom_connected=1", 302);
     }
