@@ -111,6 +111,22 @@ body::after {
 .hero-greeting em { font-style: italic; color: var(--lime); }
 .hero-sub { font-size: 13px; color: var(--t3); margin-top: 4px; }
 .hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.hero-xp-pill {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--s2); border: 1px solid var(--b2);
+  border-radius: 40px; padding: 6px 14px 6px 8px;
+}
+.hxp-badge {
+  background: var(--lime-d); border: 1px solid var(--lime-b);
+  border-radius: 20px; padding: 3px 8px;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.hxp-lvl { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--lime); line-height: 1; }
+.hxp-lbl { font-size: 8px; font-family: 'DM Mono', monospace; color: var(--t4); letter-spacing: 0.1em; }
+.hxp-bar-wrap { display: flex; flex-direction: column; gap: 3px; }
+.hxp-bar { width: 80px; height: 4px; background: var(--b2); border-radius: 2px; overflow: hidden; }
+.hxp-fill { height: 100%; background: var(--lime); border-radius: 2px; transition: width 1.4s cubic-bezier(0.4,0,0.2,1); }
+.hxp-total { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); }
 .hero-streak {
   display: flex; align-items: center; gap: 8px;
   background: var(--s2); border: 1px solid var(--b2);
@@ -665,39 +681,24 @@ body.sidebar-collapsed { padding-left: 52px; }
         <div class="hero-sub" id="hero-sub">Here's your study summary</div>
       </div>
       <div class="hero-right">
+        <!-- XP pill -->
+        <div class="hero-xp-pill">
+          <div class="hxp-badge">
+            <span class="hxp-lvl" id="xp-lvl">1</span>
+            <span class="hxp-lbl">LVL</span>
+          </div>
+          <div class="hxp-bar-wrap">
+            <div class="hxp-bar"><div class="hxp-fill" id="xp-bar" style="width:0%"></div></div>
+            <span class="hxp-total"><span id="xp-total">0</span> XP</span>
+          </div>
+        </div>
+        <!-- Streak -->
         <div class="hero-streak">
           <span style="font-size:16px;">🔥</span>
           <span class="streak-num" id="hero-streak">0</span>
           <span class="streak-label">day streak</span>
         </div>
-        <div class="hero-btns">
-          <a href="notes.html" class="btn accent">+ New note</a>
-          <a href="planner.html" class="btn">Open planner</a>
-        </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Level bar -->
-  <div class="level-topbar fu d1">
-    <div class="level-topbar-left">
-      <div class="ltb-badge">
-        <span class="ltb-num" id="xp-lvl">1</span>
-        <span class="ltb-lbl">LEVEL</span>
-      </div>
-      <div class="ltb-bar-wrap">
-        <div class="ltb-bar-labels">
-          <span class="ltb-total"><span id="xp-total">0</span> XP</span>
-          <span class="ltb-next" id="xp-next">— to next level</span>
-        </div>
-        <div class="ltb-bar"><div class="ltb-bar-fill" id="xp-bar" style="width:0%"></div></div>
-        <div class="xp-stones" id="xp-stones"></div>
-      </div>
-    </div>
-    <div class="ltb-streak">
-      <span style="font-size:15px">🔥</span>
-      <span class="streak-num" id="hero-streak">0</span>
-      <span class="streak-label">day streak</span>
     </div>
   </div>
 
@@ -852,86 +853,6 @@ body.sidebar-collapsed { padding-left: 52px; }
   <!-- Main grid -->
   <div class="main-grid">
 
-    <!-- Notes -->
-    <div class="card fu d2">
-      <div class="card-head">
-        <div class="card-head-left">
-          <div class="card-icon" style="background:var(--lime-d)">📚</div>
-          <div class="card-title">Recent notes</div>
-        </div>
-        <a href="notes.html" class="card-link">View all →</a>
-      </div>
-      <div class="card-body" id="notes-body">
-        <div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No notes yet</div></div>
-      </div>
-    </div>
-
-    <!-- Essays -->
-    <div class="card fu d3">
-      <div class="card-head">
-        <div class="card-head-left">
-          <div class="card-icon" style="background:var(--purple-d)">✏️</div>
-          <div class="card-title">Recent essays</div>
-        </div>
-        <a href="essay.html" class="card-link">Analyse →</a>
-      </div>
-      <div class="card-body" id="essays-body">
-        <div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No essays yet</div></div>
-      </div>
-    </div>
-
-    <!-- Right col -->
-    <div class="right-col">
-
-      <!-- Planner -->
-      <div class="card fu d4" style="flex:1">
-        <div class="card-head">
-          <div class="card-head-left">
-            <div class="card-icon" style="background:var(--amber-d)">📅</div>
-            <div class="card-title">Today's plan</div>
-          </div>
-          <a href="planner.html" class="card-link">Open →</a>
-        </div>
-        <div id="planner-body">
-          <div class="empty" style="padding:20px 14px">
-            <div class="empty-icon">📭</div>
-            <div class="empty-text">No plan yet</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Streak -->
-      <div class="card fu d5">
-        <div class="card-head">
-          <div class="card-head-left">
-            <div class="card-icon" style="background:var(--amber-d)">🔥</div>
-            <div class="card-title">Study streak</div>
-          </div>
-          <div class="card-link" id="streak-lbl">—</div>
-        </div>
-        <div class="streak-day-row">
-          <div class="sd">M</div><div class="sd">T</div><div class="sd">W</div>
-          <div class="sd">T</div><div class="sd">F</div><div class="sd">S</div><div class="sd">S</div>
-        </div>
-        <div class="streak-mini-grid" id="streak-grid"></div>
-      </div>
-
-    </div>
-
-    <!-- Decks -->
-    <div class="card fu d6">
-      <div class="card-head">
-        <div class="card-head-left">
-          <div class="card-icon" style="background:var(--sky-d)">🃏</div>
-          <div class="card-title">Flashcard decks</div>
-        </div>
-        <a href="flashcards.html" class="card-link">Study →</a>
-      </div>
-      <div class="card-body" id="decks-body">
-        <div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No decks yet</div></div>
-      </div>
-    </div>
-
   </div><!-- end main grid -->
 
 
@@ -978,12 +899,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function renderHero(user, profile) {
   const h = new Date().getHours();
-  const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const greet = h < 5 ? 'Up late' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
   const name = profile?.display_name || profile?.username || user.email?.split('@')[0] || 'there';
   const emoji = profile?.avatar_emoji || '';
   document.getElementById('hero-greeting').innerHTML = `${greet}, <em>${escH(name)}</em> ${emoji}`;
   document.getElementById('hero-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  document.getElementById('hero-sub').textContent = `${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} · Welcome back`;
+  document.getElementById('hero-sub').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + ' · Welcome back';
 }
 
 function renderStats(notes, essays, decks, planner) {
@@ -1168,18 +1089,14 @@ function renderXP(notes, essays, decks) {
   const level = XP_LEVELS.findIndex((v,i)=>xp<(XP_LEVELS[i+1]||Infinity));
   const pct = xpPct(xp, level);
   const nextXp = XP_LEVELS[level+1]||XP_LEVELS[XP_LEVELS.length-1];
+  // Hero pill
   document.getElementById('xp-lvl').textContent = level+1;
   document.getElementById('xp-total').textContent = xp.toLocaleString();
-  document.getElementById('xp-next').textContent = `${Math.max(0,nextXp-xp).toLocaleString()} XP to level ${level+2}`;
   setTimeout(() => { document.getElementById('xp-bar').style.width = pct+'%'; }, 500);
-  const wrap = document.getElementById('xp-stones');
-  wrap.innerHTML = '';
-  MILESTONES.forEach(m => {
-    const el = document.createElement('div');
-    el.className = 'xp-stone'+(xp>=m.xp?' earned':'');
-    el.textContent = (xp>=m.xp?'✦ ':'')+m.label;
-    wrap.appendChild(el);
-  });
+  // Still update stat strip xp cell
+  const sxp = document.getElementById('s-xp'); if(sxp) sxp.textContent = xp.toLocaleString();
+  const sxpsub = document.getElementById('s-xp-sub'); if(sxpsub) sxpsub.textContent = 'Level '+(level+1);
+  const sxpbar = document.getElementById('s-xp-bar'); if(sxpbar) setTimeout(()=>{sxpbar.style.width=pct+'%';},300);
 }
 
 function xpPct(xp, level) {
