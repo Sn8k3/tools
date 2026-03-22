@@ -385,39 +385,111 @@ body { padding-left: 220px; transition: padding-left 0.22s cubic-bezier(0.4,0,0.
 body.sidebar-collapsed { padding-left: 52px; }
 .nav-divider, .nav-links { display: none; }
 
-/* ── GPA block ── */
-.gpa-grades-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; margin-bottom: 16px; }
-.gpa-block {
-  background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl);
-  padding: 20px; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 4px; position: relative; overflow: hidden;
+/* ── Level topbar ── */
+.level-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; background: var(--s1); border: 1px solid var(--b1);
+  border-radius: var(--rl); padding: 14px 20px; margin-bottom: 12px;
 }
-.gpa-block::before {
+.level-topbar-left { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
+.ltb-badge {
+  background: var(--lime-d); border: 1px solid var(--lime-b);
+  border-radius: 10px; padding: 8px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; flex-shrink: 0;
+}
+.ltb-num { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--lime); line-height: 1; }
+.ltb-lbl { font-size: 8px; font-family: 'DM Mono', monospace; color: var(--t4); letter-spacing: 0.12em; text-transform: uppercase; }
+.ltb-bar-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.ltb-bar-labels { display: flex; justify-content: space-between; align-items: baseline; }
+.ltb-total { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--t1); }
+.ltb-next { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--t4); }
+.ltb-bar { height: 5px; background: var(--b2); border-radius: 3px; overflow: hidden; }
+.ltb-bar-fill { height: 100%; background: var(--lime); border-radius: 3px; transition: width 1.4s cubic-bezier(0.4,0,0.2,1); }
+.ltb-streak { display: flex; align-items: center; gap: 8px; background: var(--s2); border: 1px solid var(--b2); border-radius: 40px; padding: 6px 14px 6px 10px; flex-shrink: 0; }
+
+/* ── Top row: GPA + Classroom ── */
+.top-row {
+  display: grid; grid-template-columns: 200px 1fr;
+  gap: 12px; margin-bottom: 12px; height: 340px;
+}
+
+/* GPA panel */
+.gpa-panel {
+  background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 10px; padding: 24px 16px;
+  position: relative; overflow: hidden;
+}
+.gpa-panel::before {
   content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 0%, rgba(200,240,94,0.07) 0%, transparent 70%);
+  background: radial-gradient(ellipse at 50% 0%, rgba(200,240,94,0.06) 0%, transparent 70%);
   pointer-events: none;
 }
-.gpa-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); letter-spacing: 0.12em; text-transform: uppercase; }
-.gpa-number { font-family: 'Playfair Display', serif; font-size: 56px; line-height: 1; color: var(--lime); font-weight: 400; }
-.gpa-number.no-data { color: var(--t4); font-size: 40px; }
-.gpa-scale { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--t3); }
-.gpa-letter { font-size: 13px; font-family: 'DM Mono', monospace; color: var(--t2); margin-top: 2px; }
+.gpa-panel-label {
+  font-size: 9px; font-family: 'DM Mono', monospace;
+  color: var(--t4); letter-spacing: 0.14em; text-transform: uppercase;
+}
+.gpa-circle-wrap { position: relative; width: 130px; height: 130px; }
+.gpa-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.gpa-track { fill: none; stroke: var(--b2); stroke-width: 8; }
+.gpa-ring {
+  fill: none; stroke: var(--lime); stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 314;
+  stroke-dashoffset: 314;
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1), stroke 0.5s;
+}
+.gpa-circle-inner {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.gpa-big {
+  font-family: 'Playfair Display', serif; font-size: 34px;
+  line-height: 1; color: var(--lime);
+}
+.gpa-big.no-data { color: var(--t4); font-size: 24px; }
+.gpa-of { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--t3); margin-top: 2px; }
+.gpa-letter-tag { font-size: 14px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--t2); }
+.gpa-subjects-count { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); }
+.gpa-edit-link { font-size: 11px; color: var(--t4); text-decoration: none; font-family: 'DM Mono', monospace; transition: color 0.12s; margin-top: 4px; }
+.gpa-edit-link:hover { color: var(--lime); }
+
+/* Classroom panel */
+.classroom-panel {
+  background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.classroom-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--b1); flex-shrink: 0;
+}
+.classroom-panel-title { font-size: 13px; font-weight: 500; color: var(--t1); }
+.classroom-status-pill {
+  font-size: 10px; font-family: 'DM Mono', monospace;
+  color: var(--t4); background: var(--s2); border: 1px solid var(--b1);
+  padding: 1px 8px; border-radius: 20px;
+}
+.classroom-status-pill:empty { display: none; }
+.classroom-connect-state {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  padding: 24px; text-align: center;
+}
+.classroom-loading-state {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+}
 
 /* ── Grades card ── */
-.grades-card { background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl); overflow: hidden; }
-.grades-head { padding: 14px 18px; border-bottom: 1px solid var(--b1); display: flex; align-items: center; justify-content: space-between; }
-.grades-head-left { display: flex; align-items: center; gap: 10px; }
 .grades-list { display: flex; flex-direction: column; }
 .grade-row {
   display: grid; grid-template-columns: 1fr 80px 60px 60px 32px;
-  align-items: center; gap: 10px;
-  padding: 10px 18px; border-bottom: 1px solid var(--b1);
-  transition: background 0.12s;
+  align-items: center; gap: 10px; padding: 10px 18px;
+  border-bottom: 1px solid var(--b1); transition: background 0.12s;
 }
 .grade-row:last-child { border-bottom: none; }
 .grade-row:hover { background: var(--s2); }
 .grade-subject { font-size: 13px; color: var(--t1); font-weight: 500; }
-.grade-score-wrap { position: relative; }
 .grade-score-input {
   width: 100%; background: var(--s2); border: 1px solid var(--b1);
   border-radius: 7px; padding: 5px 8px; font-family: 'DM Mono', monospace;
@@ -427,14 +499,14 @@ body.sidebar-collapsed { padding-left: 52px; }
 .grade-score-input:focus { border-color: var(--lime-b); }
 .grade-letter-badge {
   font-size: 13px; font-family: 'DM Mono', monospace; font-weight: 500;
-  text-align: center; padding: 4px 8px; border-radius: 7px;
+  text-align: center; padding: 3px 8px; border-radius: 7px;
 }
-.grade-bar-wrap { display: flex; align-items: center; gap: 6px; }
 .grade-mini-bar { flex: 1; height: 3px; background: var(--b2); border-radius: 2px; overflow: hidden; }
 .grade-mini-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.grade-bar-wrap { display: flex; align-items: center; }
 .grade-delete { background: none; border: none; color: var(--t4); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 5px; transition: color 0.12s; }
 .grade-delete:hover { color: var(--coral); }
-.grades-add-row { padding: 10px 18px; display: grid; grid-template-columns: 1fr 80px auto; gap: 8px; border-top: 1px solid var(--b1); }
+.grades-add-row { padding: 10px 18px; display: grid; grid-template-columns: 1fr 80px auto; gap: 8px; border-top: 1px solid var(--b1); flex-shrink: 0; }
 .g-input { background: var(--s2); border: 1px solid var(--b1); border-radius: 8px; padding: 7px 12px; font-family: inherit; font-size: 13px; color: var(--t1); outline: none; transition: border-color 0.15s; width: 100%; }
 .g-input:focus { border-color: var(--lime-b); }
 .g-input::placeholder { color: var(--t4); }
@@ -559,67 +631,93 @@ body.sidebar-collapsed { padding-left: 52px; }
     </div>
   </div>
 
-  <!-- Google Classroom feed -->
-  <div class="card fu d1" id="classroom-card" style="margin-bottom:16px">
-    <div class="card-head">
-      <div class="card-head-left">
-        <div class="card-icon" style="background:none;padding:0;overflow:hidden">
-          <img src="Google_Classroom_Logo.png" style="width:28px;height:28px;object-fit:contain;border-radius:6px">
+  <!-- Level bar -->
+  <div class="level-topbar fu d1">
+    <div class="level-topbar-left">
+      <div class="ltb-badge">
+        <span class="ltb-num" id="xp-lvl">1</span>
+        <span class="ltb-lbl">LEVEL</span>
+      </div>
+      <div class="ltb-bar-wrap">
+        <div class="ltb-bar-labels">
+          <span class="ltb-total"><span id="xp-total">0</span> XP</span>
+          <span class="ltb-next" id="xp-next">— to next level</span>
         </div>
-        <div class="card-title">Google Classroom</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4)" id="classroom-status"></span>
-        <a href="https://classroom.google.com" target="_blank" class="btn sm" id="classroom-open-btn" style="display:none;color:#4285f4;border-color:rgba(66,133,244,0.3);background:rgba(66,133,244,0.06)">Open ↗</a>
-        <button class="btn sm" id="classroom-refresh-btn" onclick="loadClassroom()" style="display:none">↺</button>
-        <button class="btn sm" id="classroom-disconnect-btn" onclick="disconnectClassroom()" style="display:none;color:var(--coral)">Disconnect</button>
-      </div>
-    </div>
-
-    <!-- Not connected state -->
-    <div id="classroom-connect-state" style="padding:32px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">
-      <img src="Google_Classroom_Logo.png" style="width:56px;height:56px;object-fit:contain;border-radius:14px">
-      <div>
-        <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--t1);margin-bottom:5px">Connect Google Classroom</div>
-        <div style="font-size:13px;color:var(--t3);max-width:300px;line-height:1.6">See what your teachers post — announcements, assignments and due dates — right here on your dashboard.</div>
-      </div>
-      <button class="btn" onclick="connectClassroom()" style="border-color:rgba(66,133,244,0.4);background:rgba(66,133,244,0.08);color:#4285f4;font-weight:500;gap:8px">
-        <svg width="14" height="14" viewBox="0 0 18 18"><path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.06-.96-.15-1.18z" fill="#4285F4"/><path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.77-2.7.77a4.74 4.74 0 01-4.44-3.29H1.87v2.08A8 8 0 008.98 17z" fill="#34A853"/><path d="M4.54 10.53a4.7 4.7 0 010-3.06V5.4H1.87a8 8 0 000 7.22l2.67-2.09z" fill="#FBBC05"/><path d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A7.97 7.97 0 008.98 1a8 8 0 00-7.11 4.38l2.67 2.08a4.74 4.74 0 014.44-3.28z" fill="#EA4335"/></svg>
-        Connect with Google
-      </button>
-    </div>
-
-    <!-- Loading state -->
-    <div id="classroom-loading" style="display:none;padding:32px;text-align:center">
-      <div class="spinner" style="margin:0 auto 12px;width:18px;height:18px;border-width:2px;border-color:var(--b2);border-top-color:#4285f4"></div>
-      <div style="font-size:13px;color:var(--t3)">Loading your classes…</div>
-    </div>
-
-    <!-- Feed -->
-    <div id="classroom-feed" style="display:none"></div>
-
-  </div>
-
-  <!-- XP bar (top) -->
-  <div class="card fu d1" style="margin-bottom:16px;">
-    <div class="xp-inner">
-      <div class="xp-badge">
-        <div class="xp-lvl" id="xp-lvl">1</div>
-        <div class="xp-lvl-lbl">LEVEL</div>
-      </div>
-      <div class="xp-right">
-        <div class="xp-top">
-          <div class="xp-total"><span id="xp-total">0</span> <span style="font-size:13px;color:var(--t3);font-family:'Instrument Sans',sans-serif;font-weight:400;">XP total</span></div>
-          <div class="xp-next-lbl" id="xp-next">— to next level</div>
-        </div>
-        <div class="xp-bar"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+        <div class="ltb-bar"><div class="ltb-bar-fill" id="xp-bar" style="width:0%"></div></div>
         <div class="xp-stones" id="xp-stones"></div>
       </div>
     </div>
+    <div class="ltb-streak">
+      <span style="font-size:15px">🔥</span>
+      <span class="streak-num" id="hero-streak">0</span>
+      <span class="streak-label">day streak</span>
+    </div>
   </div>
 
-  <!-- Stats -->
-  <div class="stat-strip fu d1">
+  <!-- GPA + Classroom row -->
+  <div class="top-row fu d2">
+
+    <!-- GPA panel -->
+    <div class="gpa-panel">
+      <div class="gpa-panel-label">GPA</div>
+      <div class="gpa-circle-wrap">
+        <svg class="gpa-svg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <circle class="gpa-track" cx="60" cy="60" r="50"/>
+          <circle class="gpa-ring" id="gpa-ring" cx="60" cy="60" r="50"/>
+        </svg>
+        <div class="gpa-circle-inner">
+          <div class="gpa-big" id="gpa-number">—</div>
+          <div class="gpa-of">/ 4.0</div>
+        </div>
+      </div>
+      <div class="gpa-letter-tag" id="gpa-letter"></div>
+      <div class="gpa-subjects-count" id="grades-avg-label"></div>
+      <a href="#grades-section" class="gpa-edit-link">Edit grades ↓</a>
+    </div>
+
+    <!-- Classroom panel -->
+    <div class="classroom-panel" id="classroom-card">
+      <div class="classroom-panel-head">
+        <div style="display:flex;align-items:center;gap:8px">
+          <img src="Google_Classroom_Logo.png" style="width:24px;height:24px;object-fit:contain;border-radius:5px">
+          <span class="classroom-panel-title">Google Classroom</span>
+          <span class="classroom-status-pill" id="classroom-status"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <a href="https://classroom.google.com" target="_blank" class="btn sm" id="classroom-open-btn" style="display:none;color:#4285f4;border-color:rgba(66,133,244,0.3);background:rgba(66,133,244,0.06)">Open ↗</a>
+          <button class="btn sm" id="classroom-refresh-btn" onclick="loadClassroom()" style="display:none">↺</button>
+          <button class="btn sm" id="classroom-disconnect-btn" onclick="disconnectClassroom()" style="display:none;color:var(--coral);border-color:var(--coral-b)">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Not connected -->
+      <div id="classroom-connect-state" class="classroom-connect-state">
+        <img src="Google_Classroom_Logo.png" style="width:52px;height:52px;object-fit:contain;border-radius:12px">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:17px;color:var(--t1);margin-bottom:5px">Connect Google Classroom</div>
+          <div style="font-size:13px;color:var(--t3);line-height:1.6;max-width:300px">See what your teachers post — announcements, assignments and due dates — right here.</div>
+        </div>
+        <button class="btn" onclick="connectClassroom()" style="border-color:rgba(66,133,244,0.4);background:rgba(66,133,244,0.08);color:#4285f4;font-weight:500;gap:8px">
+          <svg width="14" height="14" viewBox="0 0 18 18"><path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.06-.96-.15-1.18z" fill="#4285F4"/><path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.77-2.7.77a4.74 4.74 0 01-4.44-3.29H1.87v2.08A8 8 0 008.98 17z" fill="#34A853"/><path d="M4.54 10.53a4.7 4.7 0 010-3.06V5.4H1.87a8 8 0 000 7.22l2.67-2.09z" fill="#FBBC05"/><path d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A7.97 7.97 0 008.98 1a8 8 0 00-7.11 4.38l2.67 2.08a4.74 4.74 0 014.44-3.28z" fill="#EA4335"/></svg>
+          Connect with Google
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div id="classroom-loading" class="classroom-loading-state" style="display:none">
+        <div class="spinner" style="width:20px;height:20px;border-color:var(--b2);border-top-color:#4285f4"></div>
+        <div style="font-size:13px;color:var(--t3)">Loading your classes…</div>
+      </div>
+
+      <!-- Feed -->
+      <div id="classroom-feed" style="display:none;flex:1;overflow-y:auto;min-height:0"></div>
+
+    </div>
+
+  </div><!-- end top-row -->
+
+  <!-- Stats strip -->
+  <div class="stat-strip fu d3">
     <div class="stat-cell">
       <div class="stat-cell-label">Total XP</div>
       <div class="stat-cell-value" id="s-xp">0</div>
@@ -646,41 +744,26 @@ body.sidebar-collapsed { padding-left: 52px; }
     </div>
   </div>
 
-  <!-- GPA + Grades -->
-  <div class="gpa-grades-row fu d2">
-
-    <!-- GPA block -->
-    <div class="gpa-block">
-      <div class="gpa-label">GPA</div>
-      <div class="gpa-number" id="gpa-number">—</div>
-      <div class="gpa-scale" id="gpa-scale">out of 4.0</div>
-      <div class="gpa-letter" id="gpa-letter"></div>
+  <!-- Grades section -->
+  <div class="card fu d3" id="grades-section" style="margin-bottom:24px">
+    <div class="card-head">
+      <div class="card-head-left">
+        <div class="card-icon" style="background:var(--purple-d)">📊</div>
+        <div class="card-title">Grades</div>
+      </div>
+      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4)" id="grades-count-label"></div>
     </div>
-
-    <!-- Grades card -->
-    <div class="grades-card">
-      <div class="grades-head">
-        <div class="grades-head-left">
-          <div class="card-icon" style="background:var(--purple-d)">📊</div>
-          <div class="card-title">Grades</div>
-        </div>
-        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4)" id="grades-avg-label"></div>
-      </div>
-
-      <div class="grades-list" id="grades-list">
-        <div class="grades-empty" id="grades-empty">No grades yet — add a subject below</div>
-      </div>
-
-      <div class="grades-add-row">
-        <input class="g-input" id="new-subject" placeholder="Subject name…" onkeydown="if(event.key==='Enter')addGrade()">
-        <input class="g-input" id="new-score" type="number" placeholder="Score %" min="0" max="100" onkeydown="if(event.key==='Enter')addGrade()">
-        <button class="btn accent" onclick="addGrade()" style="white-space:nowrap;padding:7px 16px">+ Add</button>
-      </div>
+    <div class="grades-list" id="grades-list">
+      <div class="grades-empty" id="grades-empty">No grades yet — add a subject below</div>
     </div>
-
+    <div class="grades-add-row">
+      <input class="g-input" id="new-subject" placeholder="Subject name…" onkeydown="if(event.key==='Enter')addGrade()">
+      <input class="g-input" id="new-score" type="number" placeholder="Score %" min="0" max="100" onkeydown="if(event.key==='Enter')addGrade()">
+      <button class="btn accent" onclick="addGrade()" style="white-space:nowrap;padding:7px 16px">+ Add</button>
+    </div>
   </div>
 
-  <!-- Quick strip -->
+    <!-- Quick strip -->
   <div class="quick-strip">
     <a href="notes.html" class="quick-item fu d2" style="--qi-color:var(--lime)">
       <div class="qi-icon" style="background:var(--lime-d)">📚</div>
@@ -1134,15 +1217,20 @@ function renderGrades() {
   const list = document.getElementById('grades-list');
   const empty = document.getElementById('grades-empty');
   const avgLabel = document.getElementById('grades-avg-label');
+  const countLabel = document.getElementById('grades-count-label');
+  const CIRC = 2 * Math.PI * 50; // circumference for r=50
 
   if (!grades.length) {
     list.innerHTML = '';
     list.appendChild(empty);
     empty.style.display = 'block';
-    document.getElementById('gpa-number').textContent = '—';
-    document.getElementById('gpa-number').className = 'gpa-number no-data';
+    const gpaEl = document.getElementById('gpa-number');
+    gpaEl.textContent = '—'; gpaEl.className = 'gpa-big no-data'; gpaEl.style.color = '';
     document.getElementById('gpa-letter').textContent = '';
-    avgLabel.textContent = '';
+    document.getElementById('gpa-ring').style.strokeDashoffset = CIRC;
+    document.getElementById('gpa-ring').style.stroke = 'var(--b2)';
+    if (avgLabel) avgLabel.textContent = '';
+    if (countLabel) countLabel.textContent = '';
     return;
   }
 
@@ -1156,11 +1244,9 @@ function renderGrades() {
     row.className = 'grade-row';
     row.innerHTML = `
       <div class="grade-subject">${escH(g.subject)}</div>
-      <div class="grade-score-wrap">
-        <input class="grade-score-input" type="number" value="${g.score}" min="0" max="100"
-          onchange="updateGradeScore(${g.id}, this.value)"
-          onblur="updateGradeScore(${g.id}, this.value)">
-      </div>
+      <input class="grade-score-input" type="number" value="${g.score}" min="0" max="100"
+        onchange="updateGradeScore(${g.id}, this.value)"
+        onblur="updateGradeScore(${g.id}, this.value)">
       <div class="grade-bar-wrap">
         <div class="grade-mini-bar"><div class="grade-mini-fill" style="width:${g.score}%;background:${color}"></div></div>
       </div>
@@ -1170,20 +1256,28 @@ function renderGrades() {
     list.appendChild(row);
   });
 
-  // Recalculate GPA
+  // GPA calculation
   const avg = grades.reduce((s, g) => s + g.score, 0) / grades.length;
   const gpa = grades.reduce((s, g) => s + scoreToGPA(g.score), 0) / grades.length;
   const gpaRounded = Math.round(gpa * 100) / 100;
   const letter = scoreToLetter(avg);
   const color = gradeColor(avg);
 
+  // Update circle
+  const pct = gpaRounded / 4.0;
+  const offset = CIRC * (1 - pct);
+  const ring = document.getElementById('gpa-ring');
+  if (ring) { ring.style.strokeDashoffset = offset; ring.style.stroke = color; }
+
+  // Update text
   const gpaEl = document.getElementById('gpa-number');
   gpaEl.textContent = gpaRounded.toFixed(2);
-  gpaEl.className = 'gpa-number';
+  gpaEl.className = 'gpa-big';
   gpaEl.style.color = color;
-  document.getElementById('gpa-letter').textContent = letter + ' · ' + Math.round(avg) + '%';
-  document.getElementById('gpa-letter').style.color = color;
-  avgLabel.textContent = grades.length + ' subject' + (grades.length !== 1 ? 's' : '');
+  const letterEl = document.getElementById('gpa-letter');
+  if (letterEl) { letterEl.textContent = letter; letterEl.style.color = color; }
+  if (avgLabel) avgLabel.textContent = Math.round(avg) + '% avg';
+  if (countLabel) countLabel.textContent = grades.length + ' subject' + (grades.length !== 1 ? 's' : '');
 }
 
 // Init grades on load
