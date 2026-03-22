@@ -11,7 +11,7 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root { 
+:root {
   --bg: #080809;
   --s1: #0f0f12;
   --s2: #16161a;
@@ -409,8 +409,8 @@ body.sidebar-collapsed { padding-left: 52px; }
 
 /* ── Top row: GPA + Plan + Classroom ── */
 .top-row {
-  display: grid; grid-template-columns: 200px 220px 1fr;
-  gap: 12px; margin-bottom: 12px; height: 340px;
+  display: grid; grid-template-columns: 220px 220px 1fr;
+  gap: 12px; margin-bottom: 12px; height: 420px;
 }
 
 /* Plan panel */
@@ -452,42 +452,70 @@ body.sidebar-collapsed { padding-left: 52px; }
 .gpa-panel {
   background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl);
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 10px; padding: 24px 16px;
-  position: relative; overflow: hidden;
+  padding: 16px 14px 0; position: relative; overflow: hidden;
 }
 .gpa-panel::before {
   content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 0%, rgba(200,240,94,0.06) 0%, transparent 70%);
-  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgba(200,240,94,0.06) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
 }
+.gpa-panel > * { position: relative; z-index: 1; }
 .gpa-panel-label {
   font-size: 9px; font-family: 'DM Mono', monospace;
-  color: var(--t4); letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--t4); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px;
 }
-.gpa-circle-wrap { position: relative; width: 130px; height: 130px; }
+.gpa-circle-wrap { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
 .gpa-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .gpa-track { fill: none; stroke: var(--b2); stroke-width: 8; }
 .gpa-ring {
-  fill: none; stroke: var(--lime); stroke-width: 8;
-  stroke-linecap: round;
-  stroke-dasharray: 314;
-  stroke-dashoffset: 314;
+  fill: none; stroke: var(--lime); stroke-width: 8; stroke-linecap: round;
+  stroke-dasharray: 314; stroke-dashoffset: 314;
   transition: stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1), stroke 0.5s;
 }
 .gpa-circle-inner {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.gpa-big {
-  font-family: 'Playfair Display', serif; font-size: 34px;
-  line-height: 1; color: var(--lime);
+.gpa-big { font-family: 'Playfair Display', serif; font-size: 30px; line-height: 1; color: var(--lime); }
+.gpa-big.no-data { color: var(--t4); font-size: 22px; }
+.gpa-of { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t3); margin-top: 2px; }
+.gpa-letter-tag { font-size: 13px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--t2); margin-top: 5px; }
+.gpa-subjects-count { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); margin-bottom: 4px; }
+
+/* Grades inline in GPA panel */
+.gpa-grades-inline {
+  width: 100%; flex: 1; display: flex; flex-direction: column;
+  border-top: 1px solid var(--b1); min-height: 0; overflow: hidden;
+  position: relative; z-index: 1;
 }
-.gpa-big.no-data { color: var(--t4); font-size: 24px; }
-.gpa-of { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--t3); margin-top: 2px; }
-.gpa-letter-tag { font-size: 14px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--t2); }
-.gpa-subjects-count { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); }
-.gpa-edit-link { font-size: 11px; color: var(--t4); text-decoration: none; font-family: 'DM Mono', monospace; transition: color 0.12s; margin-top: 4px; }
-.gpa-edit-link:hover { color: var(--lime); }
+.gpa-grades-inline .grades-list { flex: 1; overflow-y: auto; min-height: 0; }
+.gpa-grades-inline .grades-list::-webkit-scrollbar { width: 3px; }
+.gpa-grades-inline .grades-list::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 2px; }
+.gpa-grades-inline .grade-row {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-bottom: 1px solid var(--b1); transition: background 0.12s;
+}
+.gpa-grades-inline .grade-row:last-child { border-bottom: none; }
+.gpa-grades-inline .grade-row:hover { background: var(--s2); }
+.gpa-grades-inline .grade-subject { flex: 1; font-size: 11px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gpa-grades-inline .grade-score-input {
+  width: 38px; background: transparent; border: none;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--t3); outline: none; text-align: center; padding: 2px;
+  border-radius: 4px; transition: background 0.12s;
+}
+.gpa-grades-inline .grade-score-input:focus { background: var(--s2); color: var(--t1); }
+.gpa-grades-inline .grade-letter-badge { font-size: 10px; font-family: 'DM Mono', monospace; font-weight: 600; padding: 1px 5px; border-radius: 5px; flex-shrink: 0; }
+.gpa-grades-inline .grade-bar-wrap { display: none; }
+.gpa-grades-inline .grade-delete { background: none; border: none; color: var(--t4); cursor: pointer; font-size: 10px; padding: 1px 3px; border-radius: 4px; transition: color 0.12s; line-height: 1; }
+.gpa-grades-inline .grade-delete:hover { color: var(--coral); }
+.grades-empty { padding: 14px 10px; text-align: center; color: var(--t4); font-size: 11px; }
+.gpa-add-row { display: flex; gap: 4px; padding: 6px 8px; border-top: 1px solid var(--b1); flex-shrink: 0; align-items: center; }
+.gpa-g-input { flex: 1; background: var(--s2); border: 1px solid var(--b1); border-radius: 6px; padding: 4px 6px; font-family: inherit; font-size: 11px; color: var(--t1); outline: none; transition: border-color 0.15s; min-width: 0; }
+.gpa-g-input:focus { border-color: var(--lime-b); }
+.gpa-g-input::placeholder { color: var(--t4); }
+.gpa-add-btn { background: var(--lime); border: none; border-radius: 6px; color: #080809; font-weight: 700; font-size: 14px; padding: 4px 9px; cursor: pointer; transition: background 0.12s; flex-shrink: 0; line-height: 1; }
+.gpa-add-btn:hover { background: #d8ff74; }
 
 /* Classroom panel */
 .classroom-panel {
@@ -707,7 +735,18 @@ body.sidebar-collapsed { padding-left: 52px; }
       </div>
       <div class="gpa-letter-tag" id="gpa-letter"></div>
       <div class="gpa-subjects-count" id="grades-avg-label"></div>
-      <a href="#grades-section" class="gpa-edit-link">Edit grades ↓</a>
+
+      <!-- Grades inline -->
+      <div class="gpa-grades-inline">
+        <div class="grades-list" id="grades-list">
+          <div class="grades-empty" id="grades-empty">No grades yet</div>
+        </div>
+        <div class="gpa-add-row">
+          <input class="gpa-g-input" id="new-subject" placeholder="Subject…" onkeydown="if(event.key==='Enter')addGrade()">
+          <input class="gpa-g-input" id="new-score" type="number" placeholder="%" min="0" max="100" style="width:52px" onkeydown="if(event.key==='Enter')addGrade()">
+          <button class="gpa-add-btn" onclick="addGrade()">+</button>
+        </div>
+      </div>
     </div>
 
     <!-- Today's plan panel -->
@@ -797,26 +836,7 @@ body.sidebar-collapsed { padding-left: 52px; }
     </div>
   </div>
 
-  <!-- Grades section -->
-  <div class="card fu d3" id="grades-section" style="margin-bottom:24px">
-    <div class="card-head">
-      <div class="card-head-left">
-        <div class="card-icon" style="background:var(--purple-d)">📊</div>
-        <div class="card-title">Grades</div>
-      </div>
-      <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--t4)" id="grades-count-label"></div>
-    </div>
-    <div class="grades-list" id="grades-list">
-      <div class="grades-empty" id="grades-empty">No grades yet — add a subject below</div>
-    </div>
-    <div class="grades-add-row">
-      <input class="g-input" id="new-subject" placeholder="Subject name…" onkeydown="if(event.key==='Enter')addGrade()">
-      <input class="g-input" id="new-score" type="number" placeholder="Score %" min="0" max="100" onkeydown="if(event.key==='Enter')addGrade()">
-      <button class="btn accent" onclick="addGrade()" style="white-space:nowrap;padding:7px 16px">+ Add</button>
-    </div>
-  </div>
-
-    <!-- Quick strip -->
+  <!-- Quick strip -->
   <div class="quick-strip">
     <a href="notes.html" class="quick-item fu d2" style="--qi-color:var(--lime)">
       <div class="qi-icon" style="background:var(--lime-d)">📚</div>
@@ -1292,7 +1312,6 @@ function renderGrades() {
   const list = document.getElementById('grades-list');
   const empty = document.getElementById('grades-empty');
   const avgLabel = document.getElementById('grades-avg-label');
-  const countLabel = document.getElementById('grades-count-label');
   const CIRC = 2 * Math.PI * 50; // circumference for r=50
 
   if (!grades.length) {
@@ -1352,7 +1371,6 @@ function renderGrades() {
   const letterEl = document.getElementById('gpa-letter');
   if (letterEl) { letterEl.textContent = letter; letterEl.style.color = color; }
   if (avgLabel) avgLabel.textContent = Math.round(avg) + '% avg';
-  if (countLabel) countLabel.textContent = grades.length + ' subject' + (grades.length !== 1 ? 's' : '');
 }
 
 // Init grades on load
