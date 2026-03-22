@@ -1281,25 +1281,33 @@ let activeFilter = 'all';
 async function initClassroom(userId) {
   classroomUserId = userId;
 
-  // Check URL params for callback result
   const params = new URLSearchParams(window.location.search);
-  if (params.get('classroom_connected') === '1') {
-    history.replaceState({}, '', window.location.pathname);
-    loadClassroom();
-    return;
-  }
+
   if (params.get('classroom_error')) {
     history.replaceState({}, '', window.location.pathname);
     showClassroomError('Connection failed: ' + params.get('classroom_error'));
     return;
   }
 
-  // Try loading feed — if 401 (not connected), show connect state
+  if (params.get('classroom_connected') === '1') {
+    history.replaceState({}, '', window.location.pathname);
+    // Use uid from URL if available (avoids async session timing issue)
+    const uid = params.get('uid');
+    if (uid) classroomUserId = uid;
+    loadClassroom();
+    return;
+  }
+
   loadClassroom();
 }
 
 async function loadClassroom() {
-  if (!classroomUserId) return;
+  // If userId not set yet, wait for session
+  if (!classroomUserId) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    classroomUserId = session.user.id;
+  }
   showClassroomState('loading');
   try {
     const res = await fetch(`${WORKER}/classroom/feed`, {
