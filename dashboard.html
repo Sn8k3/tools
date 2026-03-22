@@ -407,11 +407,46 @@ body.sidebar-collapsed { padding-left: 52px; }
 .ltb-bar-fill { height: 100%; background: var(--lime); border-radius: 3px; transition: width 1.4s cubic-bezier(0.4,0,0.2,1); }
 .ltb-streak { display: flex; align-items: center; gap: 8px; background: var(--s2); border: 1px solid var(--b2); border-radius: 40px; padding: 6px 14px 6px 10px; flex-shrink: 0; }
 
-/* ── Top row: GPA + Classroom ── */
+/* ── Top row: GPA + Plan + Classroom ── */
 .top-row {
-  display: grid; grid-template-columns: 200px 1fr;
+  display: grid; grid-template-columns: 200px 220px 1fr;
   gap: 12px; margin-bottom: 12px; height: 340px;
 }
+
+/* Plan panel */
+.plan-panel {
+  background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.plan-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; border-bottom: 1px solid var(--b1); flex-shrink: 0;
+}
+.plan-panel-body { flex: 1; overflow-y: auto; padding: 6px; min-height: 0; }
+.plan-panel-body::-webkit-scrollbar { width: 3px; }
+.plan-panel-body::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 2px; }
+.plan-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 100%; text-align: center; padding: 20px; }
+.plan-task {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 8px; border-radius: var(--r);
+  cursor: pointer; transition: background 0.12s;
+}
+.plan-task:hover { background: var(--s2); }
+.plan-task.done { opacity: 0.38; }
+.plan-check {
+  width: 14px; height: 14px; border-radius: 4px;
+  border: 1.5px solid var(--b3); flex-shrink: 0; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center; font-size: 8px;
+}
+.plan-task.done .plan-check { background: var(--lime); border-color: var(--lime); color: #080809; }
+.plan-task-body { flex: 1; min-width: 0; }
+.plan-task-subj { font-size: 9px; font-family: 'DM Mono', monospace; margin-bottom: 1px; text-transform: uppercase; letter-spacing: 0.06em; }
+.plan-task-title { font-size: 12px; color: var(--t2); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plan-task-dur { font-size: 9px; font-family: 'DM Mono', monospace; color: var(--t4); margin-top: 1px; }
+.plan-progress { padding: 8px 10px; border-top: 1px solid var(--b1); flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.plan-prog-bar { flex: 1; height: 3px; background: var(--b2); border-radius: 2px; overflow: hidden; }
+.plan-prog-fill { height: 100%; background: var(--lime); border-radius: 2px; transition: width 0.6s ease; }
+.plan-prog-lbl { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t4); flex-shrink: 0; }
 
 /* GPA panel */
 .gpa-panel {
@@ -673,6 +708,24 @@ body.sidebar-collapsed { padding-left: 52px; }
       <div class="gpa-letter-tag" id="gpa-letter"></div>
       <div class="gpa-subjects-count" id="grades-avg-label"></div>
       <a href="#grades-section" class="gpa-edit-link">Edit grades ↓</a>
+    </div>
+
+    <!-- Today's plan panel -->
+    <div class="plan-panel">
+      <div class="plan-panel-head">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:14px">📅</span>
+          <span style="font-size:13px;font-weight:500;color:var(--t1)">Today's plan</span>
+        </div>
+        <a href="planner.html" class="card-link">Open →</a>
+      </div>
+      <div class="plan-panel-body" id="top-planner-body">
+        <div class="plan-empty">
+          <div style="font-size:22px;opacity:0.3">📭</div>
+          <div style="font-size:12px;color:var(--t4)">No tasks today</div>
+          <a href="planner.html" style="font-size:11px;color:var(--lime);text-decoration:none;font-family:'DM Mono',monospace">Set up planner →</a>
+        </div>
+      </div>
     </div>
 
     <!-- Classroom panel -->
@@ -1041,6 +1094,7 @@ function renderDecks(decks) {
 
 function renderPlanner(planner) {
   const el = document.getElementById('planner-body');
+  const topEl = document.getElementById('top-planner-body');
   if (!planner?.schedule) return;
   const today = new Date().toISOString().split('T')[0];
   let day = planner.schedule.weeks.flatMap(w=>w.days).find(d=>d.date===today);
@@ -1051,24 +1105,45 @@ function renderPlanner(planner) {
   const pct = tasks.length ? Math.round(done/tasks.length*100) : 0;
   const isToday = day.date===today;
   const cols = ['var(--lime)','var(--purple)','var(--sky)','var(--amber)','var(--coral)'];
-  el.innerHTML = `
-    <div class="today-chip">${isToday?'Today':fmtDate(day.date)}</div>
-    ${tasks.map(t => {
+
+  const taskHtml = tasks.map(t => {
+    const isDone = !!planner.taskStatus?.[t.id];
+    const color = cols[Math.abs(hashStr(t.subject))%cols.length];
+    return `<div class="ptask${isDone?' done':''}">
+      <div class="ptask-check">${isDone?'✓':''}</div>
+      <div>
+        <div class="ptask-subj" style="color:${color}">${escH(t.subject)}</div>
+        <div class="ptask-title">${escH(t.title)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const progressHtml = `<div class="pbar-row">
+    <div class="pbar"><div class="pbar-fill" style="width:${pct}%"></div></div>
+    <div class="pbar-lbl">${done}/${tasks.length}</div>
+  </div>`;
+
+  // Main planner card
+  el.innerHTML = `<div class="today-chip">${isToday?'Today':fmtDate(day.date)}</div>${taskHtml}${progressHtml}`;
+
+  // Top panel — use plan-task styles
+  if (topEl) {
+    topEl.innerHTML = tasks.map(t => {
       const isDone = !!planner.taskStatus?.[t.id];
       const color = cols[Math.abs(hashStr(t.subject))%cols.length];
-      return `<div class="ptask${isDone?' done':''}">
-        <div class="ptask-check">${isDone?'✓':''}</div>
-        <div>
-          <div class="ptask-subj" style="color:${color}">${escH(t.subject)}</div>
-          <div class="ptask-title">${escH(t.title)}</div>
+      return `<div class="plan-task${isDone?' done':''}">
+        <div class="plan-check">${isDone?'✓':''}</div>
+        <div class="plan-task-body">
+          <div class="plan-task-subj" style="color:${color}">${escH(t.subject)}</div>
+          <div class="plan-task-title">${escH(t.title)}</div>
+          ${t.duration ? `<div class="plan-task-dur">${t.duration} min</div>` : ''}
         </div>
       </div>`;
-    }).join('')}
-    <div class="pbar-row">
-      <div class="pbar"><div class="pbar-fill" style="width:${pct}%"></div></div>
-      <div class="pbar-lbl">${done}/${tasks.length}</div>
-    </div>
-  `;
+    }).join('') + `<div class="plan-progress">
+      <div class="plan-prog-bar"><div class="plan-prog-fill" style="width:${pct}%"></div></div>
+      <div class="plan-prog-lbl">${done}/${tasks.length} done</div>
+    </div>`;
+  }
 }
 
 function renderStreak(notes, essays, decks, planner) {
