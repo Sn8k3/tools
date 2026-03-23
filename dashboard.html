@@ -875,6 +875,15 @@ body.sidebar-collapsed { padding-left: 52px; }
 
 </div><!-- end page -->
 
+<div class="toast" id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px">
+  <span id="t-icon">✓</span><span id="t-msg"></span>
+</div>
+<style>
+.toast.on{display:flex!important}
+.toast.ok{border-color:var(--lime-b)}
+.toast.err{border-color:var(--coral-b)}
+</style>
+
 <script>
 const SUPABASE_URL = 'https://uorlszhcjrblrbmhgyqb.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg';
@@ -1405,14 +1414,16 @@ function renderClassroomFeed(data, filter) {
     const rows = assignments.slice(0, 5).map(a => {
       const due = formatDueDate(a.dueDate);
       const dueClass = getDueClass(a.dueDate);
-      const link = a.alternateLink || 'https://classroom.google.com';
-      return `<a class="ca-row" href="${escH(link)}" target="_blank" rel="noopener">
-        <div class="ca-icon">📝</div>
+      const link = getAssignmentUrl(a);
+      const workIcon = a.workType === 'QUIZ' ? '🧠' : a.workType === 'SHORT_ANSWER_QUESTION' || a.workType === 'MULTIPLE_CHOICE_QUESTION' ? '❓' : '📝';
+      return `<a class="ca-row" href="${escH(link)}" target="_blank" rel="noopener" onclick="return handleAssignmentClick(event, '${escH(link)}')">
+        <div class="ca-icon">${workIcon}</div>
         <div class="ca-body">
           <div class="ca-title">${escH(a.title)}</div>
           <div class="ca-meta">
-            <span class="ca-course">${escH(a.courseName)}</span>
-            ${due ? `<span class="ca-due ${dueClass}">${due}</span>` : ''}
+            <span class="ca-course">${escH(a.courseName)}${a.courseSection ? ' · ' + escH(a.courseSection) : ''}</span>
+            ${due ? `<span class="ca-due ${dueClass}">${due}</span>` : '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--t4)">No due date</span>'}
+            ${a.maxPoints ? `<span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--t4)">${a.maxPoints} pts</span>` : ''}
           </div>
         </div>
         <div class="ca-arrow">↗</div>
@@ -1426,13 +1437,20 @@ function renderClassroomFeed(data, filter) {
       </div>
       <div class="ca-list">${rows}</div>`;
   } else {
-    assignmentsHtml = `<div class="ca-list"><div class="cl-empty" style="padding:16px">No assignments found</div></div>`;
+    assignmentsHtml = `
+      <div class="cl-section-label">Recent assignments</div>
+      <div class="ca-list">
+        <div class="cl-empty" style="padding:16px;font-size:12px">
+          No assignments found — 
+          <a href="https://classroom.google.com" target="_blank" style="color:#4285f4;text-decoration:none">check Google Classroom ↗</a>
+        </div>
+      </div>`;
   }
 
   // ── Course filter pills ──
   const filterHtml = `<div class="cl-course-filter">
     <button class="cl-filter-btn ${filter === 'all' ? 'active' : ''}" onclick="filterClassroom('all',this)">All</button>
-    ${courses.map(c => `<button class="cl-filter-btn ${filter === c.id ? 'active' : ''}" onclick="filterClassroom('${c.id}',this)">${escH(c.name)}</button>`).join('')}
+    ${courses.map(c => `<button class="cl-filter-btn ${filter === c.id ? 'active' : ''}" onclick="filterClassroom('${escH(c.id)}',this)">${escH(c.name)}</button>`).join('')}
   </div>`;
 
   // ── Feed items ──
@@ -1440,7 +1458,7 @@ function renderClassroomFeed(data, filter) {
 
   let feedHtml = '';
   if (!filtered.length) {
-    feedHtml = `<div class="cl-empty">No recent posts</div>`;
+    feedHtml = `<div class="cl-empty">No recent posts in this class</div>`;
   } else {
     feedHtml = filtered.map(item => {
       const isAnn = item.type === 'announcement';
@@ -1460,8 +1478,8 @@ function renderClassroomFeed(data, filter) {
         if (due) dueBadge = `<span class="cl-due-badge ${cls}">${due}</span>`;
       }
 
-      const link = item.alternateLink || 'https://classroom.google.com';
-      return `<a class="cl-item" href="${escH(link)}" target="_blank" rel="noopener">
+      const link = getAssignmentUrl(item);
+      return `<a class="cl-item" href="${escH(link)}" target="_blank" rel="noopener" onclick="return handleAssignmentClick(event, '${escH(link)}')">
         <div class="cl-item-icon" style="background:${iconBg}">${icon}</div>
         <div class="cl-item-body">
           <div class="cl-item-course">${escH(item.courseName)}${item.courseSection ? ' · ' + escH(item.courseSection) : ''}</div>
@@ -1485,30 +1503,59 @@ function renderClassroomFeed(data, filter) {
   container.innerHTML = assignmentsHtml + filterHtml + `<div class="cl-section-label">Recently posted</div>` + feedHtml + footer;
 }
 
-// ── Assignment helper functions (reusable for future integrations) ──
-function formatDueDate(dueDate) {
-  if (!dueDate) return null;
-  const { year, month, day } = dueDate;
-  const due = new Date(year, month - 1, day);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const daysLeft = Math.ceil((due - today) / 86400000);
-  if (daysLeft < 0) return 'Overdue';
-  if (daysLeft === 0) return 'Due today';
-  if (daysLeft === 1) return 'Due tomorrow';
-  if (daysLeft <= 7) return `Due ${due.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
-  return `Due ${month}/${day}`;
+// ── Assignment URL helpers (reusable for future integrations) ──
+
+// Build the best possible URL for an assignment/announcement
+function getAssignmentUrl(item) {
+  // 1. Use Google's own alternateLink if present and valid
+  if (item.alternateLink && item.alternateLink.startsWith('https://')) {
+    return item.alternateLink;
+  }
+  // 2. Construct direct assignment URL from known IDs
+  if (item.courseId && item.id) {
+    if (item.type === 'announcement') {
+      return `https://classroom.google.com/c/${item.courseId}/p/${item.id}`;
+    }
+    // coursework — /details goes to the student view
+    return `https://classroom.google.com/c/${item.courseId}/a/${item.id}/details`;
+  }
+  // 3. Fall back to course stream
+  if (item.courseId) {
+    return `https://classroom.google.com/c/${item.courseId}`;
+  }
+  // 4. Last resort
+  return 'https://classroom.google.com';
 }
 
-function getDueClass(dueDate) {
-  if (!dueDate) return '';
-  const { year, month, day } = dueDate;
-  const due = new Date(year, month - 1, day);
-  const today = new Date(); today.setHours(0,0,0,0);
-  const daysLeft = Math.ceil((due - today) / 86400000);
-  if (daysLeft < 0) return 'soon';
-  if (daysLeft <= 1) return 'soon';
-  if (daysLeft <= 3) return 'ok';
-  return 'fine';
+// Handle clicks — validate URL before navigating, show toast on error
+function handleAssignmentClick(event, link) {
+  event.stopPropagation();
+  try {
+    const url = new URL(link);
+    if (!url.hostname.includes('google.com') && !url.hostname.includes('classroom.google.com')) {
+      throw new Error('Unexpected URL');
+    }
+    // Valid — let the default <a> behavior handle it
+    return true;
+  } catch {
+    event.preventDefault();
+    // Show a subtle error and redirect to Classroom home
+    showClassroomLinkError();
+    return false;
+  }
+}
+
+function showClassroomLinkError() {
+  // Toast-style error
+  const t = document.getElementById('toast');
+  if (t) {
+    document.getElementById('t-msg').textContent = 'Assignment link unavailable — opening Classroom';
+    document.getElementById('t-icon').textContent = '⚠';
+    t.className = 'toast on err';
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('on'), 3000);
+  }
+  setTimeout(() => window.open('https://classroom.google.com', '_blank'), 800);
 }
 
 function formatClassroomTime(iso) {
