@@ -603,6 +603,23 @@ body.sidebar-collapsed { padding-left: 52px; }
 .cl-footer-btn { display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-top:1px solid var(--b1); font-size:13px; font-weight:500; color:#4285f4; text-decoration:none; transition:background 0.12s; }
 .cl-footer-btn:hover { background:rgba(66,133,244,0.06); }
 .cl-empty { padding:32px; text-align:center; color:var(--t4); font-size:13px; }
+
+/* Assignment rows */
+.ca-list { display:flex; flex-direction:column; border-bottom:1px solid var(--b1); }
+.ca-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--b1); text-decoration:none; transition:background 0.12s; }
+.ca-row:last-child { border-bottom:none; }
+.ca-row:hover { background:var(--s2); }
+.ca-icon { font-size:15px; flex-shrink:0; width:26px; text-align:center; }
+.ca-body { flex:1; min-width:0; }
+.ca-title { font-size:13px; color:var(--t1); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
+.ca-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.ca-course { font-size:10px; font-family:'DM Mono',monospace; color:var(--t4); text-transform:uppercase; letter-spacing:0.06em; }
+.ca-due { font-size:10px; font-family:'DM Mono',monospace; padding:1px 7px; border-radius:8px; }
+.ca-due.soon { background:var(--coral-d); color:var(--coral); border:1px solid var(--coral-b); }
+.ca-due.ok { background:var(--amber-d); color:var(--amber); border:1px solid rgba(240,174,80,0.3); }
+.ca-due.fine { background:var(--lime-d); color:var(--lime); border:1px solid var(--lime-b); }
+.ca-arrow { font-size:11px; color:var(--t4); flex-shrink:0; opacity:0; transition:opacity 0.12s; }
+.ca-row:hover .ca-arrow { opacity:1; color:#4285f4; }
 .spinner { width:13px; height:13px; border:2px solid var(--b2); border-top-color:var(--lime); border-radius:50%; animation:spin 0.7s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 
@@ -1380,75 +1397,118 @@ function filterClassroom(courseId, btn) {
 
 function renderClassroomFeed(data, filter) {
   const container = document.getElementById('classroom-feed');
-  const { courses, feed } = data;
+  const { courses, feed, assignments = [] } = data;
 
-  // Course filter pills
+  // ── Recent Assignments section (always shown at top) ──
+  let assignmentsHtml = '';
+  if (assignments.length) {
+    const rows = assignments.slice(0, 5).map(a => {
+      const due = formatDueDate(a.dueDate);
+      const dueClass = getDueClass(a.dueDate);
+      const link = a.alternateLink || 'https://classroom.google.com';
+      return `<a class="ca-row" href="${escH(link)}" target="_blank" rel="noopener">
+        <div class="ca-icon">📝</div>
+        <div class="ca-body">
+          <div class="ca-title">${escH(a.title)}</div>
+          <div class="ca-meta">
+            <span class="ca-course">${escH(a.courseName)}</span>
+            ${due ? `<span class="ca-due ${dueClass}">${due}</span>` : ''}
+          </div>
+        </div>
+        <div class="ca-arrow">↗</div>
+      </a>`;
+    }).join('');
+
+    assignmentsHtml = `
+      <div class="cl-section-label" style="display:flex;align-items:center;justify-content:space-between;padding-right:16px">
+        <span>Recent assignments</span>
+        <a href="https://classroom.google.com" target="_blank" style="font-size:10px;color:#4285f4;text-decoration:none;font-family:'DM Mono',monospace">View all ↗</a>
+      </div>
+      <div class="ca-list">${rows}</div>`;
+  } else {
+    assignmentsHtml = `<div class="ca-list"><div class="cl-empty" style="padding:16px">No assignments found</div></div>`;
+  }
+
+  // ── Course filter pills ──
   const filterHtml = `<div class="cl-course-filter">
-    <button class="cl-filter-btn ${filter === 'all' ? 'active' : ''}" onclick="filterClassroom('all',this)">All classes</button>
+    <button class="cl-filter-btn ${filter === 'all' ? 'active' : ''}" onclick="filterClassroom('all',this)">All</button>
     ${courses.map(c => `<button class="cl-filter-btn ${filter === c.id ? 'active' : ''}" onclick="filterClassroom('${c.id}',this)">${escH(c.name)}</button>`).join('')}
   </div>`;
 
+  // ── Feed items ──
   const filtered = filter === 'all' ? feed : feed.filter(i => i.courseId === filter);
 
+  let feedHtml = '';
   if (!filtered.length) {
-    container.innerHTML = filterHtml + `<div class="cl-empty">No recent posts</div>`;
-    return;
+    feedHtml = `<div class="cl-empty">No recent posts</div>`;
+  } else {
+    feedHtml = filtered.map(item => {
+      const isAnn = item.type === 'announcement';
+      const time = formatClassroomTime(item.updateTime || item.creationTime);
+      const isNew = new Date(item.updateTime || item.creationTime) > new Date(Date.now() - 86400000 * 2);
+      const icon = isAnn ? '📢' : item.workType === 'QUIZ' ? '🧠' : item.workType === 'MATERIAL' ? '📄' : '📝';
+      const iconBg = isAnn ? 'rgba(66,133,244,0.1)' : 'var(--lime-d)';
+      const title = isAnn ? (item.text?.slice(0, 100) || 'Announcement') : item.title;
+      const body = isAnn
+        ? (item.text?.length > 100 ? item.text.slice(0, 140) + '…' : '')
+        : (item.description?.slice(0, 120) || '');
+
+      let dueBadge = '';
+      if (!isAnn && item.dueDate) {
+        const due = formatDueDate(item.dueDate);
+        const cls = getDueClass(item.dueDate);
+        if (due) dueBadge = `<span class="cl-due-badge ${cls}">${due}</span>`;
+      }
+
+      const link = item.alternateLink || 'https://classroom.google.com';
+      return `<a class="cl-item" href="${escH(link)}" target="_blank" rel="noopener">
+        <div class="cl-item-icon" style="background:${iconBg}">${icon}</div>
+        <div class="cl-item-body">
+          <div class="cl-item-course">${escH(item.courseName)}${item.courseSection ? ' · ' + escH(item.courseSection) : ''}</div>
+          <div class="cl-item-title">${isNew ? '<span class="cl-new-dot"></span>' : ''}${escH(title)}</div>
+          ${body ? `<div class="cl-item-text">${escH(body)}</div>` : ''}
+          <div class="cl-item-meta">
+            <span class="cl-item-time">${time}</span>
+            ${dueBadge}
+            <span class="cl-item-open">Open ↗</span>
+          </div>
+        </div>
+      </a>`;
+    }).join('');
   }
 
-  // "Recently posted" section label
-  const itemsHtml = filtered.map((item, idx) => {
-    const isAnn = item.type === 'announcement';
-    const time = formatClassroomTime(item.updateTime);
-    const isNew = new Date(item.updateTime) > new Date(Date.now() - 86400000 * 2); // within 2 days
-
-    // Icon + colors
-    const icon = isAnn ? '📢' : item.workType === 'QUIZ' ? '🧠' : item.workType === 'MATERIAL' ? '📄' : '📝';
-    const iconBg = isAnn ? 'rgba(66,133,244,0.1)' : 'var(--lime-d)';
-
-    const title = isAnn
-      ? (item.text?.slice(0, 100) || 'Announcement')
-      : item.title;
-
-    const body = isAnn
-      ? (item.text?.length > 100 ? item.text.slice(0, 140) + '…' : '')
-      : (item.description?.slice(0, 120) || '');
-
-    // Due date badge
-    let dueBadge = '';
-    if (!isAnn && item.dueDate) {
-      const due = new Date(item.dueDate.year, item.dueDate.month - 1, item.dueDate.day);
-      const daysLeft = Math.ceil((due - new Date()) / 86400000);
-      const cls = daysLeft < 0 ? 'soon' : daysLeft <= 1 ? 'soon' : daysLeft <= 3 ? 'ok' : 'fine';
-      const label = daysLeft < 0 ? 'Overdue' : daysLeft === 0 ? 'Due today' : daysLeft === 1 ? 'Due tomorrow' : `Due ${item.dueDate.month}/${item.dueDate.day}`;
-      dueBadge = `<span class="cl-due-badge ${cls}">${label}</span>`;
-    }
-
-    const link = item.alternateLink || 'https://classroom.google.com';
-
-    return `<a class="cl-item" href="${escH(link)}" target="_blank" rel="noopener">
-      <div class="cl-item-icon" style="background:${iconBg}">${icon}</div>
-      <div class="cl-item-body">
-        <div class="cl-item-course">${escH(item.courseName)}${item.courseSection ? ' · ' + escH(item.courseSection) : ''}</div>
-        <div class="cl-item-title">${isNew ? '<span class="cl-new-dot"></span>' : ''}${escH(title)}</div>
-        ${body ? `<div class="cl-item-text">${escH(body)}</div>` : ''}
-        <div class="cl-item-meta">
-          <span class="cl-item-time">${time}</span>
-          ${dueBadge}
-          <span class="cl-item-open">Open in Classroom ↗</span>
-        </div>
-      </div>
-    </a>`;
-  }).join('');
-
-  // Big "Open Google Classroom" footer button
   const footer = `<a href="https://classroom.google.com" target="_blank" rel="noopener" class="cl-footer-btn">
     <svg width="14" height="14" viewBox="0 0 18 18" style="flex-shrink:0"><path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.06-.96-.15-1.18z" fill="#4285F4"/><path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.77-2.7.77a4.74 4.74 0 01-4.44-3.29H1.87v2.08A8 8 0 008.98 17z" fill="#34A853"/><path d="M4.54 10.53a4.7 4.7 0 010-3.06V5.4H1.87a8 8 0 000 7.22l2.67-2.09z" fill="#FBBC05"/><path d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A7.97 7.97 0 008.98 1a8 8 0 00-7.11 4.38l2.67 2.08a4.74 4.74 0 014.44-3.28z" fill="#EA4335"/></svg>
     Open Google Classroom
   </a>`;
 
-  const recentLabel = `<div class="cl-section-label">Recently posted</div>`;
+  container.innerHTML = assignmentsHtml + filterHtml + `<div class="cl-section-label">Recently posted</div>` + feedHtml + footer;
+}
 
-  container.innerHTML = filterHtml + recentLabel + itemsHtml + footer;
+// ── Assignment helper functions (reusable for future integrations) ──
+function formatDueDate(dueDate) {
+  if (!dueDate) return null;
+  const { year, month, day } = dueDate;
+  const due = new Date(year, month - 1, day);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const daysLeft = Math.ceil((due - today) / 86400000);
+  if (daysLeft < 0) return 'Overdue';
+  if (daysLeft === 0) return 'Due today';
+  if (daysLeft === 1) return 'Due tomorrow';
+  if (daysLeft <= 7) return `Due ${due.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  return `Due ${month}/${day}`;
+}
+
+function getDueClass(dueDate) {
+  if (!dueDate) return '';
+  const { year, month, day } = dueDate;
+  const due = new Date(year, month - 1, day);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const daysLeft = Math.ceil((due - today) / 86400000);
+  if (daysLeft < 0) return 'soon';
+  if (daysLeft <= 1) return 'soon';
+  if (daysLeft <= 3) return 'ok';
+  return 'fine';
 }
 
 function formatClassroomTime(iso) {
