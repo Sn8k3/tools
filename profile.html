@@ -1,235 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="guard.js"></script>
 <meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Profile — Notiv</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js" defer></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #0e0e10; --surface: #17171a; --surface2: #1f1f24;
-  --border: #2a2a30; --border2: #38383f;
-  --text: #eeecea; --text2: #9b9899; --text3: #5c5a5e;
-  --accent: #c8f05e; --accent-dim: rgba(200,240,94,0.10);
-  --accent-border: rgba(200,240,94,0.25);
-  --coral: #f0635a; --coral-dim: rgba(240,99,90,0.10);
-  --purple: #9d7bea; --purple-dim: rgba(157,123,234,0.12);
-  --radius: 10px; --radius-lg: 16px;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;
+  --b1:#22222a;--b2:#2e2e38;--b3:#3c3c48;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);--purple-b:rgba(160,126,232,0.25);
+  --coral:#f0635a;--coral-d:rgba(240,99,90,0.10);--coral-b:rgba(240,99,90,0.3);
+  --amber:#f0ae50;--amber-d:rgba(240,174,80,0.10);
+  --r:10px;--rl:14px;
 }
-html { scroll-behavior: smooth; }
-body {
-  background: var(--bg); color: var(--text);
-  font-family: 'Instrument Sans', sans-serif;
-  font-size: 15px; min-height: 100vh;
-}
-body::before {
-  content: ''; position: fixed; inset: 0;
-  background: radial-gradient(ellipse 50% 40% at 70% 10%, rgba(200,240,94,0.05) 0%, transparent 60%);
-  pointer-events: none;
-}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;display:flex}
 
-.topbar {
-  display: flex; align-items: center; gap: 12px;
-  padding: 0 24px; height: 56px;
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 100;
-}
-.logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--text); text-decoration: none; }
-.logo-dot { color: var(--accent); }
-.back-link { font-size: 13px; color: var(--text2); text-decoration: none; display: flex; align-items: center; gap: 5px; transition: color 0.15s; }
-.back-link:hover { color: var(--text); }
+/* Nav sidebar */
+.nav-sidebar{width:220px;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;flex-shrink:0;overflow:hidden;transition:width 0.22s cubic-bezier(0.4,0,0.2,1)}
+.nav-sidebar.collapsed{width:52px}
+.sidebar-logo-wrap{display:flex;align-items:center;justify-content:space-between;padding:16px 14px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.sidebar-logo{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--t1);text-decoration:none;overflow:hidden;white-space:nowrap}
+.sidebar-logo span{color:var(--lime)}
+.logo-text{transition:opacity 0.15s}
+.nav-sidebar.collapsed .logo-text{opacity:0;width:0;display:none}
+.sidebar-toggle{background:none;border:1px solid var(--b1);border-radius:6px;color:var(--t4);cursor:pointer;width:24px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all 0.12s}
+.sidebar-toggle:hover{border-color:var(--b2);color:var(--t2)}
+.sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 6px;display:flex;flex-direction:column;gap:1px}
+.sidebar-nav::-webkit-scrollbar{width:3px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.snav-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.1em;text-transform:uppercase;padding:10px 8px 3px;white-space:nowrap;overflow:hidden;transition:opacity 0.15s}
+.nav-sidebar.collapsed .snav-label{opacity:0;height:0;padding:0}
+.snav-link{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s;position:relative;white-space:nowrap;overflow:hidden}
+.snav-link:hover{background:var(--s2);color:var(--t2)}
+.snav-link.active{background:var(--s2);color:var(--t1)}
+.snav-link.active::after{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:14px;background:var(--lime);border-radius:0 2px 2px 0}
+.sl-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.sl-text{overflow:hidden;transition:opacity 0.15s}
+.nav-sidebar.collapsed .sl-text{opacity:0;width:0}
+.nav-sidebar.collapsed .snav-link{justify-content:center;padding:8px}
+.nav-sidebar.collapsed .snav-link:hover::before{content:attr(data-label);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%);background:var(--s2);border:1px solid var(--b2);border-radius:7px;padding:5px 12px;font-size:12px;color:var(--t1);white-space:nowrap;pointer-events:none;z-index:9999}
 
-.wrap {
-  max-width: 640px; margin: 0 auto;
-  padding: 40px 24px 80px;
-  display: flex; flex-direction: column; gap: 20px;
-  position: relative; z-index: 1;
-}
+/* Page */
+.page{flex:1;overflow-y:auto;padding:32px 32px 80px}
+.page::-webkit-scrollbar{width:4px}
+.page::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.inner{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
 
-.page-title { font-family: 'DM Serif Display', serif; font-size: 32px; font-weight: 400; }
+/* Error state */
+.load-error{background:var(--coral-d);border:1px solid var(--coral-b);border-radius:var(--rl);padding:20px;display:none;align-items:center;gap:12px;font-size:13px;color:var(--coral)}
+.load-error.visible{display:flex}
 
-/* Avatar section */
-.profile-hero {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 28px;
-  display: flex; align-items: center; gap: 20px;
-}
-.big-avatar {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: var(--accent-dim); border: 2px solid var(--accent-border);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'DM Serif Display', serif; font-size: 24px;
-  color: var(--accent); flex-shrink: 0;
-}
-.profile-info { flex: 1; min-width: 0; }
-.profile-email { font-size: 16px; font-weight: 500; color: var(--text); }
-.profile-since { font-size: 13px; color: var(--text3); margin-top: 3px; }
-.profile-badge {
-  font-size: 11px; padding: 3px 10px; border-radius: 20px;
-  background: var(--accent-dim); color: var(--accent);
-  border: 1px solid var(--accent-border); margin-top: 8px;
-  display: inline-block; font-family: 'DM Mono', monospace;
-}
+/* Page title */
+.page-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--t3)}
+
+/* Profile hero */
+.profile-hero{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:24px;display:flex;align-items:center;gap:18px}
+.big-avatar{width:60px;height:60px;border-radius:50%;background:var(--lime-d);border:2px solid var(--lime-b);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:22px;color:var(--lime);flex-shrink:0;overflow:hidden}
+.big-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.profile-info{flex:1;min-width:0}
+.profile-name{font-family:'Playfair Display',serif;font-size:20px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-email{font-size:13px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-since{font-size:11px;font-family:'DM Mono',monospace;color:var(--t4);margin-top:4px}
+.profile-badge{display:inline-block;margin-top:8px;font-size:10px;font-family:'DM Mono',monospace;padding:2px 10px;border-radius:20px;background:var(--lime-d);color:var(--lime);border:1px solid var(--lime-b)}
+.profile-edit-btn{background:none;border:1px solid var(--b2);border-radius:8px;color:var(--t3);cursor:pointer;padding:6px 12px;font-family:inherit;font-size:12px;transition:all 0.12s;flex-shrink:0}
+.profile-edit-btn:hover{border-color:var(--b3);color:var(--t2)}
+
+/* Edit form */
+.edit-form{background:var(--s1);border:1px solid var(--lime-b);border-radius:var(--rl);padding:18px;display:none;flex-direction:column;gap:10px}
+.edit-form.visible{display:flex}
+.f-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px}
+.f-input{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--t1);outline:none;transition:border-color 0.15s}
+.f-input:focus{border-color:var(--lime-b)}
+.f-input::placeholder{color:var(--t4)}
+.emoji-picker{display:flex;gap:6px;flex-wrap:wrap}
+.emoji-opt{width:32px;height:32px;border-radius:8px;border:1px solid var(--b1);background:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.12s}
+.emoji-opt:hover{border-color:var(--b2);background:var(--s2)}
+.emoji-opt.active{border-color:var(--lime-b);background:var(--lime-d)}
+.edit-actions{display:flex;gap:8px;margin-top:4px}
 
 /* Section card */
-.section-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-lg); overflow: hidden;
-}
-.section-header {
-  padding: 14px 20px; border-bottom: 1px solid var(--border);
-  font-size: 12px; font-family: 'DM Mono', monospace;
-  color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase;
-}
-.section-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.section-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);overflow:hidden}
+.section-head{padding:13px 18px;border-bottom:1px solid var(--b1);font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.08em;text-transform:uppercase}
+.section-body{padding:14px;display:flex;flex-direction:column;gap:8px}
 
 /* Sync rows */
-.sync-row {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 14px; border-radius: var(--radius);
-  background: var(--surface2); border: 1px solid var(--border);
-}
-.sync-icon { font-size: 18px; flex-shrink: 0; }
-.sync-info { flex: 1; min-width: 0; }
-.sync-name { font-size: 14px; font-weight: 500; color: var(--text); }
-.sync-status { font-size: 12px; color: var(--text3); margin-top: 2px; }
-.sync-status.synced { color: var(--accent); }
-.sync-status.error { color: var(--coral); }
-.sync-btn {
-  padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border);
-  background: none; color: var(--text2); font-family: inherit;
-  font-size: 12px; cursor: pointer; transition: all 0.12s; white-space: nowrap;
-}
-.sync-btn:hover { border-color: var(--border2); color: var(--text); }
-.sync-btn.syncing { opacity: 0.6; cursor: not-allowed; }
+.sync-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:var(--r);background:var(--s2);border:1px solid var(--b1)}
+.sync-icon{font-size:16px;flex-shrink:0}
+.sync-info{flex:1;min-width:0}
+.sync-name{font-size:13px;font-weight:500;color:var(--t1)}
+.sync-status{font-size:11px;color:var(--t4);font-family:'DM Mono',monospace;margin-top:2px}
+.sync-status.synced{color:var(--lime)}
+.sync-status.error{color:var(--coral)}
 
-/* Danger zone */
-.danger-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px; border-radius: var(--radius);
-  background: var(--coral-dim); border: 1px solid rgba(240,99,90,0.2);
-  gap: 12px;
-}
-.danger-info { flex: 1; }
-.danger-title { font-size: 14px; font-weight: 500; color: var(--text); }
-.danger-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat-pill{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;text-align:center}
+.stat-num{font-family:'Playfair Display',serif;font-size:22px;color:var(--lime)}
+.stat-lbl{font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);text-transform:uppercase;letter-spacing:0.06em;margin-top:2px}
 
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
-  background: var(--surface2); color: var(--text2);
-  font-family: inherit; font-size: 13px; cursor: pointer;
-  transition: all 0.12s; white-space: nowrap; font-weight: 500;
-}
-.btn:hover { border-color: var(--border2); color: var(--text); }
-.btn.danger { border-color: rgba(240,99,90,0.4); color: var(--coral); background: var(--coral-dim); }
-.btn.danger:hover { background: rgba(240,99,90,0.18); }
-.btn.signout { width: 100%; justify-content: center; margin-top: 4px; }
+/* Danger */
+.danger-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:var(--r);background:var(--coral-d);border:1px solid var(--coral-b)}
+.danger-info{}
+.danger-title{font-size:13px;font-weight:500;color:var(--t1)}
+.danger-sub{font-size:11px;color:var(--t3);margin-top:2px}
 
-.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--text); z-index: 999; display: none; align-items: center; gap: 8px; }
-.toast.visible { display: flex; }
-.toast.success { border-color: var(--accent-border); }
-.toast.error { border-color: rgba(240,99,90,0.4); }
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--b2);background:var(--s2);color:var(--t2);font-family:inherit;font-size:13px;cursor:pointer;transition:all 0.12s;white-space:nowrap}
+.btn:hover{border-color:var(--b3);color:var(--t1)}
+.btn:disabled{opacity:0.38;cursor:not-allowed}
+.btn.primary{background:var(--lime);border-color:var(--lime);color:#080809;font-weight:600}
+.btn.primary:hover{background:#d8ff74}
+.btn.danger{background:var(--coral-d);border-color:var(--coral-b);color:var(--coral)}
+.btn.danger:hover{background:rgba(240,99,90,0.18)}
+.btn.full{width:100%;justify-content:center}
+.btn.sm{padding:5px 10px;font-size:12px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px}
+.toast.visible{display:flex}
+.toast.success{border-color:var(--lime-b)}
+.toast.error{border-color:var(--coral-b)}
+
+@media(max-width:900px){.nav-sidebar{display:none}.page{padding:20px 16px 60px}}
 </style>
 </head>
 <body>
 
-<header class="topbar">
-  <a href="index.html" class="logo">Notiv<span class="logo-dot">.</span></a>
-  <a href="index.html" class="back-link">← Home</a>
-</header>
-
-<div class="wrap">
-  <div class="page-title">Profile</div>
-
-  <!-- Hero -->
-  <div class="profile-hero">
-    <div class="big-avatar" id="big-avatar">?</div>
-    <div class="profile-info">
-      <div class="profile-email" id="profile-email">Loading…</div>
-      <div class="profile-since" id="profile-since"></div>
-      <div class="profile-badge">Free plan</div>
-    </div>
+<aside class="nav-sidebar" id="nav-sidebar">
+  <div class="sidebar-logo-wrap">
+    <a href="index.html" class="sidebar-logo"><span class="logo-text">Notiv<span>.</span></span></a>
+    <button class="sidebar-toggle" id="sidebar-toggle-btn" title="Collapse">‹</button>
   </div>
+  <div class="sidebar-nav">
+    <div class="snav-label">Main</div>
+    <a href="dashboard.html" class="snav-link" data-label="Dashboard"><span class="sl-icon">📊</span><span class="sl-text">Dashboard</span></a>
+    <div class="snav-label">Study tools</div>
+    <a href="notes.html" class="snav-link" data-label="Notes"><span class="sl-icon">📚</span><span class="sl-text">Notes Library</span></a>
+    <a href="essay.html" class="snav-link" data-label="Essays"><span class="sl-icon">✏️</span><span class="sl-text">Essay Editor</span></a>
+    <a href="flashcards.html" class="snav-link" data-label="Flashcards"><span class="sl-icon">🃏</span><span class="sl-text">Flashcards</span></a>
+    <a href="quiz.html" class="snav-link" data-label="Quiz Me"><span class="sl-icon">🧠</span><span class="sl-text">Quiz Me</span></a>
+    <a href="planner.html" class="snav-link" data-label="Planner"><span class="sl-icon">📅</span><span class="sl-text">Planner</span></a>
+    <a href="explainer.html" class="snav-link" data-label="Explainer"><span class="sl-icon">💡</span><span class="sl-text">Explainer</span></a>
+    <a href="games.html" class="snav-link" data-label="Games"><span class="sl-icon">🎮</span><span class="sl-text">Games</span></a>
+    <a href="writer.html" class="snav-link" data-label="AI Writer"><span class="sl-icon">✍️</span><span class="sl-text">AI Writer</span></a>
+    <a href="timer.html" class="snav-link" data-label="Timer"><span class="sl-icon">⏱</span><span class="sl-text">Timer</span></a>
+    <div class="snav-label">Research</div>
+    <a href="citations.html" class="snav-link" data-label="Citations"><span class="sl-icon">📎</span><span class="sl-text">Citations</span></a>
+    <div class="snav-label">Account</div>
+    <a href="profile.html" class="snav-link active" data-label="Profile"><span class="sl-icon">👤</span><span class="sl-text">Profile</span></a>
+    <a href="settings.html" class="snav-link" data-label="Settings"><span class="sl-icon">⚙️</span><span class="sl-text">Settings</span></a>
+  </div>
+</aside>
 
-  <!-- Cloud sync -->
-  <div class="section-card">
-    <div class="section-header">Cloud sync</div>
-    <div class="section-body" id="sync-list">
-      <div id="sync-notes" class="sync-row">
-        <div class="sync-icon">📚</div>
-        <div class="sync-info">
-          <div class="sync-name">Notes Library</div>
-          <div class="sync-status" id="status-notes">Not synced yet</div>
-        </div>
-        <button class="sync-btn" onclick="syncFeature('notes')">Sync now</button>
+<div class="page">
+  <div class="inner">
+
+    <!-- Error banner -->
+    <div class="load-error" id="load-error">
+      <span>⚠</span>
+      <span id="load-error-msg">Failed to load profile. Please refresh.</span>
+      <button class="btn sm" onclick="location.reload()" style="margin-left:auto">Retry</button>
+    </div>
+
+    <div>
+      <div class="page-title">Profile</div>
+      <div class="page-sub">Manage your account and sync your data</div>
+    </div>
+
+    <!-- Profile hero -->
+    <div class="profile-hero">
+      <div class="big-avatar" id="big-avatar">?</div>
+      <div class="profile-info">
+        <div class="profile-name" id="profile-name">Loading…</div>
+        <div class="profile-email" id="profile-email"></div>
+        <div class="profile-since" id="profile-since"></div>
+        <span class="profile-badge">Free plan</span>
       </div>
-      <div class="sync-row">
-        <div class="sync-icon">✏️</div>
-        <div class="sync-info">
-          <div class="sync-name">Essay history</div>
-          <div class="sync-status" id="status-essays">Not synced yet</div>
-        </div>
-        <button class="sync-btn" onclick="syncFeature('essays')">Sync now</button>
+      <button class="profile-edit-btn" onclick="toggleEdit()">✏ Edit</button>
+    </div>
+
+    <!-- Edit form -->
+    <div class="edit-form" id="edit-form">
+      <div>
+        <div class="f-label">Display name</div>
+        <input class="f-input" id="edit-name" placeholder="Your name" maxlength="40">
       </div>
-      <div class="sync-row">
-        <div class="sync-icon">🃏</div>
-        <div class="sync-info">
-          <div class="sync-name">Flashcard decks</div>
-          <div class="sync-status" id="status-flashcards">Not synced yet</div>
-        </div>
-        <button class="sync-btn" onclick="syncFeature('flashcards')">Sync now</button>
+      <div>
+        <div class="f-label">Avatar emoji</div>
+        <div class="emoji-picker" id="emoji-picker"></div>
       </div>
-      <div class="sync-row">
-        <div class="sync-icon">📅</div>
-        <div class="sync-info">
-          <div class="sync-name">Study planner</div>
-          <div class="sync-status" id="status-planner">Not synced yet</div>
-        </div>
-        <button class="sync-btn" onclick="syncFeature('planner')">Sync now</button>
+      <div class="edit-actions">
+        <button class="btn primary sm" onclick="saveProfile()">Save changes</button>
+        <button class="btn sm" onclick="toggleEdit()">Cancel</button>
       </div>
     </div>
-  </div>
 
-  <!-- Restore -->
-  <div class="section-card">
-    <div class="section-header">Restore from cloud</div>
-    <div class="section-body">
-      <p style="font-size:13px;color:var(--text2);line-height:1.6;">Load your saved data from the cloud into this browser. Use this when switching devices.</p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn" onclick="restoreFeature('notes')">📚 Restore notes</button>
-        <button class="btn" onclick="restoreFeature('essays')">✏️ Restore essays</button>
-        <button class="btn" onclick="restoreFeature('flashcards')">🃏 Restore decks</button>
-        <button class="btn" onclick="restoreFeature('planner')">📅 Restore planner</button>
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-pill">
+        <div class="stat-num" id="stat-notes">0</div>
+        <div class="stat-lbl">Notes</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-num" id="stat-decks">0</div>
+        <div class="stat-lbl">Decks</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-num" id="stat-essays">0</div>
+        <div class="stat-lbl">Essays</div>
       </div>
     </div>
-  </div>
 
-  <!-- Danger zone -->
-  <div class="section-card">
-    <div class="section-header">Account</div>
-    <div class="section-body">
-      <div class="danger-row">
-        <div class="danger-info">
-          <div class="danger-title">Delete all cloud data</div>
-          <div class="danger-sub">Removes your synced data from the cloud. Local data is kept.</div>
+    <!-- Cloud sync -->
+    <div class="section-card">
+      <div class="section-head">Cloud sync</div>
+      <div class="section-body">
+        <div class="sync-row">
+          <div class="sync-icon">📚</div>
+          <div class="sync-info"><div class="sync-name">Notes Library</div><div class="sync-status" id="status-notes">Checking…</div></div>
+          <button class="btn sm" onclick="syncFeature('notes')">Sync</button>
         </div>
-        <button class="btn danger" onclick="deleteCloudData()">Delete</button>
-      </div>
-      <div class="danger-row" style="background:rgba(240,99,90,0.06);border-color:rgba(240,99,90,0.3);">
-        <div class="danger-info">
-          <div class="danger-title">Delete account</div>
-          <div class="danger-sub">Permanently deletes your account, profile, and all cloud data. This cannot be undone.</div>
+        <div class="sync-row">
+          <div class="sync-icon">✏️</div>
+          <div class="sync-info"><div class="sync-name">Essay history</div><div class="sync-status" id="status-essays">Checking…</div></div>
+          <button class="btn sm" onclick="syncFeature('essays')">Sync</button>
         </div>
-        <button class="btn danger" onclick="deleteAccount()">Delete account</button>
+        <div class="sync-row">
+          <div class="sync-icon">🃏</div>
+          <div class="sync-info"><div class="sync-name">Flashcard decks</div><div class="sync-status" id="status-flashcards">Checking…</div></div>
+          <button class="btn sm" onclick="syncFeature('flashcards')">Sync</button>
+        </div>
+        <div class="sync-row">
+          <div class="sync-icon">📅</div>
+          <div class="sync-info"><div class="sync-name">Study planner</div><div class="sync-status" id="status-planner">Checking…</div></div>
+          <button class="btn sm" onclick="syncFeature('planner')">Sync</button>
+        </div>
       </div>
-      <button class="btn signout" onclick="doSignOut()">Sign out</button>
     </div>
-  </div>
 
+    <!-- Restore -->
+    <div class="section-card">
+      <div class="section-head">Restore from cloud</div>
+      <div class="section-body">
+        <div style="font-size:13px;color:var(--t3);line-height:1.6">Load your saved data from the cloud into this browser. Use this when switching devices.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn sm" onclick="restoreFeature('notes')">📚 Notes</button>
+          <button class="btn sm" onclick="restoreFeature('essays')">✏️ Essays</button>
+          <button class="btn sm" onclick="restoreFeature('flashcards')">🃏 Decks</button>
+          <button class="btn sm" onclick="restoreFeature('planner')">📅 Planner</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account -->
+    <div class="section-card">
+      <div class="section-head">Account</div>
+      <div class="section-body">
+        <div class="danger-row">
+          <div class="danger-info">
+            <div class="danger-title">Delete cloud data</div>
+            <div class="danger-sub">Removes synced data from cloud. Local data is kept.</div>
+          </div>
+          <button class="btn danger sm" onclick="deleteCloudData()">Delete</button>
+        </div>
+        <div class="danger-row">
+          <div class="danger-info">
+            <div class="danger-title">Delete account</div>
+            <div class="danger-sub">Permanently deletes your account and all data.</div>
+          </div>
+          <button class="btn danger sm" onclick="deleteAccount()">Delete account</button>
+        </div>
+        <button class="btn full" onclick="doSignOut()">Sign out</button>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <div class="toast" id="toast"><span id="toast-icon">✓</span><span id="toast-msg"></span></div>
@@ -237,11 +294,11 @@ body::before {
 <script>
 const SUPABASE_URL = 'https://uorlszhcjrblrbmhgyqb.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
+let sb = null;
 let currentUser = null;
+let currentProfile = null;
+let selectedEmoji = '🎓';
 
-// Local storage keys per feature
 const LOCAL_KEYS = {
   notes: 'studyai-notes',
   essays: 'studyai-essay-history',
@@ -249,53 +306,210 @@ const LOCAL_KEYS = {
   planner: 'studyai-planner',
 };
 
+const EMOJIS = ['🎓','📚','✏️','🧠','⚡','🌟','🎯','🔥','💡','🦁','🐉','🚀','🎸','⚽','🌈'];
+
+// ── Init ──
 document.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { window.location.href = 'login.html'; return; }
-  currentUser = session.user;
-  renderProfile(currentUser);
-  checkSyncStatus();
+  // Wait for Supabase SDK
+  let attempts = 0;
+  while (!window.supabase && attempts < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
+
+  if (!window.supabase) {
+    showError('Supabase SDK failed to load. Please refresh.');
+    return;
+  }
+
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  try {
+    const { data: { session }, error } = await sb.auth.getSession();
+    if (error) throw error;
+    if (!session) { window.location.href = 'login.html'; return; }
+
+    currentUser = session.user;
+    await loadProfile();
+    renderStats();
+    checkSyncStatus();
+    buildEmojiPicker();
+  } catch (err) {
+    showError('Failed to load your profile: ' + err.message);
+  }
 });
 
-function renderProfile(user) {
+// ── Load profile from Supabase ──
+async function loadProfile() {
+  try {
+    const { data, error } = await sb.from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .single();
+
+    // PGRST116 = row not found — create a default profile
+    if (error && error.code === 'PGRST116') {
+      await createDefaultProfile();
+      return;
+    }
+    if (error) throw error;
+
+    currentProfile = data;
+    renderProfile(currentUser, currentProfile);
+  } catch (err) {
+    // Profile table may not exist yet — render from auth data only
+    renderProfile(currentUser, null);
+    console.warn('Profile load warning:', err.message);
+  }
+}
+
+async function createDefaultProfile() {
+  const email = currentUser.email || '';
+  const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') + '_' + Math.floor(Math.random()*1000);
+  try {
+    const { data, error } = await sb.from('profiles').insert({
+      id: currentUser.id,
+      username,
+      display_name: email.split('@')[0],
+      avatar_emoji: '🎓',
+    }).select().single();
+    if (!error) { currentProfile = data; }
+  } catch {}
+  renderProfile(currentUser, currentProfile);
+}
+
+// ── Render ──
+function renderProfile(user, profile) {
   const email = user.email || '';
-  const initials = email.slice(0, 2).toUpperCase();
-  document.getElementById('big-avatar').textContent = initials;
+  const name = profile?.display_name || email.split('@')[0] || 'Student';
+  const emoji = profile?.avatar_emoji || '🎓';
+  selectedEmoji = emoji;
+
+  // Avatar
+  const avatarEl = document.getElementById('big-avatar');
+  if (user.user_metadata?.avatar_url) {
+    avatarEl.innerHTML = `<img src="${user.user_metadata.avatar_url}" alt="avatar">`;
+  } else {
+    avatarEl.textContent = emoji;
+  }
+
+  document.getElementById('profile-name').textContent = name;
   document.getElementById('profile-email').textContent = email;
+
   const created = new Date(user.created_at);
   document.getElementById('profile-since').textContent =
     'Member since ' + created.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  // Pre-fill edit form
+  document.getElementById('edit-name').value = name;
 }
 
+function renderStats() {
+  const notes = JSON.parse(localStorage.getItem('studyai-notes') || '[]');
+  const decks = JSON.parse(localStorage.getItem('studyai-decks') || '[]');
+  const essays = JSON.parse(localStorage.getItem('studyai-essay-history') || '[]');
+  document.getElementById('stat-notes').textContent = notes.length;
+  document.getElementById('stat-decks').textContent = decks.length;
+  document.getElementById('stat-essays').textContent = essays.length;
+}
+
+// ── Edit form ──
+function toggleEdit() {
+  const form = document.getElementById('edit-form');
+  const isVisible = form.classList.contains('visible');
+  form.classList.toggle('visible', !isVisible);
+  if (!isVisible) {
+    document.getElementById('edit-name').focus();
+    highlightEmoji(selectedEmoji);
+  }
+}
+
+function buildEmojiPicker() {
+  const picker = document.getElementById('emoji-picker');
+  picker.innerHTML = EMOJIS.map(e =>
+    `<button class="emoji-opt${e === selectedEmoji ? ' active' : ''}" onclick="selectEmoji('${e}',this)">${e}</button>`
+  ).join('');
+}
+
+function selectEmoji(emoji, btn) {
+  selectedEmoji = emoji;
+  document.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('big-avatar').textContent = emoji;
+}
+
+function highlightEmoji(emoji) {
+  document.querySelectorAll('.emoji-opt').forEach(b => {
+    b.classList.toggle('active', b.textContent === emoji);
+  });
+}
+
+async function saveProfile() {
+  if (!sb || !currentUser) return;
+  const name = document.getElementById('edit-name').value.trim();
+  if (!name) { showToast('Enter a display name', 'error'); return; }
+
+  try {
+    const { error } = await sb.from('profiles').upsert({
+      id: currentUser.id,
+      display_name: name,
+      avatar_emoji: selectedEmoji,
+      username: currentProfile?.username || currentUser.email.split('@')[0],
+    }, { onConflict: 'id' });
+    if (error) throw error;
+
+    document.getElementById('profile-name').textContent = name;
+    document.getElementById('big-avatar').textContent = selectedEmoji;
+
+    // Save to prefs too so other pages pick it up
+    const prefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
+    prefs.displayName = name;
+    localStorage.setItem('notiv-prefs', JSON.stringify(prefs));
+
+    toggleEdit();
+    showToast('Profile saved ✦', 'success');
+  } catch (err) {
+    showToast('Save failed: ' + err.message, 'error');
+  }
+}
+
+// ── Sync ──
 async function checkSyncStatus() {
+  if (!sb || !currentUser) return;
   for (const feature of Object.keys(LOCAL_KEYS)) {
+    const el = document.getElementById('status-' + feature);
     try {
-      const { data } = await sb.from('user_data').select('updated_at')
+      const { data, error } = await sb.from('user_data').select('updated_at')
         .eq('user_id', currentUser.id).eq('feature', feature).single();
-      const el = document.getElementById('status-' + feature);
-      if (data) {
+      if (data && !error) {
         const d = new Date(data.updated_at);
-        el.textContent = 'Last synced ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        el.textContent = 'Synced ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         el.className = 'sync-status synced';
+      } else {
+        el.textContent = 'Not synced yet';
+        el.className = 'sync-status';
       }
-    } catch {}
+    } catch {
+      el.textContent = 'Not synced yet';
+      el.className = 'sync-status';
+    }
   }
 }
 
 async function syncFeature(feature) {
-  const localKey = LOCAL_KEYS[feature];
-  const raw = localStorage.getItem(localKey);
-  if (!raw) { showToast('No local data to sync for this feature', 'error'); return; }
+  if (!sb || !currentUser) return;
+  const raw = localStorage.getItem(LOCAL_KEYS[feature]);
+  if (!raw) { showToast('No local data to sync', 'error'); return; }
 
   const btn = document.querySelector(`button[onclick="syncFeature('${feature}')"]`);
-  btn.textContent = 'Syncing…'; btn.classList.add('syncing'); btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = '…'; btn.disabled = true;
 
   try {
-    const data = JSON.parse(raw);
     const { error } = await sb.from('user_data').upsert({
       user_id: currentUser.id,
       feature,
-      data,
+      data: JSON.parse(raw),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,feature' });
     if (error) throw error;
@@ -303,30 +517,32 @@ async function syncFeature(feature) {
     const el = document.getElementById('status-' + feature);
     el.textContent = 'Synced just now';
     el.className = 'sync-status synced';
-    showToast(feature + ' synced to cloud ✦', 'success');
+    showToast(feature + ' synced ✦', 'success');
   } catch (err) {
-    showToast('Sync failed: ' + err.message, 'error');
     document.getElementById('status-' + feature).textContent = 'Sync failed';
     document.getElementById('status-' + feature).className = 'sync-status error';
+    showToast('Sync failed: ' + err.message, 'error');
   } finally {
-    btn.textContent = 'Sync now'; btn.classList.remove('syncing'); btn.disabled = false;
+    btn.textContent = original; btn.disabled = false;
   }
 }
 
 async function restoreFeature(feature) {
+  if (!sb || !currentUser) return;
   try {
     const { data, error } = await sb.from('user_data').select('data')
       .eq('user_id', currentUser.id).eq('feature', feature).single();
-    if (error || !data) { showToast('No cloud data found for ' + feature, 'error'); return; }
+    if (error || !data) { showToast('No cloud backup found for ' + feature, 'error'); return; }
     localStorage.setItem(LOCAL_KEYS[feature], JSON.stringify(data.data));
-    showToast(feature + ' restored from cloud ✦', 'success');
+    showToast(feature + ' restored ✦', 'success');
   } catch (err) {
     showToast('Restore failed: ' + err.message, 'error');
   }
 }
 
+// ── Account ──
 async function deleteCloudData() {
-  if (!confirm('Delete all your cloud data? This cannot be undone.')) return;
+  if (!confirm('Delete all your cloud data? Your local data is kept.')) return;
   try {
     const { error } = await sb.from('user_data').delete().eq('user_id', currentUser.id);
     if (error) throw error;
@@ -339,16 +555,12 @@ async function deleteCloudData() {
 
 async function deleteAccount() {
   const confirmed = prompt('Type DELETE to permanently delete your account:');
-  if (confirmed !== 'DELETE') { showToast('Account deletion cancelled', 'error'); return; }
+  if (confirmed !== 'DELETE') { showToast('Cancelled', 'error'); return; }
   try {
-    // Delete user data and profile first
     await sb.from('user_data').delete().eq('user_id', currentUser.id);
     await sb.from('profiles').delete().eq('id', currentUser.id);
-    // Delete the auth user via admin — since we can't do this client-side,
-    // sign out and show a message to contact support for full deletion
     await sb.auth.signOut();
     localStorage.clear();
-    alert('Your profile and cloud data have been deleted. Your login account has been signed out. To fully remove your auth account, contact support.');
     window.location.href = 'https://sn8k3.github.io/tools/index.html';
   } catch (err) {
     showToast('Delete failed: ' + err.message, 'error');
@@ -356,8 +568,15 @@ async function deleteAccount() {
 }
 
 async function doSignOut() {
-  await sb.auth.signOut();
+  if (sb) await sb.auth.signOut();
   window.location.href = 'index.html';
+}
+
+// ── Helpers ──
+function showError(msg) {
+  const el = document.getElementById('load-error');
+  document.getElementById('load-error-msg').textContent = msg;
+  el.classList.add('visible');
 }
 
 function showToast(msg, type = 'success') {
@@ -368,6 +587,18 @@ function showToast(msg, type = 'success') {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('visible'), 3000);
 }
+
+// Sidebar collapse
+(function(){
+  const s = document.getElementById('nav-sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  if (!s || !btn) return;
+  if (localStorage.getItem('notiv-sidebar-collapsed') === '1') { s.classList.add('collapsed'); btn.textContent = '›'; }
+  btn.addEventListener('click', () => { const c = s.classList.toggle('collapsed'); btn.textContent = c ? '›' : '‹'; localStorage.setItem('notiv-sidebar-collapsed', c ? '1' : '0'); });
+})();
 </script>
+<script src="prefs.js" defer></script>
+<script src="sidebar.js" defer></script>
+<script src="ai-assistant.js" defer></script>
 </body>
 </html>
