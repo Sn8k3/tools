@@ -243,86 +243,74 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 const BASE = 'https://sn8k3.github.io/tools/';
 
-// Get redirect target
 const params = new URLSearchParams(window.location.search);
 const redirectTo = params.get('redirect') || BASE + 'dashboard.html';
 
-// Auto-switch to signup tab if requested
 if (params.get('tab') === 'signup') {
   document.addEventListener('DOMContentLoaded', () => switchTab('signup'));
 }
 
-// ── Handle OAuth callback AND check if already logged in ──
-// This runs on every page load — catches both the Google redirect and normal visits
-sb.auth.onAuthStateChange(async (event, session) => {
-  if (!session) return;
-
-  // SIGNED_IN fires on Google OAuth callback and normal logins
-  // USER_UPDATED fires on token refreshes — skip routing for those
-  if (event === 'TOKEN_REFRESHED') return;
-
+// ── Single routing lock — prevents double-redirect race condition ──
+let _routing = false;
+async function routeAfterAuth(user) {
+  if (_routing) return;
+  _routing = true;
   try {
-    await routeAfterAuth(session.user, event);
+    const isNew = await checkIsNewUser(user);
+    if (isNew) {
+      // Pass Google metadata to onboarding via localStorage
+      localStorage.setItem('notiv-onboarding-user', JSON.stringify({
+        email: user.email || '',
+        name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+        avatar_url: user.user_metadata?.avatar_url || '',
+        provider: user.app_metadata?.provider || 'email',
+      }));
+      window.location.replace(BASE + 'onboarding.html');
+    } else {
+      window.location.replace(redirectTo);
+    }
   } catch (err) {
-    console.error('Auth routing error:', err);
-    window.location.href = BASE + 'dashboard.html';
-  }
-});
-
-// Also handle already-logged-in users visiting /login directly
-sb.auth.getSession().then(({ data: { session } }) => {
-  if (session) {
-    // Give onAuthStateChange a moment to fire first
-    setTimeout(async () => {
-      try { await routeAfterAuth(session.user, 'EXISTING'); }
-      catch { window.location.href = redirectTo; }
-    }, 300);
-  }
-});
-
-// ── Core routing logic — modular, reusable ──
-async function routeAfterAuth(user, event) {
-  // Don't re-route on token refreshes
-  if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') return;
-
-  const isNewUser = await checkIsNewUser(user);
-
-  if (isNewUser) {
-    // Store Google user info so onboarding can pre-fill fields
-    localStorage.setItem('notiv-onboarding-user', JSON.stringify({
-      email: user.email,
-      name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-      avatar_url: user.user_metadata?.avatar_url || '',
-      provider: user.app_metadata?.provider || 'email',
-    }));
-    window.location.href = BASE + 'onboarding.html';
-  } else {
-    // Returning user — go to original redirect or dashboard
-    window.location.href = redirectTo;
+    console.error('routeAfterAuth error:', err);
+    _routing = false;
+    window.location.replace(redirectTo);
   }
 }
 
-// ── Check if user has completed onboarding ──
-// A user is "new" if they have no profile row in Supabase
+// ── Detect new user by checking for profile row ──
 async function checkIsNewUser(user) {
   try {
-    const { data, error } = await sb.from('profiles')
+    const { data, error } = await sb
+      .from('profiles')
       .select('id')
       .eq('id', user.id)
-      .single();
-
-    // PGRST116 = row not found = new user
-    if (error && error.code === 'PGRST116') return true;
+      .maybeSingle(); // maybeSingle returns null (not error) when no row found
     if (error) throw error;
-    return !data;
+    return data === null; // null = no profile = new user
   } catch {
-    // On any error, check localStorage prefs as fallback
-    // If they have prefs they've used the app before
+    // Fallback: if they have stored prefs they've been here before
     const prefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
-    if (prefs.displayName) return false;
-    return true; // assume new user to be safe
+    return !prefs.displayName;
   }
 }
+
+// ── Listen for OAuth callback (fires when Google redirects back) ──
+// SIGNED_IN is the only event we act on — avoids INITIAL_SESSION and TOKEN_REFRESHED noise
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session) {
+    routeAfterAuth(session.user);
+  }
+});
+
+// ── Handle already-logged-in users who navigate to /login directly ──
+// getSession fires synchronously before onAuthStateChange so we delay it slightly
+// to give SIGNED_IN (OAuth callback) priority
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(async () => {
+    if (_routing) return; // SIGNED_IN already handled it
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) routeAfterAuth(session.user);
+  }, 800);
+});
 
 function switchTab(tab) {
   document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
