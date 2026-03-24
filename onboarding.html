@@ -378,9 +378,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // If profile already exists, skip onboarding — returning user
   try {
-    const { data: profile, error } = await sb.from('profiles').select('id').eq('id', currentUser.id).single();
-    if (profile && !error) { window.location.href = BASE + 'dashboard.html'; return; }
-  } catch { /* table may not exist yet, proceed */ }
+    const { data: profile } = await sb.from('profiles').select('id').eq('id', currentUser.id).maybeSingle();
+    if (profile) { window.location.replace(BASE + 'dashboard.html'); return; }
+  } catch { /* proceed with onboarding */ }
 
   // Pre-fill from Google metadata if available
   prefillFromGoogle(currentUser);
@@ -563,7 +563,7 @@ async function checkUsername(val) {
 
   clearTimeout(usernameTimer);
   usernameTimer = setTimeout(async () => {
-    const { data } = await sb.from('profiles').select('id').eq('username', val).single();
+    const { data } = await sb.from('profiles').select('id').eq('username', val).maybeSingle();
     if (data) {
       status.textContent = '✕ Taken';
       status.className = 'username-status taken';
