@@ -2,9 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Welcome to Notiv</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -288,6 +291,7 @@ body::before {
     <div class="btn-row">
       <button class="btn" onclick="prevStep(4)">← Back</button>
       <button class="btn primary" id="finish-btn" onclick="finishOnboarding()">Finish setup →</button>
+      <div id="finish-error" style="display:none;font-size:12px;color:var(--coral,#f0635a);margin-top:8px;text-align:center"></div>
     </div>
   </div>
 
@@ -314,7 +318,7 @@ body::before {
 <script>
 const SUPABASE_URL = 'https://uorlszhcjrblrbmhgyqb.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+let sb = null; // initialised in DOMContentLoaded after SDK loads
 
 const TOTAL_STEPS = 4;
 let currentStep = 1;
@@ -345,15 +349,41 @@ const GOALS = [
 const BASE = 'https://sn8k3.github.io/tools/';
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await sb.auth.getSession();
+  // Wait for Supabase SDK
+  let attempts = 0;
+  while (!window.supabase && attempts < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
+  if (!window.supabase) {
+    alert('Connection failed. Please refresh the page.');
+    return;
+  }
+
+  // Now that SDK is loaded, create the client
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let session;
+  try {
+    const { data, error } = await sb.auth.getSession();
+    if (error) throw error;
+    session = data.session;
+  } catch (err) {
+    alert('Could not load your session. Please sign in again.');
+    window.location.href = BASE + 'login.html';
+    return;
+  }
   if (!session) { window.location.href = BASE + 'login.html'; return; }
   currentUser = session.user;
 
-  // If profile already exists, skip onboarding
+  // If profile already exists, skip onboarding — returning user
   try {
-    const { data: profile } = await sb.from('profiles').select('id').eq('id', currentUser.id).single();
-    if (profile) { window.location.href = BASE + 'dashboard.html'; return; }
-  } catch { /* table may not exist yet, proceed with onboarding */ }
+    const { data: profile, error } = await sb.from('profiles').select('id').eq('id', currentUser.id).single();
+    if (profile && !error) { window.location.href = BASE + 'dashboard.html'; return; }
+  } catch { /* table may not exist yet, proceed */ }
+
+  // Pre-fill from Google metadata if available
+  prefillFromGoogle(currentUser);
 
   renderDots();
   renderEmojiGrid();
@@ -361,6 +391,54 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderLevels();
   renderGoals();
 });
+
+function prefillFromGoogle(user) {
+  // Try localStorage first (set by login.html on Google redirect)
+  let googleData = {};
+  try {
+    const stored = localStorage.getItem('notiv-onboarding-user');
+    if (stored) { googleData = JSON.parse(stored); localStorage.removeItem('notiv-onboarding-user'); }
+  } catch {}
+
+  const meta = user.user_metadata || {};
+  const fullName = meta.full_name || meta.name || googleData.name || '';
+  const avatarUrl = meta.avatar_url || googleData.avatar_url || '';
+  const emailUser = (user.email || googleData.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+  const provider = meta.iss?.includes('google') || googleData.provider === 'google' ? 'google' : 'email';
+
+  // Pre-fill display name (first name only)
+  if (fullName) {
+    const nameInput = document.getElementById('display-name-input');
+    if (nameInput) nameInput.value = fullName.split(' ')[0];
+  }
+
+  // Auto-suggest username from email
+  if (emailUser && emailUser.length >= 3) {
+    const usernameInput = document.getElementById('username-input');
+    if (usernameInput && !usernameInput.value) {
+      usernameInput.value = emailUser;
+      checkUsername(emailUser);
+    }
+  }
+
+  // Show Google avatar photo if available
+  if (avatarUrl) {
+    const preview = document.getElementById('avatar-preview');
+    if (preview) {
+      preview.innerHTML = `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.parentElement.textContent='🎓'">`;
+      selectedAvatar = avatarUrl;
+    }
+  }
+
+  // Label the step to show they signed in with Google
+  if (provider === 'google') {
+    const stepLabel = document.querySelector('#step-1 .step-label');
+    if (stepLabel) stepLabel.textContent = 'Step 1 of 4 · Connected with Google ✓';
+  }
+
+  // Clean up the stored data
+  localStorage.removeItem('notiv-onboarding-user');
+}
 
 function renderDots() {
   const wrap = document.getElementById('progress-dots');
@@ -546,32 +624,55 @@ async function finishOnboarding() {
   btn.innerHTML = '<div class="spinner"></div> Saving…';
 
   const username = document.getElementById('username-input').value.trim().toLowerCase();
-  const displayName = document.getElementById('display-name-input').value.trim() || username;
+  const displayName = document.getElementById('display-name-input')?.value.trim() || username;
+
+  // Use Google avatar URL if selectedAvatar is a URL, otherwise it's an emoji
+  const isUrl = selectedAvatar && selectedAvatar.startsWith('http');
 
   try {
-    const { error } = await sb.from('profiles').insert({
+    const profileData = {
       id: currentUser.id,
-      username,
+      username: username || currentUser.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') + Date.now() % 1000,
       display_name: displayName,
-      avatar_emoji: selectedAvatar,
+      avatar_emoji: isUrl ? '🎓' : (selectedAvatar || '🎓'),
       subjects: selectedSubjects,
       study_level: selectedLevel,
       goal: selectedGoal,
-      created_at: new Date().toISOString(),
-    });
+      last_active: new Date().toISOString(),
+    };
+
+    // Use upsert so if profile somehow already exists it still works
+    const { error } = await sb.from('profiles').upsert(profileData, { onConflict: 'id' });
     if (error) throw error;
+
+    // Save display name + emoji to prefs for immediate use across the app
+    const prefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
+    prefs.displayName = displayName;
+    if (!isUrl) prefs.avatarEmoji = selectedAvatar;
+    localStorage.setItem('notiv-prefs', JSON.stringify(prefs));
 
     // Show done screen
     document.getElementById('step-4').classList.remove('active');
     document.getElementById('step-done').classList.add('active');
-    document.getElementById('welcome-avatar').textContent = selectedAvatar;
+    if (isUrl) {
+      document.getElementById('welcome-avatar').innerHTML = `<img src="${selectedAvatar}" style="width:60px;height:60px;border-radius:50%;object-fit:cover" onerror="this.outerHTML='🎓'">`;
+    } else {
+      document.getElementById('welcome-avatar').textContent = selectedAvatar || '🎓';
+    }
     document.getElementById('welcome-name').textContent = `Welcome, ${displayName}!`;
     document.getElementById('progress-dots').style.display = 'none';
 
   } catch (err) {
     btn.disabled = false;
     btn.textContent = 'Finish setup →';
-    alert('Error saving profile: ' + err.message);
+    // Show error inline instead of alert
+    const existing = document.getElementById('finish-error');
+    if (existing) {
+      existing.textContent = 'Error: ' + err.message + '. Try a different username.';
+      existing.style.display = 'block';
+    } else {
+      alert('Error saving profile: ' + err.message);
+    }
   }
 }
 
