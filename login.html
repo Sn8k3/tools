@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign in — Notiv</title>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -249,10 +252,77 @@ if (params.get('tab') === 'signup') {
   document.addEventListener('DOMContentLoaded', () => switchTab('signup'));
 }
 
-// If already logged in, go to redirect target
-sb.auth.getSession().then(({ data: { session } }) => {
-  if (session) window.location.href = redirectTo;
+// ── Handle OAuth callback AND check if already logged in ──
+// This runs on every page load — catches both the Google redirect and normal visits
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (!session) return;
+
+  // SIGNED_IN fires on Google OAuth callback and normal logins
+  // USER_UPDATED fires on token refreshes — skip routing for those
+  if (event === 'TOKEN_REFRESHED') return;
+
+  try {
+    await routeAfterAuth(session.user, event);
+  } catch (err) {
+    console.error('Auth routing error:', err);
+    window.location.href = BASE + 'dashboard.html';
+  }
 });
+
+// Also handle already-logged-in users visiting /login directly
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) {
+    // Give onAuthStateChange a moment to fire first
+    setTimeout(async () => {
+      try { await routeAfterAuth(session.user, 'EXISTING'); }
+      catch { window.location.href = redirectTo; }
+    }, 300);
+  }
+});
+
+// ── Core routing logic — modular, reusable ──
+async function routeAfterAuth(user, event) {
+  // Don't re-route on token refreshes
+  if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') return;
+
+  const isNewUser = await checkIsNewUser(user);
+
+  if (isNewUser) {
+    // Store Google user info so onboarding can pre-fill fields
+    localStorage.setItem('notiv-onboarding-user', JSON.stringify({
+      email: user.email,
+      name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+      avatar_url: user.user_metadata?.avatar_url || '',
+      provider: user.app_metadata?.provider || 'email',
+    }));
+    window.location.href = BASE + 'onboarding.html';
+  } else {
+    // Returning user — go to original redirect or dashboard
+    window.location.href = redirectTo;
+  }
+}
+
+// ── Check if user has completed onboarding ──
+// A user is "new" if they have no profile row in Supabase
+async function checkIsNewUser(user) {
+  try {
+    const { data, error } = await sb.from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    // PGRST116 = row not found = new user
+    if (error && error.code === 'PGRST116') return true;
+    if (error) throw error;
+    return !data;
+  } catch {
+    // On any error, check localStorage prefs as fallback
+    // If they have prefs they've used the app before
+    const prefs = JSON.parse(localStorage.getItem('notiv-prefs') || '{}');
+    if (prefs.displayName) return false;
+    return true; // assume new user to be safe
+  }
+}
 
 function switchTab(tab) {
   document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
@@ -293,14 +363,7 @@ async function submitSignin() {
   try {
     const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    // Redirect back to original page if set, otherwise dashboard
-    const params = new URLSearchParams(window.location.search);
-    const redirect = params.get('redirect');
-    try {
-      const { data: profile } = await sb.from('profiles').select('id').eq('id', data.user.id).single();
-      if (!profile) { window.location.href = BASE + 'onboarding.html'; return; }
-    } catch { window.location.href = BASE + 'onboarding.html'; return; }
-    window.location.href = redirect || BASE + 'dashboard.html';
+    await routeAfterAuth(data.user, 'SIGNED_IN');
   } catch (err) {
     showError(err.message || 'Sign in failed');
     setLoading('signin-btn', false);
@@ -319,7 +382,7 @@ async function submitSignup() {
     const { data, error } = await sb.auth.signUp({ email, password });
     if (error) throw error;
     if (data.session) {
-      window.location.href = BASE + 'onboarding.html';
+      await routeAfterAuth(data.user, 'SIGNED_IN');
     } else {
       showSuccess('Account created! Check your email to confirm, then sign in.');
       setLoading('signup-btn', false);
