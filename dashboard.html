@@ -1298,188 +1298,222 @@ function renderGrades() {
 // Init grades on load
 document.addEventListener('DOMContentLoaded', () => { renderGrades(); });
 
-// ── Google Classroom ──
+// ── Google Classroom ──────────────────────────────────────────
 const WORKER = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
-let classroomUserId = null;
-let classroomData = null;
-let activeFilter = 'all';
+let _cUserId = null;
+let _cData   = null;
+let _cFilter = 'all';
 
+// Called from DOMContentLoaded once we have the Supabase user id
 async function initClassroom(userId) {
-  classroomUserId = userId;
+  _cUserId = userId;
 
   const params = new URLSearchParams(window.location.search);
 
-  if (params.get('classroom_error')) {
-    history.replaceState({}, '', window.location.pathname);
-    showClassroomError('Connection failed: ' + params.get('classroom_error'));
-    return;
-  }
-
+  // Coming back from Google OAuth
   if (params.get('classroom_connected') === '1') {
     history.replaceState({}, '', window.location.pathname);
-    // Use uid from URL if available (avoids async session timing issue)
     const uid = params.get('uid');
-    if (uid) classroomUserId = uid;
-    loadClassroom();
+    if (uid) _cUserId = uid;   // uid in URL is always most reliable
+    await loadClassroom();
     return;
   }
 
-  loadClassroom();
+  // Error coming back from OAuth
+  if (params.get('classroom_error')) {
+    history.replaceState({}, '', window.location.pathname);
+    const msg = params.get('classroom_error');
+    clShowError('OAuth error: ' + decodeURIComponent(msg));
+    return;
+  }
+
+  // Normal page load — try to load feed (will show connect if not connected)
+  await loadClassroom();
 }
 
 async function loadClassroom() {
-  // If userId not set yet, wait for session
-  if (!classroomUserId) {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-    classroomUserId = session.user.id;
-  }
-  showClassroomState('loading');
-  try {
-    const res = await fetch(`${WORKER}/classroom/feed`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: classroomUserId }),
-    });
-    const data = await res.json();
-    if (res.status === 401 || data.error === 'not_connected') {
-      showClassroomState('connect');
+  // Ensure we have a userId — fall back to session
+  if (!_cUserId) {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { clShowState('connect'); return; }
+      _cUserId = session.user.id;
+    } catch {
+      clShowState('connect');
       return;
     }
-    if (!res.ok) throw new Error(data.error || 'Failed to load');
-    classroomData = data;
-    renderClassroomFeed(data, 'all');
-    showClassroomState('feed');
+  }
+
+  clShowState('loading');
+
+  try {
+    const res = await fetch(`${WORKER}/classroom/feed`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ user_id: _cUserId }),
+    });
+
+    const data = await res.json();
+
+    // 401 = not connected (no tokens in DB)
+    if (res.status === 401 || data.error === 'not_connected' || data.error === 'token_expired') {
+      clShowState('connect');
+      return;
+    }
+
+    if (!res.ok) {
+      clShowError(data.error || `Error ${res.status}`);
+      return;
+    }
+
+    _cData   = data;
+    _cFilter = 'all';
+    clRenderFeed(data, 'all');
+    clShowState('feed');
+
   } catch (err) {
-    showClassroomError(err.message);
+    clShowError('Network error: ' + err.message);
   }
 }
 
 function connectClassroom() {
-  if (classroomUserId) {
-    window.location.href = `${WORKER}/auth/google/start?user_id=${classroomUserId}`;
+  if (_cUserId) {
+    window.location.href = `${WORKER}/auth/google/start?user_id=${_cUserId}`;
     return;
   }
-  // userId not loaded yet — fetch session first
   sb.auth.getSession().then(({ data: { session } }) => {
     if (!session) { alert('Please sign in first.'); return; }
-    classroomUserId = session.user.id;
-    window.location.href = `${WORKER}/auth/google/start?user_id=${classroomUserId}`;
+    _cUserId = session.user.id;
+    window.location.href = `${WORKER}/auth/google/start?user_id=${_cUserId}`;
   });
 }
 
 async function disconnectClassroom() {
-  if (!classroomUserId) return;
-  if (!confirm('Disconnect Google Classroom? You can reconnect anytime.')) return;
-  await fetch(`${WORKER}/classroom/disconnect`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ user_id: classroomUserId }),
-  });
-  classroomData = null;
-  showClassroomState('connect');
-}
-
-function showClassroomState(state) {
-  document.getElementById('classroom-connect-state').style.display = state === 'connect' ? 'flex' : 'none';
-  document.getElementById('classroom-loading').style.display = state === 'loading' ? 'block' : 'none';
-  document.getElementById('classroom-feed').style.display = state === 'feed' ? 'block' : 'none';
-  document.getElementById('classroom-open-btn').style.display = state === 'feed' ? 'inline-flex' : 'none';
-  document.getElementById('classroom-refresh-btn').style.display = state === 'feed' ? 'inline-flex' : 'none';
-  document.getElementById('classroom-disconnect-btn').style.display = state === 'feed' ? 'inline-flex' : 'none';
-  document.getElementById('classroom-status').textContent = state === 'feed' && classroomData ? `${classroomData.courses.length} class${classroomData.courses.length !== 1 ? 'es' : ''}` : '';
-}
-
-function showClassroomError(msg) {
-  document.getElementById('classroom-connect-state').style.display = 'none';
-  document.getElementById('classroom-loading').style.display = 'none';
-  document.getElementById('classroom-feed').style.display = 'block';
-  document.getElementById('classroom-feed').innerHTML = `<div class="cl-empty">⚠ ${escH(msg)}</div>`;
+  if (!_cUserId) return;
+  if (!confirm('Disconnect Google Classroom?')) return;
+  try {
+    await fetch(`${WORKER}/classroom/disconnect`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ user_id: _cUserId }),
+    });
+  } catch {}
+  _cData = null;
+  clShowState('connect');
 }
 
 function filterClassroom(courseId, btn) {
-  activeFilter = courseId;
+  _cFilter = courseId;
   document.querySelectorAll('.cl-filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderClassroomFeed(classroomData, courseId);
+  if (_cData) clRenderFeed(_cData, courseId);
 }
 
-function renderClassroomFeed(data, filter) {
-  const container = document.getElementById('classroom-feed');
-  const { courses, feed, assignments = [] } = data;
+// ── State management ──────────────────────────────────────────
 
-  // ── Recent Assignments section (always shown at top) ──
-  let assignmentsHtml = '';
-  if (assignments.length) {
-    const rows = assignments.slice(0, 5).map(a => {
-      const due = formatDueDate(a.dueDate);
-      const dueClass = getDueClass(a.dueDate);
-      const link = getAssignmentUrl(a);
-      const workIcon = a.workType === 'QUIZ' ? '🧠' : a.workType === 'SHORT_ANSWER_QUESTION' || a.workType === 'MULTIPLE_CHOICE_QUESTION' ? '❓' : '📝';
-      return `<a class="ca-row" href="${escH(link)}" target="_blank" rel="noopener" onclick="return handleAssignmentClick(event, '${escH(link)}')">
-        <div class="ca-icon">${workIcon}</div>
+function clShowState(state) {
+  document.getElementById('classroom-connect-state').style.display  = state === 'connect'  ? 'flex'         : 'none';
+  document.getElementById('classroom-loading').style.display         = state === 'loading'  ? 'flex'         : 'none';
+  document.getElementById('classroom-feed').style.display            = state === 'feed'     ? 'block'        : 'none';
+  document.getElementById('classroom-open-btn').style.display        = state === 'feed'     ? 'inline-flex'  : 'none';
+  document.getElementById('classroom-refresh-btn').style.display     = state === 'feed'     ? 'inline-flex'  : 'none';
+  document.getElementById('classroom-disconnect-btn').style.display  = state === 'feed'     ? 'inline-flex'  : 'none';
+  const statusEl = document.getElementById('classroom-status');
+  if (statusEl) {
+    statusEl.textContent = (state === 'feed' && _cData)
+      ? `${_cData.courses.length} class${_cData.courses.length !== 1 ? 'es' : ''}`
+      : '';
+  }
+}
+
+function clShowError(msg) {
+  clShowState('feed');
+  document.getElementById('classroom-feed').innerHTML =
+    `<div style="padding:32px;text-align:center;color:var(--coral);font-size:13px">⚠ ${escH(msg)}</div>
+     <div style="padding:0 16px 16px;text-align:center">
+       <button class="btn sm" onclick="loadClassroom()">Retry</button>
+     </div>`;
+}
+
+// ── Render ────────────────────────────────────────────────────
+
+function clRenderFeed(data, filter) {
+  const container = document.getElementById('classroom-feed');
+  if (!container) return;
+
+  const courses     = data.courses     || [];
+  const feed        = data.feed        || [];
+  const assignments = data.assignments || [];
+
+  // ── Section 1: Recent Assignments ──
+  let assignHtml = '';
+  if (assignments.length === 0) {
+    assignHtml = `<div class="cl-section-label">Recent assignments</div>
+      <div style="padding:14px 16px;font-size:12px;color:var(--t4)">No assignments found</div>`;
+  } else {
+    const rows = assignments.map(a => {
+      const link     = clGetUrl(a);
+      const due      = clFormatDue(a.dueDate);
+      const dueClass = clDueClass(a.dueDate);
+      const icon     = a.workType === 'QUIZ' ? '🧠' : a.workType === 'MATERIAL' ? '📄' : '📝';
+      return `<a class="ca-row" href="${escH(link)}" target="_blank" rel="noopener noreferrer">
+        <div class="ca-icon">${icon}</div>
         <div class="ca-body">
           <div class="ca-title">${escH(a.title)}</div>
           <div class="ca-meta">
-            <span class="ca-course">${escH(a.courseName)}${a.courseSection ? ' · ' + escH(a.courseSection) : ''}</span>
-            ${due ? `<span class="ca-due ${dueClass}">${due}</span>` : '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:var(--t4)">No due date</span>'}
-            ${a.maxPoints ? `<span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--t4)">${a.maxPoints} pts</span>` : ''}
+            <span class="ca-course">${escH(a.courseName)}</span>
+            ${due ? `<span class="ca-due ${dueClass}">${due}</span>` : ''}
+            ${a.maxPoints ? `<span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--t4)">${a.maxPoints}pts</span>` : ''}
           </div>
         </div>
-        <div class="ca-arrow">↗</div>
+        <span class="ca-arrow">↗</span>
       </a>`;
     }).join('');
 
-    assignmentsHtml = `
-      <div class="cl-section-label" style="display:flex;align-items:center;justify-content:space-between;padding-right:16px">
+    assignHtml = `
+      <div class="cl-section-label" style="display:flex;justify-content:space-between;align-items:center;padding-right:16px">
         <span>Recent assignments</span>
         <a href="https://classroom.google.com" target="_blank" style="font-size:10px;color:#4285f4;text-decoration:none;font-family:'DM Mono',monospace">View all ↗</a>
       </div>
       <div class="ca-list">${rows}</div>`;
-  } else {
-    assignmentsHtml = `
-      <div class="cl-section-label">Recent assignments</div>
-      <div class="ca-list">
-        <div class="cl-empty" style="padding:16px;font-size:12px">
-          No assignments found — 
-          <a href="https://classroom.google.com" target="_blank" style="color:#4285f4;text-decoration:none">check Google Classroom ↗</a>
-        </div>
-      </div>`;
   }
 
-  // ── Course filter pills ──
+  // ── Section 2: Course filter pills ──
   const filterHtml = `<div class="cl-course-filter">
     <button class="cl-filter-btn ${filter === 'all' ? 'active' : ''}" onclick="filterClassroom('all',this)">All</button>
-    ${courses.map(c => `<button class="cl-filter-btn ${filter === c.id ? 'active' : ''}" onclick="filterClassroom('${escH(c.id)}',this)">${escH(c.name)}</button>`).join('')}
+    ${courses.map(c =>
+      `<button class="cl-filter-btn ${filter === c.id ? 'active' : ''}" onclick="filterClassroom('${escH(c.id)}',this)">${escH(c.name)}</button>`
+    ).join('')}
   </div>`;
 
-  // ── Feed items ──
+  // ── Section 3: Feed items ──
   const filtered = filter === 'all' ? feed : feed.filter(i => i.courseId === filter);
 
   let feedHtml = '';
-  if (!filtered.length) {
-    feedHtml = `<div class="cl-empty">No recent posts in this class</div>`;
+  if (filtered.length === 0) {
+    feedHtml = `<div class="cl-empty">No recent posts</div>`;
   } else {
     feedHtml = filtered.map(item => {
-      const isAnn = item.type === 'announcement';
-      const time = formatClassroomTime(item.updateTime || item.creationTime);
-      const isNew = new Date(item.updateTime || item.creationTime) > new Date(Date.now() - 86400000 * 2);
-      const icon = isAnn ? '📢' : item.workType === 'QUIZ' ? '🧠' : item.workType === 'MATERIAL' ? '📄' : '📝';
+      const isAnn  = item.type === 'announcement';
+      const time   = clFormatTime(item.updateTime || item.creationTime);
+      const isNew  = new Date(item.updateTime || item.creationTime) > new Date(Date.now() - 172800000);
+      const icon   = isAnn ? '📢' : item.workType === 'QUIZ' ? '🧠' : item.workType === 'MATERIAL' ? '📄' : '📝';
       const iconBg = isAnn ? 'rgba(66,133,244,0.1)' : 'var(--lime-d)';
-      const title = isAnn ? (item.text?.slice(0, 100) || 'Announcement') : item.title;
-      const body = isAnn
+      const title  = isAnn ? (item.text?.slice(0, 100) || 'Announcement') : (item.title || 'Untitled');
+      const body   = isAnn
         ? (item.text?.length > 100 ? item.text.slice(0, 140) + '…' : '')
         : (item.description?.slice(0, 120) || '');
 
       let dueBadge = '';
       if (!isAnn && item.dueDate) {
-        const due = formatDueDate(item.dueDate);
-        const cls = getDueClass(item.dueDate);
+        const due = clFormatDue(item.dueDate);
+        const cls = clDueClass(item.dueDate);
         if (due) dueBadge = `<span class="cl-due-badge ${cls}">${due}</span>`;
       }
 
-      const link = getAssignmentUrl(item);
-      return `<a class="cl-item" href="${escH(link)}" target="_blank" rel="noopener" onclick="return handleAssignmentClick(event, '${escH(link)}')">
+      const link = clGetUrl(item);
+
+      return `<a class="cl-item" href="${escH(link)}" target="_blank" rel="noopener noreferrer">
         <div class="cl-item-icon" style="background:${iconBg}">${icon}</div>
         <div class="cl-item-body">
           <div class="cl-item-course">${escH(item.courseName)}${item.courseSection ? ' · ' + escH(item.courseSection) : ''}</div>
@@ -1496,81 +1530,72 @@ function renderClassroomFeed(data, filter) {
   }
 
   const footer = `<a href="https://classroom.google.com" target="_blank" rel="noopener" class="cl-footer-btn">
-    <svg width="14" height="14" viewBox="0 0 18 18" style="flex-shrink:0"><path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.06-.96-.15-1.18z" fill="#4285F4"/><path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.77-2.7.77a4.74 4.74 0 01-4.44-3.29H1.87v2.08A8 8 0 008.98 17z" fill="#34A853"/><path d="M4.54 10.53a4.7 4.7 0 010-3.06V5.4H1.87a8 8 0 000 7.22l2.67-2.09z" fill="#FBBC05"/><path d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A7.97 7.97 0 008.98 1a8 8 0 00-7.11 4.38l2.67 2.08a4.74 4.74 0 014.44-3.28z" fill="#EA4335"/></svg>
+    <svg width="14" height="14" viewBox="0 0 18 18" style="flex-shrink:0">
+      <path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 002.38-5.88c0-.57-.06-.96-.15-1.18z" fill="#4285F4"/>
+      <path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.01c-.72.48-1.63.77-2.7.77a4.74 4.74 0 01-4.44-3.29H1.87v2.08A8 8 0 008.98 17z" fill="#34A853"/>
+      <path d="M4.54 10.53a4.7 4.7 0 010-3.06V5.4H1.87a8 8 0 000 7.22l2.67-2.09z" fill="#FBBC05"/>
+      <path d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A7.97 7.97 0 008.98 1a8 8 0 00-7.11 4.38l2.67 2.08a4.74 4.74 0 014.44-3.28z" fill="#EA4335"/>
+    </svg>
     Open Google Classroom
   </a>`;
 
-  container.innerHTML = assignmentsHtml + filterHtml + `<div class="cl-section-label">Recently posted</div>` + feedHtml + footer;
+  container.innerHTML =
+    assignHtml +
+    filterHtml +
+    `<div class="cl-section-label">Recently posted</div>` +
+    feedHtml +
+    footer;
 }
 
-// ── Assignment URL helpers (reusable for future integrations) ──
+// ── Helpers ───────────────────────────────────────────────────
 
-// Build the best possible URL for an assignment/announcement
-function getAssignmentUrl(item) {
-  // 1. Use Google's own alternateLink if present and valid
-  if (item.alternateLink && item.alternateLink.startsWith('https://')) {
-    return item.alternateLink;
-  }
-  // 2. Construct direct assignment URL from known IDs
+// Build the best URL for an item
+function clGetUrl(item) {
+  if (item.alternateLink && item.alternateLink.startsWith('https://')) return item.alternateLink;
   if (item.courseId && item.id) {
-    if (item.type === 'announcement') {
-      return `https://classroom.google.com/c/${item.courseId}/p/${item.id}`;
-    }
-    // coursework — /details goes to the student view
+    if (item.type === 'announcement') return `https://classroom.google.com/c/${item.courseId}/p/${item.id}`;
     return `https://classroom.google.com/c/${item.courseId}/a/${item.id}/details`;
   }
-  // 3. Fall back to course stream
-  if (item.courseId) {
-    return `https://classroom.google.com/c/${item.courseId}`;
-  }
-  // 4. Last resort
+  if (item.courseId) return `https://classroom.google.com/c/${item.courseId}`;
   return 'https://classroom.google.com';
 }
 
-// Handle clicks — validate URL before navigating, show toast on error
-function handleAssignmentClick(event, link) {
-  event.stopPropagation();
-  try {
-    const url = new URL(link);
-    if (!url.hostname.includes('google.com') && !url.hostname.includes('classroom.google.com')) {
-      throw new Error('Unexpected URL');
-    }
-    // Valid — let the default <a> behavior handle it
-    return true;
-  } catch {
-    event.preventDefault();
-    // Show a subtle error and redirect to Classroom home
-    showClassroomLinkError();
-    return false;
-  }
+function clFormatDue(dueDate) {
+  if (!dueDate) return null;
+  const { year, month, day } = dueDate;
+  const due   = new Date(year, month - 1, day);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days  = Math.ceil((due - today) / 86400000);
+  if (days < 0)  return 'Overdue';
+  if (days === 0) return 'Due today';
+  if (days === 1) return 'Due tomorrow';
+  if (days <= 7)  return `Due ${due.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  return `Due ${month}/${day}`;
 }
 
-function showClassroomLinkError() {
-  // Toast-style error
-  const t = document.getElementById('toast');
-  if (t) {
-    document.getElementById('t-msg').textContent = 'Assignment link unavailable — opening Classroom';
-    document.getElementById('t-icon').textContent = '⚠';
-    t.className = 'toast on err';
-    clearTimeout(t._t);
-    t._t = setTimeout(() => t.classList.remove('on'), 3000);
-  }
-  setTimeout(() => window.open('https://classroom.google.com', '_blank'), 800);
+function clDueClass(dueDate) {
+  if (!dueDate) return '';
+  const { year, month, day } = dueDate;
+  const due   = new Date(year, month - 1, day);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days  = Math.ceil((due - today) / 86400000);
+  if (days <= 1) return 'soon';
+  if (days <= 3) return 'ok';
+  return 'fine';
 }
 
-function formatClassroomTime(iso) {
+function clFormatTime(iso) {
   if (!iso) return '';
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = Math.floor((now - d) / 1000);
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  const d    = new Date(iso);
+  const diff = Math.floor((Date.now() - d) / 1000);
+  if (diff < 60)     return 'Just now';
+  if (diff < 3600)   return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400)  return `${Math.floor(diff / 3600)}h ago`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Sidebar collapse
+// Sidebar collapse// Sidebar collapse
 (function(){
   const sidebar = document.getElementById('nav-sidebar');
   const btn = document.getElementById('sidebar-toggle-btn');
