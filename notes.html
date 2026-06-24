@@ -3,6 +3,9 @@
 <head>
 <script src="guard.js"></script>
 <meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notes Library — Notiv</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -10,6 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js" defer></script>
+<script src="notiv-ai.js" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -627,17 +631,13 @@ ${note.rawText.slice(0, 6000)}`;
   }
 
   try {
-    const res = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: messageContent }]
-      })
+    const data = await callAI({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: messageContent }]
     });
-    if (!res.ok) { const err = await res.json(); throw new Error(err.error?.message || `API error ${res.status}`); }
-    note.polishedText = (await res.json()).content.map(b => b.text || '').join('');
+    if (!data) return; // callAI already showed the error/credits modal
+    note.polishedText = data.content.map(b => b.text || '').join('');
     saveNotes(); renderNotes();
     showToast('Notes polished ✦', 'success');
     if (typeof window.notivAwardXP === 'function') setTimeout(() => window.notivAwardXP(100, 'Note polished'), 400);
