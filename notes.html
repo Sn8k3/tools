@@ -301,7 +301,7 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
     <a href="index.html" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--t1);text-decoration:none;display:flex;align-items:center;gap:1px;overflow:hidden;">
       <span class="logo-text">Notiv<span style="color:var(--lime)">.</span></span>
     </a>
-    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
+    <button class="sidebar-toggle" title="Collapse sidebar" id="sidebar-toggle-btn">‹</button>
   </div>
   <div class="sidebar-nav">
     <div class="snav-label">Main</div>
@@ -879,24 +879,6 @@ function saveNotes() {
 }
 
 function formatBytes(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
-// ── Sidebar collapse ──
-function toggleSidebar() {
-  const sidebar = document.getElementById('nav-sidebar');
-  const btn = document.getElementById('sidebar-toggle-btn');
-  const collapsed = sidebar.classList.toggle('collapsed');
-  btn.textContent = collapsed ? '›' : '‹';
-  btn.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
-  localStorage.setItem('notiv-sidebar-collapsed', collapsed ? '1' : '0');
-}
-
-// Restore sidebar state on load
-(function() {
-  if (localStorage.getItem('notiv-sidebar-collapsed') === '1') {
-    const sidebar = document.getElementById('nav-sidebar');
-    const btn = document.getElementById('sidebar-toggle-btn');
-    if (sidebar) { sidebar.classList.add('collapsed'); btn.textContent = '›'; btn.title = 'Expand sidebar'; }
-  }
-})();
 
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
