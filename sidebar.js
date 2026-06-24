@@ -504,6 +504,7 @@
     if (!sidebar || !btn) return;
     if (localStorage.getItem('notiv-sidebar-collapsed') === '1') {
       sidebar.classList.add('collapsed');
+      document.body.classList.add('sidebar-collapsed');
       btn.textContent = '›';
       btn.title = 'Expand sidebar';
     }
@@ -512,6 +513,7 @@
       btn._wired = true;
       btn.addEventListener('click', function() {
         const collapsed = sidebar.classList.toggle('collapsed');
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
         btn.textContent = collapsed ? '›' : '‹';
         btn.title = (collapsed ? 'Expand' : 'Collapse') + ' sidebar';
         localStorage.setItem('notiv-sidebar-collapsed', collapsed ? '1' : '0');
