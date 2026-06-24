@@ -266,17 +266,13 @@ Don't make up information about the user's specific notes content — only use w
       // Remove the message we just added (it's already in messages[])
       apiMessages[apiMessages.length - 1] = { role: 'user', content: text };
 
-      const res = await fetch(WORKER_URL, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 400,
-          system: systemPrompt,
-          messages: apiMessages,
-        }),
+      const data = await callAI({
+        model: 'claude-sonnet-4-20250514', max_tokens: 400,
+        system: systemPrompt,
+        messages: apiMessages,
       });
       removeTyping();
-      if (!res.ok) throw new Error('API error');
-      const data = await res.json();
+      if (!data) { isTyping = false; document.getElementById('ai-send').disabled = false; return; }
       const reply = data.content.map(b => b.text || '').join('');
       addMessage('assistant', reply);
       document.getElementById('ai-status').textContent = 'Ready to help';
