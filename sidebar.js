@@ -24,21 +24,43 @@
 
   const XP_THRESHOLDS = [0,500,1200,2200,3500,5000,7000,9500,12500,16000,20000];
 
-  // Skip on login/onboarding/landing pages and pages with their own sidebar
+  // Skip on login/onboarding/landing pages
   const path = window.location.pathname;
   if (/login|onboarding|landing/.test(path)) return;
 
-  // If the page already has a hand-coded nav-sidebar, skip injection but still wire XP
-  const hasOwnSidebar = !!document.getElementById('nav-sidebar');
-  if (hasOwnSidebar) {
-    // Still expose notivAwardXP for XP toasts on these pages
-    document.addEventListener('DOMContentLoaded', function() {
+  function init() {
+    // If the page already has a hand-coded nav-sidebar, skip full injection
+    // but still wire XP toast, collapse, and inject a credits bar into it.
+    if (document.getElementById('nav-sidebar')) {
+      injectCreditsIntoHandCodedSidebar();
       injectXPToast();
       restoreCollapse();
-    });
-    return;
+      return;
+    }
+    inject();
+    wireNotivAwardXP();
   }
 
+  // Pages like dashboard.html build their own <aside id="nav-sidebar">.
+  // We still want the credits bar there — inject styles + markup right
+  // after the logo-wrap so it sits at the top, same as the auto-built version.
+  function injectCreditsIntoHandCodedSidebar() {
+    const sidebar = document.getElementById('nav-sidebar');
+    if (!sidebar || document.querySelector('.nsb-credits')) return; // already there
+
+    document.head.appendChild(style);
+
+    const logoWrap = sidebar.querySelector('.sidebar-logo-wrap');
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = buildCreditsSection();
+    const creditsEl = wrapper.firstElementChild;
+
+    if (logoWrap && logoWrap.nextSibling) {
+      sidebar.insertBefore(creditsEl, logoWrap.nextSibling);
+    } else {
+      sidebar.appendChild(creditsEl);
+    }
+  }
   // ── Inject styles ────────────────────────────────────────
   const style = document.createElement('style');
   style.textContent = `
@@ -154,6 +176,55 @@
       font-family: 'DM Mono', monospace;
     }
     .nsb-streak-fire { font-size: 13px; }
+
+    /* Credits bar in sidebar */
+    .nsb-credits {
+      padding: 10px 12px 10px;
+      border-bottom: 1px solid #22222a;
+      flex-shrink: 0;
+      overflow: hidden;
+      transition: opacity 0.15s;
+    }
+    #notiv-sidebar.collapsed .nsb-credits,
+    #nav-sidebar.collapsed .nsb-credits { opacity: 0; pointer-events: none; padding: 0; height: 0; border: none; }
+    .nsb-credits-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 5px;
+    }
+    .nsb-credits-label {
+      font-size: 9px;
+      font-family: 'DM Mono', monospace;
+      color: #383634;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .nsb-credits-val {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: #9b9893;
+    }
+    .nsb-credits-track {
+      height: 5px;
+      background: #22222a;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .nsb-credits-fill {
+      height: 100%;
+      background: #a07ee8;
+      border-radius: 3px;
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+    .nsb-credits-fill.low { background: #f0ae50; }
+    .nsb-credits-fill.empty { background: #f0635a; }
+    .nsb-credits-refresh {
+      margin-top: 5px;
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: #383634;
+    }
 
     /* Nav */
     .nsb-nav {
@@ -384,7 +455,7 @@
       #notiv-sidebar-backdrop.open { display: block; }
     }
   `;
-  document.head.appendChild(style);
+  // style is appended inside inject() only — not here
 
   // ── Helpers for pages with own sidebar ─────────────────
   function injectXPToast() {
@@ -542,6 +613,20 @@
     return streak;
   }
 
+  function buildCreditsSection() {
+    return `
+      <div class="nsb-credits">
+        <div class="nsb-credits-row">
+          <span class="nsb-credits-label">Credits</span>
+          <span class="nsb-credits-val credit-bar-label">— / —</span>
+        </div>
+        <div class="nsb-credits-track">
+          <div class="nsb-credits-fill credit-bar-fill" style="width:0%"></div>
+        </div>
+        <div class="nsb-credits-refresh credit-refresh-label"></div>
+      </div>`;
+  }
+
   function buildXPSection(xp, level, pct, streak) {
     return `
       <div class="nsb-xp">
@@ -558,6 +643,9 @@
 
   // ── Inject sidebar into page ─────────────────────────────
   function inject() {
+    // Inject styles only when we're doing full injection
+    document.head.appendChild(style);
+
     const xp     = calcXP();
     const level  = calcLevel(xp);
     const pct    = calcXPPct(xp);
@@ -573,6 +661,7 @@
         <a href="index.html" class="nsb-logo">Notiv<span>.</span></a>
         <button class="nsb-toggle" id="nsb-toggle" title="${collapsed?'Expand':'Collapse'} sidebar">${collapsed?'›':'‹'}</button>
       </div>
+      ${buildCreditsSection()}
       ${buildXPSection(xp, level, pct, streak)}
       <nav class="nsb-nav">${buildNav()}</nav>
     `;
@@ -706,11 +795,14 @@
     catch { return ''; }
   }
 
-  // ── Run ──────────────────────────────────────────────────
+  // ── Kick things off ──────────────────────────────────────
+  // Moved to the end so `style`, `buildCreditsSection`, etc. are all
+  // defined by the time init() runs (function declarations are hoisted,
+  // but `style` is a const that must execute before use).
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() { inject(); wireNotivAwardXP(); });
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    inject(); wireNotivAwardXP();
+    init();
   }
 
 })();
