@@ -56,9 +56,10 @@
     wrapper.innerHTML = buildCreditsSection();
     const creditsEl = wrapper.firstElementChild;
 
-    if (headerEl && headerEl.nextSibling) {
-      sidebar.insertBefore(creditsEl, headerEl.nextSibling);
-    } else if (headerEl) {
+    // insertAdjacentElement('afterend', ...) places it immediately after
+    // headerEl regardless of whitespace text nodes in between — more
+    // reliable than nextSibling, which can be a stray #text node.
+    if (headerEl) {
       headerEl.insertAdjacentElement('afterend', creditsEl);
     } else {
       sidebar.insertBefore(creditsEl, sidebar.firstChild);
