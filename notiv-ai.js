@@ -1,3 +1,14 @@
+// ── Notiv AI Call Wrapper ──
+// Wraps every call to the Cloudflare Worker's Anthropic proxy.
+// Automatically attaches user_id for credit tracking, and handles
+// the "out of credits" (402) response consistently across all pages.
+//
+// Usage (drop-in replacement for raw fetch(WORKER_URL,...)):
+//   const data = await callAI({ model: '...', max_tokens: 2000, messages: [...] });
+//   if (!data) return; // call was blocked or failed — error already shown to user
+//
+// Requires auth.js to be loaded first (for getUser()).
+
 const NOTIV_WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
 
 async function callAI(payload) {
@@ -30,7 +41,7 @@ async function callAI(payload) {
   }
 
   if (res.status === 402) {
-    showOutOfCreditsModal();
+    showOutOfCreditsModal(data.refresh_at);
     return null;
   }
 
@@ -41,15 +52,22 @@ async function callAI(payload) {
   }
 
   if (typeof data.credits_remaining === 'number') {
-    updateCreditIndicator(data.credits_remaining);
+    updateCreditIndicator(data.credits_remaining, data.monthly_cap);
   }
 
   return data;
 }
 
-function showOutOfCreditsModal() {
-  if (document.getElementById('notiv-credits-modal')) {
-    document.getElementById('notiv-credits-modal').classList.add('visible');
+function showOutOfCreditsModal(refreshAt) {
+  const sub = refreshAt
+    ? `You've used all your credits for this month. They'll refresh automatically on ${formatRefreshDate(refreshAt)}.`
+    : `You've used all your free AI credits. Pricing plans are coming soon — check back shortly!`;
+
+  const existing = document.getElementById('notiv-credits-modal');
+  if (existing) {
+    const subEl = existing.querySelector('.ncm-sub');
+    if (subEl) subEl.textContent = sub;
+    existing.classList.add('visible');
     return;
   }
   const style = document.createElement('style');
@@ -73,7 +91,7 @@ function showOutOfCreditsModal() {
       <button class="ncm-close" onclick="document.getElementById('notiv-credits-modal').classList.remove('visible')">✕</button>
       <div class="ncm-icon">⚡</div>
       <div class="ncm-title">Out of credits</div>
-      <div class="ncm-sub">You've used all your free AI credits. Pricing plans are coming soon — check back shortly!</div>
+      <div class="ncm-sub">${sub}</div>
       <div class="ncm-btns">
         <button class="ncm-btn-secondary" onclick="document.getElementById('notiv-credits-modal').classList.remove('visible')">Close</button>
       </div>
@@ -99,23 +117,71 @@ function showCreditToast(msg, type = 'error') {
   t._timer = setTimeout(() => { t.style.display = 'none'; }, 4000);
 }
 
-function updateCreditIndicator(balance) {
+// ── Sidebar credit bar ──
+// Updates any element with class "credit-bar-fill" (width %) and
+// "credit-bar-label" (text) on the page. Call updateCreditUI(balance, cap)
+// directly, or let callAI / fetchCreditBalance do it automatically.
+
+function updateCreditIndicator(balance, cap) {
+  // Back-compat: simple text indicators (used by older pages)
   document.querySelectorAll('.credit-indicator').forEach(el => {
     el.textContent = `${balance} credit${balance === 1 ? '' : 's'}`;
     el.classList.toggle('low', balance <= 1);
   });
+  updateCreditUI(balance, cap);
 }
 
+function updateCreditUI(balance, cap) {
+  if (typeof balance !== 'number') return;
+  const safeCap = (typeof cap === 'number' && cap > 0) ? cap : Math.max(balance, 5);
+  const pct = Math.max(0, Math.min(100, (balance / safeCap) * 100));
+
+  document.querySelectorAll('.credit-bar-fill').forEach(el => {
+    el.style.width = pct + '%';
+    el.classList.toggle('low', balance <= Math.ceil(safeCap * 0.2));
+    el.classList.toggle('empty', balance <= 0);
+  });
+  document.querySelectorAll('.credit-bar-label').forEach(el => {
+    el.textContent = `${balance} / ${safeCap} credits`;
+  });
+}
+
+function formatRefreshDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// Fetch the current balance from the Worker (this also triggers the
+// monthly auto-refresh check server-side, so call this on every page load).
 async function fetchCreditBalance() {
-  const user = getUser();
+  const sb = await getSBAsync();
+  let user = getUser();
+  if (!user && sb) {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      user = session?.user || null;
+    } catch {}
+  }
   if (!user) return null;
+
   try {
-    const sb = await getSBAsync();
-    const { data, error } = await sb.from('user_credits').select('balance').eq('user_id', user.id).maybeSingle();
-    if (error || !data) return null;
-    updateCreditIndicator(data.balance);
-    return data.balance;
+    const res = await fetch(`${NOTIV_WORKER_URL}/credits/balance?user_id=${encodeURIComponent(user.id)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    updateCreditUI(data.balance, data.monthly_cap);
+
+    document.querySelectorAll('.credit-refresh-label').forEach(el => {
+      el.textContent = `Refreshes ${formatRefreshDate(data.refresh_at)}`;
+    });
+
+    return data;
   } catch {
     return null;
   }
 }
+
+// Auto-run on every page that includes this script (after auth.js has a chance to init)
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(fetchCreditBalance, 600);
+});
