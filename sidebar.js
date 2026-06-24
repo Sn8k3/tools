@@ -41,24 +41,27 @@
     wireNotivAwardXP();
   }
 
-  // Pages like dashboard.html build their own <aside id="nav-sidebar">.
-  // We still want the credits bar there — inject styles + markup right
-  // after the logo-wrap so it sits at the top, same as the auto-built version.
+  // Pages like dashboard.html, notes.html, flashcards.html build their own
+  // <aside id="nav-sidebar">. Their header (logo + collapse button) is always
+  // the FIRST child div, with no consistent class name across pages — so we
+  // target firstElementChild directly rather than relying on a class.
   function injectCreditsIntoHandCodedSidebar() {
     const sidebar = document.getElementById('nav-sidebar');
-    if (!sidebar || document.querySelector('.nsb-credits')) return; // already there
+    if (!sidebar || sidebar.querySelector('.nsb-credits')) return; // already there
 
     document.head.appendChild(style);
 
-    const logoWrap = sidebar.querySelector('.sidebar-logo-wrap');
+    const headerEl = sidebar.firstElementChild; // logo + toggle row
     const wrapper = document.createElement('div');
     wrapper.innerHTML = buildCreditsSection();
     const creditsEl = wrapper.firstElementChild;
 
-    if (logoWrap && logoWrap.nextSibling) {
-      sidebar.insertBefore(creditsEl, logoWrap.nextSibling);
+    if (headerEl && headerEl.nextSibling) {
+      sidebar.insertBefore(creditsEl, headerEl.nextSibling);
+    } else if (headerEl) {
+      headerEl.insertAdjacentElement('afterend', creditsEl);
     } else {
-      sidebar.appendChild(creditsEl);
+      sidebar.insertBefore(creditsEl, sidebar.firstChild);
     }
   }
   // ── Inject styles ────────────────────────────────────────
