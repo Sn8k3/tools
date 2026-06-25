@@ -170,6 +170,27 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
 .dot-coral{background:var(--coral)}
 .dot-mint{background:var(--mint)}
 
+/* Month view */
+.month-wrap{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:6px}
+.month-wrap::-webkit-scrollbar{width:4px}
+.month-wrap::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.month-dow-row{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;flex-shrink:0}
+.month-dow{text-align:center;font-size:10px;font-family:'DM Mono',monospace;color:var(--t4);text-transform:uppercase;letter-spacing:0.06em;padding:4px 0}
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:1fr;gap:8px;flex:1;min-height:600px}
+.month-cell{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:6px;display:flex;flex-direction:column;gap:4px;cursor:pointer;transition:border-color 0.12s;overflow:hidden;min-height:90px}
+.month-cell:hover{border-color:var(--b2)}
+.month-cell.outside{opacity:0.35;cursor:default}
+.month-cell.outside:hover{border-color:var(--b1)}
+.month-cell.today{border-color:var(--lime-b)}
+.month-cell-num{font-family:'Playfair Display',serif;font-size:13px;color:var(--t2);flex-shrink:0}
+.month-cell-num.today-num{color:var(--lime)}
+.month-cell-tasks{display:flex;flex-direction:column;gap:3px;overflow:hidden;flex:1}
+.month-task{padding:2px 5px;border-radius:4px;font-size:10px;line-height:1.4;display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity 0.12s}
+.month-task.done{opacity:0.4;text-decoration:line-through}
+.month-task-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.month-task-more{font-size:9px;color:var(--t4);font-family:'DM Mono',monospace;padding-left:5px}
+@media(max-width:768px){.month-cell{min-height:60px}.month-task{display:none}.month-task-more{display:none}}
+
 /* Daily view */
 .daily-wrap{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
 .daily-wrap::-webkit-scrollbar{width:4px}
@@ -325,6 +346,7 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
         <div class="view-toggle">
           <button class="vt-btn active" onclick="setView('week',this)">Weekly</button>
           <button class="vt-btn" onclick="setView('daily',this)">Daily</button>
+          <button class="vt-btn" onclick="setView('month',this)">Month</button>
         </div>
         <div class="week-nav">
           <button class="btn sm" onclick="shiftWeek(-1)">←</button>
@@ -334,6 +356,10 @@ body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-ser
       </div>
       <div class="calendar-wrap" id="view-week"><div class="calendar-grid" id="calendar-grid"></div></div>
       <div class="daily-wrap" id="view-daily" style="display:none"></div>
+      <div class="month-wrap" id="view-month" style="display:none">
+        <div class="month-dow-row" id="month-dow-row"></div>
+        <div class="month-grid" id="month-grid"></div>
+      </div>
     </div>
 
   </div>
@@ -405,17 +431,153 @@ async function generateSchedule(){
 
 function showPlannerScreen(){document.getElementById('screen-setup').classList.remove('active');document.getElementById('screen-planner').classList.add('active');currentWeekIndex=0;renderCountdowns();renderProgressSummary();renderCurrentView();requestNotificationPermission();}
 
-function renderCurrentView(){if(!schedule)return;const weeks=schedule.weeks;if(!weeks||weeks.length===0)return;const week=weeks[Math.min(currentWeekIndex,weeks.length-1)];if(!week)return;const dates=week.days.map(d=>new Date(d.date));const first=dates[0],last=dates[dates.length-1];document.getElementById('week-label').textContent=`${fmtDate(first)} — ${fmtDate(last)}`;if(currentView==='week')renderWeekCalendar(week);else renderDailyList(week);}
+let currentMonthOffset=0; // months from today, used only in month view
+
+function renderCurrentView(){
+  if(!schedule)return;
+  const weeks=schedule.weeks;
+  if(!weeks||weeks.length===0)return;
+
+  if(currentView==='month'){
+    renderMonthCalendar();
+    return;
+  }
+
+  const week=weeks[Math.min(currentWeekIndex,weeks.length-1)];
+  if(!week)return;
+  const dates=week.days.map(d=>new Date(d.date));
+  const first=dates[0],last=dates[dates.length-1];
+  document.getElementById('week-label').textContent=`${fmtDate(first)} — ${fmtDate(last)}`;
+  if(currentView==='week')renderWeekCalendar(week);else renderDailyList(week);
+}
+
+// Build a flat date->day lookup across every week in the schedule, so month
+// view can pull tasks regardless of which "week" object they technically live in.
+function buildScheduleDayMap(){
+  const map={};
+  schedule.weeks.forEach(w=>{(w.days||[]).forEach(d=>{map[d.date]=d;});});
+  return map;
+}
+
+function renderMonthCalendar(){
+  const today=new Date();
+  const base=new Date(today.getFullYear(),today.getMonth()+currentMonthOffset,1);
+  const year=base.getFullYear(),month=base.getMonth();
+
+  document.getElementById('week-label').textContent=base.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+  // Day-of-week header (Sun-Sat), built once
+  const dowRow=document.getElementById('month-dow-row');
+  if(!dowRow.children.length){
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(n=>{
+      const el=document.createElement('div');el.className='month-dow';el.textContent=n;dowRow.appendChild(el);
+    });
+  }
+
+  const grid=document.getElementById('month-grid');
+  grid.innerHTML='';
+
+  const firstOfMonth=new Date(year,month,1);
+  const startDow=firstOfMonth.getDay(); // 0=Sun
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const daysInPrevMonth=new Date(year,month,0).getDate();
+
+  const todayStr=toDateStr(today);
+  const dayMap=buildScheduleDayMap();
+
+  const totalCells=Math.ceil((startDow+daysInMonth)/7)*7;
+
+  for(let i=0;i<totalCells;i++){
+    const cell=document.createElement('div');
+    let cellDate,isOutside=false;
+
+    if(i<startDow){
+      // leading days from previous month
+      const dnum=daysInPrevMonth-startDow+i+1;
+      cellDate=new Date(year,month-1,dnum);
+      isOutside=true;
+    }else if(i>=startDow+daysInMonth){
+      // trailing days from next month
+      const dnum=i-(startDow+daysInMonth)+1;
+      cellDate=new Date(year,month+1,dnum);
+      isOutside=true;
+    }else{
+      const dnum=i-startDow+1;
+      cellDate=new Date(year,month,dnum);
+    }
+
+    const ds=toDateStr(cellDate);
+    const isToday=ds===todayStr;
+    cell.className='month-cell'+(isOutside?' outside':'')+(isToday?' today':'');
+
+    const dayData=dayMap[ds];
+    const dayExams=(exams||[]).filter(e=>e.date===ds);
+    const tasks=(dayData?.tasks)||[];
+
+    let tasksHtml='';
+    const visibleTasks=tasks.slice(0,3);
+    visibleTasks.forEach(task=>{
+      const done=!!taskStatus[task.id];
+      const color=subjectColor(task.subject);
+      tasksHtml+=`<div class="month-task${done?' done':''}" style="background:var(--${color}-d);color:var(--${color})" onclick="event.stopPropagation();toggleTask('${task.id}')" title="${escHtml(task.title)}">
+        <span class="month-task-dot dot-${color}"></span>${escHtml(task.title)}
+      </div>`;
+    });
+    dayExams.forEach(ex=>{
+      tasksHtml+=`<div class="month-task" style="background:var(--coral-d);color:var(--coral)" title="${escHtml(ex.name)}">
+        <span class="month-task-dot dot-coral"></span>📋 ${escHtml(ex.name)}
+      </div>`;
+    });
+    const overflow=tasks.length-visibleTasks.length;
+    if(overflow>0){
+      tasksHtml+=`<div class="month-task-more">+${overflow} more</div>`;
+    }
+
+    cell.innerHTML=`<div class="month-cell-num${isToday?' today-num':''}">${cellDate.getDate()}</div><div class="month-cell-tasks">${tasksHtml}</div>`;
+    if(!isOutside){
+      cell.onclick=()=>{ jumpToDayInDailyView(ds); };
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// Clicking a month-view day cell switches to Daily view scrolled to that date
+function jumpToDayInDailyView(dateStr){
+  const weekIdx=schedule.weeks.findIndex(w=>(w.days||[]).some(d=>d.date===dateStr));
+  if(weekIdx===-1)return;
+  currentWeekIndex=weekIdx;
+  currentView='daily';
+  document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));
+  const dailyBtn=Array.from(document.querySelectorAll('.vt-btn')).find(b=>b.textContent.trim()==='Daily');
+  if(dailyBtn)dailyBtn.classList.add('active');
+  document.getElementById('view-week').style.display='none';
+  document.getElementById('view-month').style.display='none';
+  document.getElementById('view-daily').style.display='flex';
+  renderCurrentView();
+  setTimeout(()=>{
+    const target=document.querySelector(`[data-date="${dateStr}"]`);
+    if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+  },50);
+}
 
 function renderWeekCalendar(week){const grid=document.getElementById('calendar-grid');grid.innerHTML='';const today=toDateStr(new Date());const allDays=buildWeekDays(week);allDays.forEach(day=>{const isToday=day.date===today;const d=new Date(day.date+'T00:00:00');const col=document.createElement('div');col.className='cal-day'+(isToday?' today':'');const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];col.innerHTML=`<div class="cal-day-header"><div class="cal-day-name">${dayNames[d.getDay()]}</div><div class="cal-day-num${isToday?' today-num':''}">${d.getDate()}</div></div><div class="cal-tasks" id="cal-tasks-${day.date}"></div>`;grid.appendChild(col);const tasksEl=col.querySelector('.cal-tasks');(day.tasks||[]).forEach(task=>{const done=!!taskStatus[task.id];const color=subjectColor(task.subject);const el=document.createElement('div');el.className=`cal-task${done?' done':''}`;el.style.background=`var(--${color}-d)`;el.style.color=`var(--${color})`;el.innerHTML=`<div class="cal-task-dot dot-${color}"></div><span>${escHtml(task.title)}</span>`;el.onclick=()=>toggleTask(task.id);tasksEl.appendChild(el);});if(exams)exams.filter(e=>e.date===day.date).forEach(ex=>{const el=document.createElement('div');el.className='cal-task';el.style.background='var(--coral-d)';el.style.color='var(--coral)';el.innerHTML=`<div class="cal-task-dot dot-coral"></div>📋 ${escHtml(ex.name)}`;tasksEl.appendChild(el);});});}
 
-function renderDailyList(week){const wrap=document.getElementById('view-daily');wrap.innerHTML='';const today=toDateStr(new Date());const allDays=buildWeekDays(week);allDays.forEach(day=>{const d=new Date(day.date+'T00:00:00');const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const block=document.createElement('div');block.className='daily-day-block';const total=(day.tasks||[]).reduce((s,t)=>s+(t.duration||0),0);const isToday=day.date===today;block.innerHTML=`<div class="daily-day-header"><div class="daily-day-name" style="${isToday?'color:var(--lime)':''}">${dayNames[d.getDay()]}</div><div class="daily-day-date">${fmtDateFull(d)}</div>${total?`<div class="daily-day-total">${total} min</div>`:''}</div>`;if(exams)exams.filter(e=>e.date===day.date).forEach(ex=>{const el=document.createElement('div');el.style.cssText='background:var(--coral-d);border:1px solid var(--coral-b);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--coral);font-weight:600;margin:8px 0 0;';el.textContent=`📋 ${ex.type}: ${ex.name}`;block.appendChild(el);});if(!day.tasks||day.tasks.length===0){const empty=document.createElement('div');empty.style.cssText='font-size:13px;color:var(--t4);padding:12px 16px;';empty.textContent='Rest day';block.appendChild(empty);}else{day.tasks.forEach(task=>{const done=!!taskStatus[task.id];const color=subjectColor(task.subject);const el=document.createElement('div');el.className='daily-task'+(done?' done':'');el.innerHTML=`<div class="task-checkbox">${done?'✓':''}</div><div class="task-body"><div class="task-subject" style="color:var(--${color})">${escHtml(task.subject)}</div><div class="task-title">${escHtml(task.title)}</div><div class="task-meta">${task.duration} min · ${task.priority} priority</div></div>${task.behind?'<div class="task-behind-badge">⚡ Added</div>':''}`;el.onclick=()=>toggleTask(task.id,el);block.appendChild(el);});}wrap.appendChild(block);});}
+function renderDailyList(week){const wrap=document.getElementById('view-daily');wrap.innerHTML='';const today=toDateStr(new Date());const allDays=buildWeekDays(week);allDays.forEach(day=>{const d=new Date(day.date+'T00:00:00');const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];const block=document.createElement('div');block.className='daily-day-block';block.setAttribute('data-date',day.date);const total=(day.tasks||[]).reduce((s,t)=>s+(t.duration||0),0);const isToday=day.date===today;block.innerHTML=`<div class="daily-day-header"><div class="daily-day-name" style="${isToday?'color:var(--lime)':''}">${dayNames[d.getDay()]}</div><div class="daily-day-date">${fmtDateFull(d)}</div>${total?`<div class="daily-day-total">${total} min</div>`:''}</div>`;if(exams)exams.filter(e=>e.date===day.date).forEach(ex=>{const el=document.createElement('div');el.style.cssText='background:var(--coral-d);border:1px solid var(--coral-b);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--coral);font-weight:600;margin:8px 0 0;';el.textContent=`📋 ${ex.type}: ${ex.name}`;block.appendChild(el);});if(!day.tasks||day.tasks.length===0){const empty=document.createElement('div');empty.style.cssText='font-size:13px;color:var(--t4);padding:12px 16px;';empty.textContent='Rest day';block.appendChild(empty);}else{day.tasks.forEach(task=>{const done=!!taskStatus[task.id];const color=subjectColor(task.subject);const el=document.createElement('div');el.className='daily-task'+(done?' done':'');el.innerHTML=`<div class="task-checkbox">${done?'✓':''}</div><div class="task-body"><div class="task-subject" style="color:var(--${color})">${escHtml(task.subject)}</div><div class="task-title">${escHtml(task.title)}</div><div class="task-meta">${task.duration} min · ${task.priority} priority</div></div>${task.behind?'<div class="task-behind-badge">⚡ Added</div>':''}`;el.onclick=()=>toggleTask(task.id,el);block.appendChild(el);});}wrap.appendChild(block);});}
 
 function buildWeekDays(week){if(!week.days||week.days.length===0)return[];const first=new Date(week.days[0].date+'T00:00:00');const dayMap={};week.days.forEach(d=>{dayMap[d.date]=d;});const days=[];for(let i=0;i<7;i++){const d=new Date(first);d.setDate(d.getDate()+i);const ds=toDateStr(d);days.push(dayMap[ds]||{date:ds,tasks:[]});}return days;}
 
 function toggleTask(taskId){taskStatus[taskId]=!taskStatus[taskId];savePlanner();renderCurrentView();renderProgressSummary();checkReminders();}
-function shiftWeek(dir){const max=(schedule?.weeks?.length||1)-1;currentWeekIndex=Math.max(0,Math.min(max,currentWeekIndex+dir));renderCurrentView();}
-function setView(view,btn){currentView=view;document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('view-week').style.display=view==='week'?'block':'none';document.getElementById('view-daily').style.display=view==='daily'?'flex':'none';renderCurrentView();}
+function shiftWeek(dir){
+  if(currentView==='month'){
+    currentMonthOffset+=dir;
+    renderCurrentView();
+    return;
+  }
+  const max=(schedule?.weeks?.length||1)-1;
+  currentWeekIndex=Math.max(0,Math.min(max,currentWeekIndex+dir));
+  renderCurrentView();
+}
+function setView(view,btn){currentView=view;document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('view-week').style.display=view==='week'?'block':'none';document.getElementById('view-daily').style.display=view==='daily'?'flex':'none';document.getElementById('view-month').style.display=view==='month'?'flex':'none';renderCurrentView();}
 
 function renderCountdowns(){const el=document.getElementById('countdowns');el.innerHTML='';if(!exams||exams.length===0)return;const today=new Date();today.setHours(0,0,0,0);exams.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(ex=>{const examDate=new Date(ex.date+'T00:00:00');const days=Math.ceil((examDate-today)/86400000);if(days<0)return;const urgency=days<=3?'urgent':days<=7?'soon':'ok';const totalDays=Math.ceil((examDate-new Date(plannerSetup.startDate||toDateStr(today)))/86400000);const pct=Math.max(0,Math.min(100,100-(days/Math.max(totalDays,1)*100)));const colors={urgent:'var(--coral)',soon:'var(--amber)',ok:'var(--lime)'};const card=document.createElement('div');card.className=`countdown-card ${urgency}`;card.innerHTML=`<div class="countdown-name">${escHtml(ex.name)}</div><div class="countdown-date">${fmtDateFull(examDate)}</div><div class="countdown-days ${urgency}">${days} day${days!==1?'s':''} left</div><div class="countdown-bar"><div class="countdown-bar-fill" style="width:${pct}%;background:${colors[urgency]}"></div></div>`;el.appendChild(card);});}
 
