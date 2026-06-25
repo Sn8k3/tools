@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing — Notiv</title>
+<meta name="description" content="Simple, transparent pricing for Notiv. Start free, upgrade when you need more AI credits and higher limits.">
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js" defer></script>
+<script src="notiv-ai.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080809;--s1:#0f0f12;--s2:#16161a;--s3:#1e1e24;
+  --b1:#22222a;--b2:#2e2e38;--b3:#3c3c48;
+  --t1:#f0ede8;--t2:#9b9893;--t3:#5a5855;--t4:#383634;
+  --lime:#c8f05e;--lime-d:rgba(200,240,94,0.08);--lime-b:rgba(200,240,94,0.2);
+  --purple:#a07ee8;--purple-d:rgba(160,126,232,0.10);--purple-b:rgba(160,126,232,0.25);
+  --coral:#f0635a;--amber:#f0ae50;--sky:#58b2ee;
+  --r:10px;--rl:16px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:'Instrument Sans',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden}
+
+body::after{content:'';position:fixed;inset:0;opacity:0.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px;pointer-events:none;z-index:9999}
+
+nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;padding:0 5%;height:60px;background:rgba(8,8,9,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,0.04)}
+.nav-logo{font-family:'Playfair Display',serif;font-size:22px;color:var(--t1);text-decoration:none;font-weight:500}
+.nav-logo span{color:var(--lime)}
+.nav-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.nav-cta{padding:8px 20px;border-radius:8px;background:var(--lime);color:#080809;font-weight:600;font-size:13px;text-decoration:none;transition:background 0.15s;white-space:nowrap}
+.nav-cta:hover{background:#d8ff74}
+.nav-signin{padding:7px 16px;border-radius:8px;border:1px solid var(--b2);background:none;color:var(--t2);font-size:13px;text-decoration:none;transition:all 0.12s}
+.nav-signin:hover{border-color:var(--b2);color:var(--t1)}
+.nav-link{padding:5px 12px;border-radius:7px;font-size:13px;color:var(--t3);text-decoration:none;transition:all 0.12s}
+.nav-link:hover{color:var(--t2);background:var(--s2)}
+
+.page-head{text-align:center;padding:80px 5% 20px;position:relative}
+.page-head-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(200,240,94,0.08) 0%,transparent 65%)}
+.page-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-family:'DM Mono',monospace;color:var(--lime);letter-spacing:0.1em;text-transform:uppercase;padding:6px 16px;border:1px solid var(--lime-b);border-radius:20px;background:var(--lime-d);margin-bottom:24px}
+.page-title{font-family:'Playfair Display',serif;font-size:clamp(34px,5vw,52px);font-weight:400;line-height:1.1;margin-bottom:16px;position:relative}
+.page-sub{font-size:16px;color:var(--t3);max-width:540px;margin:0 auto;position:relative}
+
+.billing-toggle{display:flex;align-items:center;justify-content:center;gap:10px;margin:36px auto 0;position:relative}
+.bt-label{font-size:13px;color:var(--t3)}
+.bt-label.active{color:var(--t1);font-weight:500}
+.bt-switch{width:44px;height:24px;border-radius:14px;background:var(--s2);border:1px solid var(--b2);position:relative;cursor:not-allowed;opacity:0.5}
+.bt-switch-dot{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--t3)}
+.bt-note{font-size:11px;color:var(--t4);font-family:'DM Mono',monospace}
+
+.pricing-section{padding:50px 5% 100px;position:relative}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1000px;margin:0 auto;align-items:stretch}
+@media(max-width:900px){.pricing-grid{grid-template-columns:1fr;max-width:440px}}
+
+.plan-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--rl);padding:32px 28px;display:flex;flex-direction:column;position:relative;transition:border-color 0.2s,transform 0.2s}
+.plan-card.featured{border-color:var(--lime-b);background:linear-gradient(180deg,rgba(200,240,94,0.04) 0%,var(--s1) 100%);transform:scale(1.02)}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--lime);color:#080809;font-size:11px;font-weight:700;padding:4px 14px;border-radius:20px;font-family:'DM Mono',monospace;letter-spacing:0.04em;white-space:nowrap}
+.plan-name{font-family:'Playfair Display',serif;font-size:22px;color:var(--t1);margin-bottom:6px}
+.plan-tagline{font-size:13px;color:var(--t3);margin-bottom:24px;min-height:36px}
+.plan-price-row{display:flex;align-items:baseline;gap:4px;margin-bottom:4px}
+.plan-price{font-family:'Playfair Display',serif;font-size:40px;color:var(--t1)}
+.plan-period{font-size:13px;color:var(--t4)}
+.plan-credits{font-size:13px;color:var(--lime);font-family:'DM Mono',monospace;margin-bottom:24px}
+.plan-cta{display:block;text-align:center;padding:11px;border-radius:9px;font-size:14px;font-weight:600;text-decoration:none;margin-bottom:28px;transition:all 0.15s;border:1px solid var(--b2);color:var(--t2);background:none;cursor:pointer;font-family:inherit;width:100%}
+.plan-cta:hover{border-color:var(--b3);color:var(--t1)}
+.plan-cta.primary{background:var(--lime);border-color:var(--lime);color:#080809}
+.plan-cta.primary:hover{background:#d8ff74}
+.plan-cta:disabled{opacity:0.5;cursor:not-allowed}
+.plan-cta.current{background:var(--s2);border-color:var(--b2);color:var(--t3);cursor:default}
+
+.plan-features{display:flex;flex-direction:column;gap:12px;flex:1}
+.pf-row{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--t2)}
+.pf-check{color:var(--lime);flex-shrink:0;margin-top:1px;font-size:13px}
+.pf-row.limit .pf-check{color:var(--t4)}
+.pf-row.limit{color:var(--t3)}
+.pf-strong{color:var(--t1);font-weight:600}
+
+.compare-section{padding:0 5% 100px}
+.compare-title{text-align:center;font-family:'Playfair Display',serif;font-size:28px;margin-bottom:36px}
+.compare-table-wrap{max-width:760px;margin:0 auto;overflow-x:auto;border:1px solid var(--b1);border-radius:var(--rl)}
+.compare-table{width:100%;border-collapse:collapse;font-size:13px}
+.compare-table th,.compare-table td{padding:13px 16px;text-align:center;border-bottom:1px solid var(--b1)}
+.compare-table th:first-child,.compare-table td:first-child{text-align:left;color:var(--t3)}
+.compare-table th{background:var(--s1);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:var(--t3)}
+.compare-table th.feat-col{color:var(--t1);font-weight:600}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-table td{color:var(--t2)}
+.compare-table td.yes{color:var(--lime)}
+
+.faq-section{padding:0 5% 100px;max-width:680px;margin:0 auto}
+.faq-title{text-align:center;font-family:'Playfair Display',serif;font-size:28px;margin-bottom:32px}
+.faq-item{border-bottom:1px solid var(--b1);padding:18px 0}
+.faq-q{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:6px}
+.faq-a{font-size:13px;color:var(--t3);line-height:1.7}
+
+.upgrade-toast{position:fixed;bottom:24px;right:24px;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--t1);z-index:999;display:none;align-items:center;gap:8px;max-width:320px}
+.upgrade-toast.visible{display:flex}
+.upgrade-toast.success{border-color:var(--lime-b)}
+.upgrade-toast.error{border-color:rgba(240,99,90,0.3)}
+
+footer{padding:32px 5%;text-align:center;font-size:12px;color:var(--t4);border-top:1px solid var(--b1)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="landing.html" class="nav-logo">Notiv<span>.</span></a>
+  <div class="nav-right">
+    <a href="landing.html" class="nav-link">Home</a>
+    <a href="login.html" class="nav-signin">Sign in</a>
+    <a href="login.html?tab=signup" class="nav-cta">Get started free →</a>
+  </div>
+</nav>
+
+<div class="page-head">
+  <div class="page-head-glow"></div>
+  <div class="page-eyebrow"><span style="width:6px;height:6px;border-radius:50%;background:var(--lime)"></span>Pricing</div>
+  <div class="page-title">Simple pricing,<br>built for students</div>
+  <div class="page-sub">Start free with 5 AI credits a month. Upgrade any time for more credits and higher limits across every tool.</div>
+</div>
+
+<div class="pricing-section">
+  <div class="pricing-grid">
+
+    <!-- Free -->
+    <div class="plan-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-tagline">Try every tool, no card required.</div>
+      <div class="plan-price-row"><span class="plan-price">$0</span><span class="plan-period">/month</span></div>
+      <div class="plan-credits">5 AI credits / month</div>
+      <button class="plan-cta" id="cta-free" onclick="selectPlan('free')">Get started free</button>
+      <div class="plan-features">
+        <div class="pf-row"><span class="pf-check">✓</span> All study tools unlocked</div>
+        <div class="pf-row limit"><span class="pf-check">•</span> Up to <span class="pf-strong">8 cards</span> per flashcard deck</div>
+        <div class="pf-row limit"><span class="pf-check">•</span> Up to <span class="pf-strong">10 notes</span> stored</div>
+        <div class="pf-row limit"><span class="pf-check">•</span> Essays up to <span class="pf-strong">1,500 words</span> analyzed</div>
+        <div class="pf-row limit"><span class="pf-check">•</span> Planner up to <span class="pf-strong">1 week</span> ahead</div>
+      </div>
+    </div>
+
+    <!-- Starter -->
+    <div class="plan-card featured">
+      <div class="plan-badge">Most popular</div>
+      <div class="plan-name">Starter</div>
+      <div class="plan-tagline">For regular studying across all your classes.</div>
+      <div class="plan-price-row"><span class="plan-price">$4.99</span><span class="plan-period">/month</span></div>
+      <div class="plan-credits">150 AI credits / month</div>
+      <button class="plan-cta primary" id="cta-starter" onclick="selectPlan('starter')">Upgrade to Starter</button>
+      <div class="plan-features">
+        <div class="pf-row"><span class="pf-check">✓</span> Everything in Free</div>
+        <div class="pf-row limit"><span class="pf-check">•</span> Up to <span class="pf-strong">25 cards</span> per flashcard deck</div>
+        <div class="pf-row limit"><span class="pf-check">•</span> Up to <span class="pf-strong">50 notes</span> stored</div>
+        <div class="pf-row limit"><span class="pf-check">•</span> Essays up to <span class="pf-strong">4,000 words</span> analyzed</div>
+        <div class="pf-row limit"><span class="pf-check">•</span> Planner up to <span class="pf-strong">4 weeks</span> ahead</div>
+      </div>
+    </div>
+
+    <!-- Plus -->
+    <div class="plan-card">
+      <div class="plan-name">Plus</div>
+      <div class="plan-tagline">For heavy use, no limits on anything.</div>
+      <div class="plan-price-row"><span class="plan-price">$9.99</span><span class="plan-period">/month</span></div>
+      <div class="plan-credits">400 AI credits / month</div>
+      <button class="plan-cta" id="cta-plus" onclick="selectPlan('plus')">Upgrade to Plus</button>
+      <div class="plan-features">
+        <div class="pf-row"><span class="pf-check">✓</span> Everything in Starter</div>
+        <div class="pf-row"><span class="pf-check">✓</span> <span class="pf-strong">Unlimited</span> cards per deck</div>
+        <div class="pf-row"><span class="pf-check">✓</span> <span class="pf-strong">Unlimited</span> notes stored</div>
+        <div class="pf-row"><span class="pf-check">✓</span> <span class="pf-strong">Unlimited</span> essay length</div>
+        <div class="pf-row"><span class="pf-check">✓</span> <span class="pf-strong">Unlimited</span> planner length</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="compare-section">
+  <div class="compare-title">Compare plans</div>
+  <div class="compare-table-wrap">
+    <table class="compare-table">
+      <tr><th class="feat-col">Feature</th><th>Free</th><th>Starter</th><th>Plus</th></tr>
+      <tr><td>AI credits / month</td><td>5</td><td>150</td><td>400</td></tr>
+      <tr><td>Flashcards per deck</td><td>8</td><td>25</td><td class="yes">Unlimited</td></tr>
+      <tr><td>Notes stored</td><td>10</td><td>50</td><td class="yes">Unlimited</td></tr>
+      <tr><td>Essay word limit</td><td>1,500</td><td>4,000</td><td class="yes">Unlimited</td></tr>
+      <tr><td>Planner length</td><td>1 week</td><td>4 weeks</td><td class="yes">Unlimited</td></tr>
+      <tr><td>Google Classroom sync</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      <tr><td>All study tools</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="faq-section">
+  <div class="faq-title">Questions</div>
+  <div class="faq-item">
+    <div class="faq-q">What's a credit?</div>
+    <div class="faq-a">Every AI action — polishing a note, generating flashcards, analyzing an essay — costs a small number of credits based on actual usage. 1 credit ≈ $0.01 of AI processing.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Do unused credits roll over?</div>
+    <div class="faq-a">No — your credit balance refreshes to your plan's monthly amount every 30 days. This keeps pricing simple and predictable.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Can I cancel any time?</div>
+    <div class="faq-a">Yes. Cancel whenever you like and you'll keep your plan's benefits until the end of your current billing period, then drop back to Free.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Will my notes, decks, or essays disappear if I downgrade?</div>
+    <div class="faq-a">Never. Downgrading only changes future limits — anything you've already created stays exactly as it is.</div>
+  </div>
+</div>
+
+<footer>© 2026 Notiv. All rights reserved.</footer>
+
+<div class="upgrade-toast" id="upgrade-toast"><span id="ut-icon">✓</span><span id="ut-msg"></span></div>
+
+<script>
+const WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // Show success/cancel message if redirected back from Stripe
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('upgrade') === 'success') {
+    showToast('Upgrade successful! Your credits have been added. ✦', 'success');
+    history.replaceState({}, '', window.location.pathname);
+  } else if (params.get('upgrade') === 'cancelled') {
+    showToast('Checkout cancelled — no charge was made.', 'error');
+    history.replaceState({}, '', window.location.pathname);
+  }
+
+  await highlightCurrentPlan();
+});
+
+async function highlightCurrentPlan() {
+  let attempts = 0;
+  while (!window.supabase && attempts < 50) { await new Promise(r => setTimeout(r, 100)); attempts++; }
+  if (!window.supabase) return;
+
+  const sb = window.supabase.createClient(
+    'https://uorlszhcjrblrbmhgyqb.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg'
+  );
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+
+  try {
+    const res = await fetch(`${WORKER_URL}/credits/balance?user_id=${session.user.id}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const plan = data.plan || 'free';
+
+    ['free', 'starter', 'plus'].forEach(p => {
+      const btn = document.getElementById('cta-' + p);
+      if (!btn) return;
+      if (p === plan) {
+        btn.textContent = 'Current plan';
+        btn.classList.add('current');
+        btn.classList.remove('primary');
+        btn.disabled = true;
+      }
+    });
+  } catch {}
+}
+
+async function selectPlan(planKey) {
+  let attempts = 0;
+  while (!window.supabase && attempts < 50) { await new Promise(r => setTimeout(r, 100)); attempts++; }
+
+  const sb = window.supabase.createClient(
+    'https://uorlszhcjrblrbmhgyqb.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvcmxzemhjanJibHJibWhneXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0OTg3OTMsImV4cCI6MjA4OTA3NDc5M30.zeDHQMKzlw-fKkulYlBUJOhniYiN30WZK12sZTgLElg'
+  );
+
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    window.location.href = `login.html?redirect=${encodeURIComponent('pricing.html')}`;
+    return;
+  }
+
+  if (planKey === 'free') {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+
+  const btn = document.getElementById('cta-' + planKey);
+  const original = btn.textContent;
+  btn.textContent = 'Loading…'; btn.disabled = true;
+
+  try {
+    const res = await fetch(`${WORKER_URL}/billing/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: session.user.id, plan: planKey, email: session.user.email }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.checkout_url) {
+      showToast(data.error || 'Failed to start checkout', 'error');
+      btn.textContent = original; btn.disabled = false;
+      return;
+    }
+
+    window.location.href = data.checkout_url;
+  } catch (err) {
+    showToast('Network error — please try again.', 'error');
+    btn.textContent = original; btn.disabled = false;
+  }
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('upgrade-toast');
+  document.getElementById('ut-msg').textContent = msg;
+  document.getElementById('ut-icon').textContent = type === 'error' ? '✕' : '✓';
+  t.className = `upgrade-toast visible ${type}`;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('visible'), 5000);
+}
+</script>
+
+</body>
+</html>
