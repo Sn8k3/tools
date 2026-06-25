@@ -310,7 +310,9 @@ async function selectPlan(planKey) {
     const data = await res.json();
 
     if (!res.ok || !data.checkout_url) {
-      showToast(data.error || 'Failed to start checkout', 'error');
+      console.error('Checkout failed:', data);
+      const detailMsg = data.detail?.error?.message || data.detail?.message || '';
+      showToast((data.error || 'Failed to start checkout') + (detailMsg ? ': ' + detailMsg : ''), 'error');
       btn.textContent = original; btn.disabled = false;
       return;
     }
