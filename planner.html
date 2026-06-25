@@ -424,7 +424,7 @@ async function generateSchedule(){
   const latestExam=exams.slice().sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
   const subjectList=subjects.length?subjects.join(', '):exams.map(e=>e.name).join(', ');
   const prompt=`Create a study schedule as JSON. Start: ${startDate}, End: ${latestExam.date}, Exams: ${JSON.stringify(exams)}, Subjects: ${subjectList}, Daily hours: ${dailyHours}, Session: ${sessionLen}min, Days off: ${daysOff}. Return ONLY JSON: {"weeks":[{"weekNum":1,"days":[{"date":"YYYY-MM-DD","tasks":[{"id":"t1","subject":"name","title":"specific task","duration":${sessionLen},"priority":"high|medium|low"}]}]}]}. Be specific with task titles. Don't schedule on/after exam dates. Max ${Math.round(dailyHours*60/sessionLen)} sessions/day.`;
-  try{const data=await callAI({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]});if(!data)return;schedule=JSON.parse(data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());taskStatus={};savePlanner();showPlannerScreen();showToast('Schedule built ✦','success');}
+  try{const data=await callAI({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]});if(!data)return;schedule=JSON.parse(data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());taskStatus={};savePlanner();showPlannerScreen();showToast('Schedule built ✦','success');}
   catch(err){showToast('Failed: '+err.message,'error');}
   finally{document.getElementById('setup-processing').classList.remove('visible');document.getElementById('generate-btn').disabled=false;}
 }
@@ -596,7 +596,7 @@ async function adjustSchedule(){
   const doneTasks=Object.entries(taskStatus).filter(([,v])=>v).length;
   const totalTasks=schedule.weeks.flatMap(w=>w.days.flatMap(d=>d.tasks||[])).length;
   const prompt=`Adjust this study schedule: ${JSON.stringify(schedule)}. Student completed ${doneTasks}/${totalTasks} tasks. Their request: "${note}". Rebuild remaining incomplete schedule. Return same JSON format: {"weeks":[...]}. Mark new catch-up tasks with "behind":true.`;
-  try{const data=await callAI({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]});if(!data)return;schedule=JSON.parse(data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());savePlanner();closeAdjustModal();renderCurrentView();renderCountdowns();renderProgressSummary();showToast('Schedule adjusted ✦','success');}
+  try{const data=await callAI({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]});if(!data)return;schedule=JSON.parse(data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());savePlanner();closeAdjustModal();renderCurrentView();renderCountdowns();renderProgressSummary();showToast('Schedule adjusted ✦','success');}
   catch(err){showToast('Adjust failed: '+err.message,'error');}
   finally{document.getElementById('adjust-processing').classList.remove('visible');document.querySelector('#adjust-modal .btn.primary').disabled=false;}
 }
