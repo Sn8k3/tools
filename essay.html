@@ -418,7 +418,7 @@ Include 5-8 comments. Quotes must be exact substrings from the essay.
 Essay: ${essay.slice(0, 6000)}`;
 
   try {
-    const data = await callAI({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] });
+    const data = await callAI({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] });
     if (!data) return;
     currentAnalysis = JSON.parse(data.content.map(b => b.text||'').join('').replace(/```json|```/g,'').trim());
     renderScore(currentAnalysis);
@@ -442,7 +442,7 @@ async function rewriteEssay() {
   const tone = document.getElementById('tone-select').value;
   setLoading(true, 'Rewriting…');
   try {
-    const data = await callAI({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: `Rewrite this essay to be significantly better while keeping the author's core ideas. Tone: ${tone}. Return ONLY the rewritten essay.\n\n${essay.slice(0,6000)}` }] });
+    const data = await callAI({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: `Rewrite this essay to be significantly better while keeping the author's core ideas. Tone: ${tone}. Return ONLY the rewritten essay.\n\n${essay.slice(0,6000)}` }] });
     if (!data) return;
     currentRewrite = data.content.map(b => b.text||'').join('');
     document.getElementById('rewritten-text').textContent = currentRewrite;
