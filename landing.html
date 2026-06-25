@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Notiv — Study smarter with AI</title>
 <meta name="description" content="Notiv is your AI-powered study companion. Polish notes, ace essays, generate flashcards, quiz yourself, and plan your studies — all in one free tool.">
@@ -101,6 +104,18 @@ nav{position:sticky;top:0;z-index:100;display:flex;align-items:center;padding:0 
 /* Comparison */
 .comparison{padding:80px 5%;text-align:center}
 .comparison-table{max-width:700px;margin:48px auto 0;border:1px solid var(--b1);border-radius:14px;overflow:hidden}
+
+/* Pricing teaser */
+.pricing-teaser{padding:100px 5%;max-width:1000px;margin:0 auto}
+.pt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:760px;margin:0 auto}
+@media(max-width:768px){.pt-grid{grid-template-columns:1fr;max-width:360px}}
+.pt-card{background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:24px 20px;text-align:center;position:relative;transition:border-color 0.2s}
+.pt-card.pt-featured{border-color:var(--lime-b);background:linear-gradient(180deg,rgba(200,240,94,0.05) 0%,var(--s1) 100%)}
+.pt-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--lime);color:#080809;font-size:10px;font-weight:700;padding:3px 12px;border-radius:20px;font-family:'DM Mono',monospace;white-space:nowrap}
+.pt-name{font-family:'Playfair Display',serif;font-size:17px;color:var(--t1);margin-bottom:10px}
+.pt-price{font-family:'Playfair Display',serif;font-size:30px;color:var(--t1);margin-bottom:6px}
+.pt-price span{font-size:13px;color:var(--t4);font-family:'Instrument Sans',sans-serif}
+.pt-credits{font-size:12px;color:var(--lime);font-family:'DM Mono',monospace}
 .comp-row{display:grid;grid-template-columns:1fr 100px 100px;padding:14px 20px;border-bottom:1px solid var(--b1);align-items:center;font-size:14px}
 .comp-row:last-child{border-bottom:none}
 .comp-header{background:var(--s1);font-size:12px;font-family:'DM Mono',monospace;color:var(--t4);letter-spacing:0.06em;text-transform:uppercase}
@@ -149,6 +164,7 @@ footer{border-top:1px solid var(--b1);padding:32px 5%;display:flex;align-items:c
   <div class="nav-links-desktop">
     <a href="#features" class="nav-link">Features</a>
     <a href="#how" class="nav-link">How it works</a>
+    <a href="pricing.html" class="nav-link">Pricing</a>
     <a href="#testimonials" class="nav-link">Reviews</a>
   </div>
   <div class="nav-right">
@@ -330,6 +346,33 @@ footer{border-top:1px solid var(--b1);padding:32px 5%;display:flex;align-items:c
     <div class="comp-row"><div class="comp-feature">Citation helper (APA/MLA/Chicago)</div><div class="comp-notiv">✓</div><div class="comp-other">Partial</div></div>
     <div class="comp-row"><div class="comp-feature">Works in browser, no install</div><div class="comp-notiv">✓</div><div class="comp-other">Varies</div></div>
     <div class="comp-row"><div class="comp-feature">All tools in one app</div><div class="comp-notiv">✓</div><div class="comp-other">✕</div></div>
+  </div>
+</section>
+
+<!-- Pricing teaser -->
+<section class="pricing-teaser" id="pricing">
+  <h2 class="section-title animate-on-scroll" style="text-align:center">Simple pricing</h2>
+  <p class="section-sub animate-on-scroll" style="text-align:center;max-width:480px;margin:0 auto 40px">Start free. Upgrade any time for more AI credits and higher limits.</p>
+  <div class="pt-grid animate-on-scroll">
+    <div class="pt-card">
+      <div class="pt-name">Free</div>
+      <div class="pt-price">$0<span>/mo</span></div>
+      <div class="pt-credits">5 credits / month</div>
+    </div>
+    <div class="pt-card pt-featured">
+      <div class="pt-badge">Most popular</div>
+      <div class="pt-name">Starter</div>
+      <div class="pt-price">$4.99<span>/mo</span></div>
+      <div class="pt-credits">150 credits / month</div>
+    </div>
+    <div class="pt-card">
+      <div class="pt-name">Plus</div>
+      <div class="pt-price">$9.99<span>/mo</span></div>
+      <div class="pt-credits">400 credits / month</div>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:32px" class="animate-on-scroll">
+    <a href="pricing.html" class="cta-secondary">See full pricing & features →</a>
   </div>
 </section>
 
