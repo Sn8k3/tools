@@ -620,7 +620,7 @@ async function generateCards() {
     sourceText.slice(0, 6000);
 
   try {
-    const data = await callAI({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] });
+    const data = await callAI({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] });
     if (!data) return;
     const cards = JSON.parse(data.content.map(b => b.text||'').join('').replace(/```json|```/g,'').trim());
     const deck = { id: Date.now(), name: deckName, cards, difficulty: currentDifficulty, created: new Date().toLocaleDateString('en-US', {month:'short',day:'numeric'}), status: {} };
