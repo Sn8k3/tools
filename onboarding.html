@@ -677,6 +677,12 @@ async function finishOnboarding() {
 }
 
 function goToApp() {
+  // If they clicked a pricing CTA before signing up, resume that upgrade now
+  const pendingPlan = localStorage.getItem('notiv-pending-upgrade');
+  if (pendingPlan === 'starter' || pendingPlan === 'plus') {
+    window.location.href = 'https://sn8k3.github.io/tools/pricing.html';
+    return;
+  }
   window.location.href = 'https://sn8k3.github.io/tools/dashboard.html';
 }
 </script>
