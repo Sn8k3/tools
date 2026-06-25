@@ -267,7 +267,7 @@ Don't make up information about the user's specific notes content — only use w
       apiMessages[apiMessages.length - 1] = { role: 'user', content: text };
 
       const data = await callAI({
-        model: 'claude-sonnet-4-20250514', max_tokens: 400,
+        model: 'claude-sonnet-4-6', max_tokens: 400,
         system: systemPrompt,
         messages: apiMessages,
       });
