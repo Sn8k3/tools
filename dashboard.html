@@ -186,6 +186,61 @@ body::after {
 .qi-label { font-size: 12px; font-weight: 500; color: var(--t1); }
 .qi-count { font-size: 10px; color: var(--t4); font-family: 'DM Mono', monospace; }
 
+/* ── Dashboard pricing section ── */
+.dash-pricing {
+  margin-bottom: 16px;
+}
+.dp-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dp-title {
+  font-family: 'Playfair Display', serif; font-size: 19px; color: var(--t1);
+}
+.dp-link {
+  font-size: 12px; color: var(--t4); text-decoration: none;
+  font-family: 'DM Mono', monospace; transition: color 0.12s;
+}
+.dp-link:hover { color: var(--lime); }
+.dp-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.dp-card {
+  background: var(--s1); border: 1px solid var(--b1); border-radius: var(--rl);
+  padding: 18px 16px; position: relative; transition: border-color 0.2s;
+}
+.dp-card.dp-featured {
+  border-color: var(--lime-b);
+  background: linear-gradient(180deg, rgba(200,240,94,0.04) 0%, var(--s1) 100%);
+}
+.dp-badge {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  background: var(--lime); color: #080809; font-size: 9px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px; font-family: 'DM Mono', monospace;
+  white-space: nowrap;
+}
+.dp-name { font-size: 14px; font-weight: 600; color: var(--t1); margin-bottom: 8px; }
+.dp-price { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--t1); margin-bottom: 2px; }
+.dp-price span { font-size: 11px; color: var(--t4); font-family: 'Instrument Sans', sans-serif; }
+.dp-credits { font-size: 11px; color: var(--lime); font-family: 'DM Mono', monospace; margin-bottom: 14px; }
+.dp-cta {
+  display: block; width: 100%; text-align: center; padding: 8px;
+  border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--b2); color: var(--t2); background: none;
+  font-family: inherit; margin-bottom: 14px; transition: all 0.15s;
+}
+.dp-cta:hover { border-color: var(--b3); color: var(--t1); }
+.dp-cta.dp-primary { background: var(--lime); border-color: var(--lime); color: #080809; }
+.dp-cta.dp-primary:hover { background: #d8ff74; }
+.dp-cta:disabled { opacity: 0.5; cursor: default; }
+.dp-cta.dp-current { background: var(--s2); border-color: var(--b2); color: var(--t3); }
+.dp-features { display: flex; flex-direction: column; gap: 6px; }
+.dp-f {
+  font-size: 11px; color: var(--t3); padding-left: 14px; position: relative;
+}
+.dp-f::before { content: '•'; position: absolute; left: 0; color: var(--t4); }
+@media (max-width: 900px) { .dp-grid { grid-template-columns: 1fr; } }
+
 /* ── Main grid ── */
 .main-grid {
   display: grid;
@@ -830,6 +885,57 @@ body.sidebar-collapsed { padding-left: 52px; }
     </a>
   </div>
 
+  <!-- Pricing section -->
+  <div class="dash-pricing fu d8">
+    <div class="dp-head">
+      <div class="dp-title">Plans &amp; pricing</div>
+      <a href="pricing.html" class="dp-link">Full details →</a>
+    </div>
+    <div class="dp-grid">
+
+      <div class="dp-card" id="dp-free">
+        <div class="dp-name">Free</div>
+        <div class="dp-price">$0<span>/mo</span></div>
+        <div class="dp-credits">5 credits / month</div>
+        <button class="dp-cta" id="dp-cta-free" onclick="window.location.href='dashboard.html'">Current default</button>
+        <div class="dp-features">
+          <div class="dp-f">8 cards / deck</div>
+          <div class="dp-f">10 notes stored</div>
+          <div class="dp-f">1,500 word essays</div>
+          <div class="dp-f">1 week planner</div>
+        </div>
+      </div>
+
+      <div class="dp-card dp-featured" id="dp-starter">
+        <div class="dp-badge">Most popular</div>
+        <div class="dp-name">Starter</div>
+        <div class="dp-price">$4.99<span>/mo</span></div>
+        <div class="dp-credits">150 credits / month</div>
+        <button class="dp-cta dp-primary" id="dp-cta-starter" onclick="dpUpgrade('starter')">Upgrade</button>
+        <div class="dp-features">
+          <div class="dp-f">25 cards / deck</div>
+          <div class="dp-f">50 notes stored</div>
+          <div class="dp-f">4,000 word essays</div>
+          <div class="dp-f">4 week planner</div>
+        </div>
+      </div>
+
+      <div class="dp-card" id="dp-plus">
+        <div class="dp-name">Plus</div>
+        <div class="dp-price">$9.99<span>/mo</span></div>
+        <div class="dp-credits">400 credits / month</div>
+        <button class="dp-cta" id="dp-cta-plus" onclick="dpUpgrade('plus')">Upgrade</button>
+        <div class="dp-features">
+          <div class="dp-f">Unlimited cards / deck</div>
+          <div class="dp-f">Unlimited notes</div>
+          <div class="dp-f">Unlimited essay length</div>
+          <div class="dp-f">Unlimited planner</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Main grid -->
   <div class="main-grid">
 
@@ -1259,6 +1365,69 @@ function renderGrades() {
 
 // Init grades on load
 document.addEventListener('DOMContentLoaded', () => { renderGrades(); });
+
+// ── Dashboard pricing section ──
+const DP_WORKER = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(highlightDashboardPlan, 700);
+});
+
+async function highlightDashboardPlan() {
+  try {
+    const sb = await getSBAsync();
+    if (!sb) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+
+    const res = await fetch(`${DP_WORKER}/credits/balance?user_id=${session.user.id}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const plan = data.plan || 'free';
+
+    ['free', 'starter', 'plus'].forEach(p => {
+      const btn = document.getElementById('dp-cta-' + p);
+      if (!btn) return;
+      if (p === plan) {
+        btn.textContent = 'Current plan';
+        btn.classList.add('dp-current');
+        btn.classList.remove('dp-primary');
+        btn.disabled = true;
+      }
+    });
+  } catch (err) {
+    console.warn('[dashboard] Failed to load plan for pricing section:', err);
+  }
+}
+
+async function dpUpgrade(planKey) {
+  try {
+    const sb = await getSBAsync();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'login.html?redirect=' + encodeURIComponent('dashboard.html'); return; }
+
+    const btn = document.getElementById('dp-cta-' + planKey);
+    const original = btn.textContent;
+    btn.textContent = 'Loading…'; btn.disabled = true;
+
+    const res = await fetch(`${DP_WORKER}/billing/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: session.user.id, plan: planKey, email: session.user.email }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.checkout_url) {
+      console.error('[dashboard] Checkout failed:', data);
+      btn.textContent = original; btn.disabled = false;
+      return;
+    }
+
+    window.location.href = data.checkout_url;
+  } catch (err) {
+    console.error('[dashboard] dpUpgrade error:', err);
+  }
+}
 </script>
 <script src="prefs.js" defer></script>
 <script src="sidebar.js" defer></script>
