@@ -282,7 +282,7 @@ async function runTool() {
   if (!text) { toast('Write something first', false); return; }
   setLoading(true, TOOL_PROMPTS[activeTool].label + '…');
   try {
-    const data = await callAI({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: TOOL_PROMPTS[activeTool].prompt + '\n\n' + text }] });
+    const data = await callAI({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: TOOL_PROMPTS[activeTool].prompt + '\n\n' + text }] });
     if (!data) return;
     lastOutput = data.content.map(b => b.text || '').join('');
     document.getElementById('output-content').innerHTML = `<div class="output-result">${escH(lastOutput)}</div>`;
