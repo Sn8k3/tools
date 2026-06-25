@@ -245,6 +245,7 @@ const BASE = 'https://sn8k3.github.io/tools/';
 
 const params = new URLSearchParams(window.location.search);
 const redirectTo = params.get('redirect') || BASE + 'dashboard.html';
+const requestedPlan = params.get('plan'); // 'starter' | 'plus' | null
 
 if (params.get('tab') === 'signup') {
   document.addEventListener('DOMContentLoaded', () => switchTab('signup'));
@@ -256,6 +257,11 @@ async function routeAfterAuth(user) {
   if (_routing) return;
   _routing = true;
   try {
+    // Remember a requested plan upgrade so we can resume checkout after onboarding
+    if (requestedPlan === 'starter' || requestedPlan === 'plus') {
+      localStorage.setItem('notiv-pending-upgrade', requestedPlan);
+    }
+
     const isNew = await checkIsNewUser(user);
     if (isNew) {
       // Pass Google metadata to onboarding via localStorage
@@ -266,6 +272,9 @@ async function routeAfterAuth(user) {
         provider: user.app_metadata?.provider || 'email',
       }));
       window.location.replace(BASE + 'onboarding.html');
+    } else if (requestedPlan === 'starter' || requestedPlan === 'plus') {
+      // Returning user clicked a plan CTA — send straight to pricing to resume checkout
+      window.location.replace(BASE + 'pricing.html');
     } else {
       window.location.replace(redirectTo);
     }
