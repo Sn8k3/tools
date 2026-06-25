@@ -504,7 +504,11 @@
     const sidebar = document.getElementById('nav-sidebar');
     const btn = document.getElementById('sidebar-toggle-btn');
     if (!sidebar || !btn) return;
-    if (localStorage.getItem('notiv-sidebar-collapsed') === '1') {
+    // Default to collapsed: only stay expanded if the user explicitly chose '0' before.
+    // Any other value (including unset / first visit) collapses by default.
+    const stored = localStorage.getItem('notiv-sidebar-collapsed');
+    const shouldCollapse = stored !== '0';
+    if (shouldCollapse) {
       sidebar.classList.add('collapsed');
       document.body.classList.add('sidebar-collapsed');
       btn.textContent = '›';
@@ -658,7 +662,8 @@
     const level  = calcLevel(xp);
     const pct    = calcXPPct(xp);
     const streak = calcStreak();
-    const collapsed = localStorage.getItem('notiv-sidebar-collapsed') === '1';
+    // Default to collapsed: only stay expanded if the user explicitly chose '0' before.
+    const collapsed = localStorage.getItem('notiv-sidebar-collapsed') !== '0';
 
     // Sidebar element
     const sidebar = document.createElement('aside');
