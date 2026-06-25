@@ -187,8 +187,9 @@
       border-bottom: 1px solid #22222a;
       flex-shrink: 0;
       overflow: hidden;
-      transition: opacity 0.15s;
+      transition: opacity 0.15s, background 0.12s;
     }
+    .nsb-credits:hover { background: #16161a; }
     #notiv-sidebar.collapsed .nsb-credits,
     #nav-sidebar.collapsed .nsb-credits { opacity: 0; pointer-events: none; padding: 0; height: 0; border: none; }
     .nsb-credits-row {
@@ -621,7 +622,7 @@
 
   function buildCreditsSection() {
     return `
-      <div class="nsb-credits">
+      <a href="pricing.html" class="nsb-credits" style="display:block;text-decoration:none;cursor:pointer">
         <div class="nsb-credits-row">
           <span class="nsb-credits-label">Credits</span>
           <span class="nsb-credits-val credit-bar-label">— / —</span>
@@ -630,7 +631,7 @@
           <div class="nsb-credits-fill credit-bar-fill" style="width:0%"></div>
         </div>
         <div class="nsb-credits-refresh credit-refresh-label"></div>
-      </div>`;
+      </a>`;
   }
 
   function buildXPSection(xp, level, pct, streak) {
