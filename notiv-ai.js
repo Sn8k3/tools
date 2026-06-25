@@ -164,14 +164,29 @@ async function fetchCreditBalance() {
     try {
       const { data: { session } } = await sb.auth.getSession();
       user = session?.user || null;
-    } catch {}
+    } catch (err) {
+      console.warn('[notiv-ai] Failed to get session:', err);
+    }
   }
-  if (!user) return null;
+  if (!user) {
+    console.warn('[notiv-ai] fetchCreditBalance: no logged-in user found, skipping.');
+    return null;
+  }
 
   try {
     const res = await fetch(`${NOTIV_WORKER_URL}/credits/balance?user_id=${encodeURIComponent(user.id)}`);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error(`[notiv-ai] /credits/balance returned ${res.status}:`, text);
+      return null;
+    }
     const data = await res.json();
+
+    if (typeof data.balance !== 'number') {
+      console.error('[notiv-ai] /credits/balance response missing balance field:', data);
+      return null;
+    }
+
     updateCreditUI(data.balance, data.monthly_cap);
 
     document.querySelectorAll('.credit-refresh-label').forEach(el => {
@@ -179,7 +194,8 @@ async function fetchCreditBalance() {
     });
 
     return data;
-  } catch {
+  } catch (err) {
+    console.error('[notiv-ai] fetchCreditBalance network error:', err);
     return null;
   }
 }
