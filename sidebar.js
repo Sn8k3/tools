@@ -18,6 +18,7 @@
     { label: 'AI Writer',  icon: '✍️',  href: 'writer.html',    section: 'Study' },
     { label: 'Timer',      icon: '⏱',  href: 'timer.html',     section: 'Study' },
     { label: 'Citations',  icon: '📎', href: 'citations.html', section: 'Research' },
+    { label: 'Pricing',    icon: '💳', href: 'pricing.html',   section: 'Account' },
     { label: 'Profile',    icon: '👤', href: 'profile.html',   section: 'Account' },
     { label: 'Settings',   icon: '⚙️',  href: 'settings.html', section: 'Account' },
   ];
