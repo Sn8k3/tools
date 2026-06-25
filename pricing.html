@@ -233,6 +233,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await highlightCurrentPlan();
+
+  // Resume a checkout that was requested before sign-up/onboarding
+  const pendingPlan = localStorage.getItem('notiv-pending-upgrade');
+  if (pendingPlan === 'starter' || pendingPlan === 'plus') {
+    localStorage.removeItem('notiv-pending-upgrade'); // clear so it only fires once
+    selectPlan(pendingPlan);
+  }
 });
 
 async function highlightCurrentPlan() {
