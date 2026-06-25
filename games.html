@@ -405,7 +405,7 @@ Return ONLY valid JSON:
 }
 Include 10 words, 8 pairs, 12 questions. Keep definitions short (under 10 words). Scramble each word randomly.`;
   try {
-    const data = await callAI({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]});
+    const data = await callAI({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:prompt}]});
     if(!data) return;
     gameData = JSON.parse(data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim());
     // Re-scramble words properly
