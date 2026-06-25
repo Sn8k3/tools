@@ -60,8 +60,8 @@ async function callAI(payload) {
 
 function showOutOfCreditsModal(refreshAt) {
   const sub = refreshAt
-    ? `You've used all your credits for this month. They'll refresh automatically on ${formatRefreshDate(refreshAt)}.`
-    : `You've used all your free AI credits. Pricing plans are coming soon — check back shortly!`;
+    ? `You've used all your credits for this month. They'll refresh automatically on ${formatRefreshDate(refreshAt)}, or upgrade now for more.`
+    : `You've used all your free AI credits this month. Upgrade for more credits and higher limits across every tool.`;
 
   const existing = document.getElementById('notiv-credits-modal');
   if (existing) {
@@ -80,6 +80,8 @@ function showOutOfCreditsModal(refreshAt) {
     .ncm-title { font-family:'Playfair Display',serif; font-size:22px; color:#f0ede8; }
     .ncm-sub { font-size:13px; color:#9b9893; line-height:1.6; }
     .ncm-btns { display:flex; gap:8px; width:100%; margin-top:4px; }
+    .ncm-btn-primary { flex:1; padding:10px; border-radius:9px; border:none; background:#c8f05e; color:#080809; font-family:'Instrument Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer; text-decoration:none; display:flex; align-items:center; justify-content:center; }
+    .ncm-btn-primary:hover { background:#d8ff74; }
     .ncm-btn-secondary { flex:1; padding:10px; border-radius:9px; border:1px solid #2e2e38; background:none; color:#9b9893; font-family:'Instrument Sans',sans-serif; font-size:14px; cursor:pointer; }
     .ncm-close { position:absolute; top:14px; right:16px; background:none; border:none; color:#5a5855; font-size:18px; cursor:pointer; }
   `;
@@ -94,6 +96,7 @@ function showOutOfCreditsModal(refreshAt) {
       <div class="ncm-sub">${sub}</div>
       <div class="ncm-btns">
         <button class="ncm-btn-secondary" onclick="document.getElementById('notiv-credits-modal').classList.remove('visible')">Close</button>
+        <a class="ncm-btn-primary" href="pricing.html">Upgrade →</a>
       </div>
     </div>
   `;
