@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /landing.html
+Allow: /index.html
+Allow: /pricing.html
+Allow: /login.html
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /Notiv_N.png
+
+Disallow: /dashboard.html
+Disallow: /notes.html
+Disallow: /essay.html
+Disallow: /flashcards.html
+Disallow: /quiz.html
+Disallow: /planner.html
+Disallow: /explainer.html
+Disallow: /games.html
+Disallow: /writer.html
+Disallow: /timer.html
+Disallow: /citations.html
+Disallow: /profile.html
+Disallow: /settings.html
+Disallow: /onboarding.html
+Disallow: /marketing.html
+
+Sitemap: https://notiv.org/sitemap.xml
