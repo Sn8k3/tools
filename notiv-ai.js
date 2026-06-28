@@ -147,6 +147,12 @@ function updateCreditUI(balance, cap) {
   document.querySelectorAll('.credit-bar-label').forEach(el => {
     el.textContent = `${balance} / ${safeCap} credits`;
   });
+
+  // Cache so the next page load can render instantly at the right width
+  // instead of starting at 0% and animating up (see buildCreditsSection in sidebar.js).
+  try {
+    localStorage.setItem('notiv-credits-cache', JSON.stringify({ balance, cap: safeCap }));
+  } catch {}
 }
 
 function formatRefreshDate(iso) {
