@@ -221,7 +221,7 @@
       height: 100%;
       background: #a07ee8;
       border-radius: 3px;
-      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+      transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
     }
     .nsb-credits-fill.low { background: #f0ae50; }
     .nsb-credits-fill.empty { background: #f0635a; }
