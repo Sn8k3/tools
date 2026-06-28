@@ -36,10 +36,26 @@
       injectCreditsIntoHandCodedSidebar();
       injectXPToast();
       restoreCollapse();
+      triggerCreditFetch();
       return;
     }
     inject();
     wireNotivAwardXP();
+    triggerCreditFetch();
+  }
+
+  // Explicitly call fetchCreditBalance() (defined in notiv-ai.js) AFTER the
+  // credits bar markup exists in the DOM. This removes a previous race
+  // condition: notiv-ai.js used to register its OWN independent
+  // DOMContentLoaded listener for this, and whichever listener fired second
+  // (registration order = execution order for same-event listeners) would
+  // either overwrite fresh data with a stale render, or run before the bar
+  // element even existed. Calling it directly, in sequence, from right here
+  // guarantees correct ordering regardless of script tag order in any page.
+  function triggerCreditFetch() {
+    if (typeof fetchCreditBalance === 'function') {
+      fetchCreditBalance();
+    }
   }
 
   // Pages like dashboard.html, notes.html, flashcards.html build their own
@@ -626,27 +642,25 @@
   }
 
   function buildCreditsSection() {
-    // Render with the last known balance immediately (from localStorage) so
-    // there's no visible 0%-to-X% flash on every page load. fetchCreditBalance()
-    // in notiv-ai.js will silently correct this once the real fetch completes.
-    let cachedBalance = 0, cachedCap = 5, cachedPct = 0;
-    try {
-      const cached = JSON.parse(localStorage.getItem('notiv-credits-cache') || 'null');
-      if (cached && typeof cached.balance === 'number') {
-        cachedBalance = cached.balance;
-        cachedCap = cached.cap || 5;
-        cachedPct = Math.max(0, Math.min(100, (cachedBalance / cachedCap) * 100));
-      }
-    } catch {}
-
+    // NOTE: We intentionally do NOT pre-fill this from a localStorage cache.
+    // notiv-ai.js's fetchCreditBalance() is the single source of truth and
+    // runs on every page load via its own DOMContentLoaded listener. Because
+    // that listener is async (awaits getSBAsync + fetch), and sidebar.js's
+    // init() runs synchronously in the SAME DOMContentLoaded dispatch cycle,
+    // rendering a cached value here would get queried/overwritten in a race:
+    // fetchCreditBalance starts -> yields at first await -> sidebar.js finishes
+    // synchronously and (with a cache) would render stale numbers -> THEN the
+    // real fetch resolves and corrects it. That two-step render is exactly the
+    // visible "reset" flash. Rendering a neutral loading state here avoids ever
+    // showing a wrong number — it shows "—" once, then the real value once.
     return `
       <a href="pricing.html" class="nsb-credits" style="display:block;text-decoration:none;cursor:pointer">
         <div class="nsb-credits-row">
           <span class="nsb-credits-label">Credits</span>
-          <span class="nsb-credits-val credit-bar-label">${cachedBalance} / ${cachedCap}</span>
+          <span class="nsb-credits-val credit-bar-label">···</span>
         </div>
         <div class="nsb-credits-track">
-          <div class="nsb-credits-fill credit-bar-fill" style="width:${cachedPct}%"></div>
+          <div class="nsb-credits-fill credit-bar-fill" style="width:0%"></div>
         </div>
         <div class="nsb-credits-refresh credit-refresh-label"></div>
       </a>`;
