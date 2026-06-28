@@ -13,14 +13,19 @@ const NOTIV_WORKER_URL = 'https://tiny-hat-80bd.charlieweis6.workers.dev';
 
 async function callAI(payload) {
   const sb = await getSBAsync();
-  let user = getUser();
-
-  if (!user && sb) {
-    try {
-      const { data: { session } } = await sb.auth.getSession();
-      user = session?.user || null;
-    } catch {}
+  if (!sb) {
+    showCreditToast('Could not connect — please reload the page.', 'error');
+    return null;
   }
+
+  let user = null;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    user = session?.user || null;
+  } catch {}
+
+  // Fallback to auth.js's cached value (harmless either way)
+  if (!user) user = getUser();
 
   if (!user) {
     showAuthModal();
@@ -158,29 +163,56 @@ function formatRefreshDate(iso) {
 // Fetch the current balance from the Worker (this also triggers the
 // monthly auto-refresh check server-side, so call this on every page load).
 async function fetchCreditBalance() {
+  console.log('[notiv-ai] fetchCreditBalance() started');
+
+  // getUser() (from auth.js) only returns a value AFTER auth.js's own
+  // initAuth() has resolved sb.auth.getSession(). That happens inside auth.js's
+  // OWN DOMContentLoaded listener, asynchronously — there is no guarantee it
+  // has finished by the time sidebar.js calls this function, even though
+  // auth.js's listener is registered first. Registration order only guarantees
+  // listeners START in that order, not that earlier ones FINISH first when
+  // they contain unawaited async work. So instead of checking getUser() once,
+  // we get the session directly here ourselves — this is the actual fix.
   const sb = await getSBAsync();
-  let user = getUser();
-  if (!user && sb) {
-    try {
-      const { data: { session } } = await sb.auth.getSession();
-      user = session?.user || null;
-    } catch (err) {
-      console.warn('[notiv-ai] Failed to get session:', err);
-    }
-  }
-  if (!user) {
-    console.warn('[notiv-ai] fetchCreditBalance: no logged-in user found, skipping.');
+  console.log('[notiv-ai] getSBAsync() resolved:', sb ? 'got client' : 'NULL (SDK never loaded)');
+
+  if (!sb) {
+    console.error('[notiv-ai] fetchCreditBalance: no Supabase client available — exiting.');
     return null;
   }
 
+  let user = null;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    user = session?.user || null;
+    console.log('[notiv-ai] sb.auth.getSession() returned user:', user ? user.id : 'null');
+  } catch (err) {
+    console.warn('[notiv-ai] Failed to get session:', err);
+  }
+
+  // Fallback to auth.js's cached value in case it resolved first (harmless either way)
+  if (!user) {
+    user = getUser();
+    console.log('[notiv-ai] Falling back to getUser():', user ? user.id : 'still null');
+  }
+
+  if (!user) {
+    console.warn('[notiv-ai] fetchCreditBalance: NO USER FOUND after checking session directly — exiting before fetch.');
+    return null;
+  }
+
+  console.log('[notiv-ai] About to fetch /credits/balance for user', user.id);
+
   try {
     const res = await fetch(`${NOTIV_WORKER_URL}/credits/balance?user_id=${encodeURIComponent(user.id)}`);
+    console.log('[notiv-ai] fetch completed, status:', res.status);
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       console.error(`[notiv-ai] /credits/balance returned ${res.status}:`, text);
       return null;
     }
     const data = await res.json();
+    console.log('[notiv-ai] /credits/balance response data:', data);
 
     if (typeof data.balance !== 'number') {
       console.error('[notiv-ai] /credits/balance response missing balance field:', data);
@@ -188,6 +220,7 @@ async function fetchCreditBalance() {
     }
 
     updateCreditUI(data.balance, data.monthly_cap);
+    console.log('[notiv-ai] updateCreditUI called with balance =', data.balance, 'cap =', data.monthly_cap);
 
     document.querySelectorAll('.credit-refresh-label').forEach(el => {
       el.textContent = `Refreshes ${formatRefreshDate(data.refresh_at)}`;
