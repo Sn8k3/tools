@@ -200,7 +200,8 @@ async function fetchCreditBalance() {
   }
 }
 
-// Auto-run on every page that includes this script (after auth.js has a chance to init)
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(fetchCreditBalance, 600);
-});
+// Auto-run on every page that includes this script.
+// No artificial delay needed — getSBAsync() inside fetchCreditBalance already
+// polls for the Supabase SDK as soon as it's ready, so calling immediately
+// just lets it resolve as fast as possible instead of always waiting a fixed amount.
+document.addEventListener('DOMContentLoaded', fetchCreditBalance);
