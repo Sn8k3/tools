@@ -147,12 +147,6 @@ function updateCreditUI(balance, cap) {
   document.querySelectorAll('.credit-bar-label').forEach(el => {
     el.textContent = `${balance} / ${safeCap} credits`;
   });
-
-  // Cache so the next page load can render instantly at the right width
-  // instead of starting at 0% and animating up (see buildCreditsSection in sidebar.js).
-  try {
-    localStorage.setItem('notiv-credits-cache', JSON.stringify({ balance, cap: safeCap }));
-  } catch {}
 }
 
 function formatRefreshDate(iso) {
@@ -206,8 +200,12 @@ async function fetchCreditBalance() {
   }
 }
 
-// Auto-run on every page that includes this script.
-// No artificial delay needed — getSBAsync() inside fetchCreditBalance already
-// polls for the Supabase SDK as soon as it's ready, so calling immediately
-// just lets it resolve as fast as possible instead of always waiting a fixed amount.
-document.addEventListener('DOMContentLoaded', fetchCreditBalance);
+// NOTE: fetchCreditBalance() is intentionally NOT auto-run from a
+// DOMContentLoaded listener here. sidebar.js calls it directly, in sequence,
+// immediately after it finishes injecting the credits bar markup into the
+// page. That ordering used to be left to chance (two independent
+// DOMContentLoaded listeners racing based on script tag order), which caused
+// a visible "reset" flash — see the comment above buildCreditsSection() in
+// sidebar.js for the full explanation. If a page loads notiv-ai.js WITHOUT
+// sidebar.js, the credits bar simply won't exist on that page, so there is
+// nothing for this function to update anyway.
