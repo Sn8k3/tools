@@ -626,14 +626,27 @@
   }
 
   function buildCreditsSection() {
+    // Render with the last known balance immediately (from localStorage) so
+    // there's no visible 0%-to-X% flash on every page load. fetchCreditBalance()
+    // in notiv-ai.js will silently correct this once the real fetch completes.
+    let cachedBalance = 0, cachedCap = 5, cachedPct = 0;
+    try {
+      const cached = JSON.parse(localStorage.getItem('notiv-credits-cache') || 'null');
+      if (cached && typeof cached.balance === 'number') {
+        cachedBalance = cached.balance;
+        cachedCap = cached.cap || 5;
+        cachedPct = Math.max(0, Math.min(100, (cachedBalance / cachedCap) * 100));
+      }
+    } catch {}
+
     return `
       <a href="pricing.html" class="nsb-credits" style="display:block;text-decoration:none;cursor:pointer">
         <div class="nsb-credits-row">
           <span class="nsb-credits-label">Credits</span>
-          <span class="nsb-credits-val credit-bar-label">— / —</span>
+          <span class="nsb-credits-val credit-bar-label">${cachedBalance} / ${cachedCap}</span>
         </div>
         <div class="nsb-credits-track">
-          <div class="nsb-credits-fill credit-bar-fill" style="width:0%"></div>
+          <div class="nsb-credits-fill credit-bar-fill" style="width:${cachedPct}%"></div>
         </div>
         <div class="nsb-credits-refresh credit-refresh-label"></div>
       </a>`;
