@@ -53,8 +53,12 @@
   // element even existed. Calling it directly, in sequence, from right here
   // guarantees correct ordering regardless of script tag order in any page.
   function triggerCreditFetch() {
+    console.log('[sidebar.js] triggerCreditFetch() called');
     if (typeof fetchCreditBalance === 'function') {
+      console.log('[sidebar.js] calling fetchCreditBalance() now...');
       fetchCreditBalance();
+    } else {
+      console.error('[sidebar.js] fetchCreditBalance is NOT a function — notiv-ai.js may not have loaded correctly');
     }
   }
 
